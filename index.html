@@ -1,44 +1,248 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Global Baby Birth Tracker</title>
+  <title>Global Birth Monitor | Live</title>
+  <!-- Use stable CDNs for single-file deployment -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #0f172a;
+      background-color: #020617; /* Slate 950 */
       color: #f8fafc;
-      overflow-x: hidden;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
     }
-    .mono {
-      font-family: 'JetBrains+Mono', monospace;
+    .mono { font-family: 'JetBrains+Mono', monospace; }
+    /* Ensure the SVG is crisp */
+    svg { 
+      display: block; 
+      shape-rendering: geometricPrecision;
     }
-    /* Custom glow effects */
-    .glow-pink {
-      box-shadow: 0 0 20px rgba(244, 114, 182, 0.3);
+    .land {
+      fill: #334155; /* Slate 700 - Higher contrast for clarity */
+      stroke: #475569; /* Slate 600 - Visible borders */
+      stroke-width: 0.5;
+      transition: fill 0.3s ease;
     }
-    .glow-blue {
-      box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+    /* Glow effect for the gold counter */
+    .gold-glow {
+      filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.4));
     }
   </style>
 <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "d3": "https://esm.sh/d3@^7.9.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+    "d3": "https://esm.sh/d3@^7.9.0"
   }
 }
 </script>
 </head>
 <body>
   <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    // --- Data Constants ---
+    const GLOBAL_BIRTHS_PER_SECOND = 4.3;
+    const COUNTRIES = [
+      { id: 'IND', name: 'India', weight: 24.2 }, { id: 'CHN', name: 'China', weight: 9.4 },
+      { id: 'NGA', name: 'Nigeria', weight: 8.0 }, { id: 'PAK', name: 'Pakistan', weight: 6.4 },
+      { id: 'IDN', name: 'Indonesia', weight: 4.5 }, { id: 'USA', name: 'USA', weight: 3.6 },
+      { id: 'ETH', name: 'Ethiopia', weight: 3.9 }, { id: 'BRA', name: 'Brazil', weight: 2.7 },
+      { id: 'BGD', name: 'Bangladesh', weight: 3.0 }, { id: 'COD', name: 'DR Congo', weight: 4.1 },
+      { id: 'RUS', name: 'Russia', weight: 1.4 }, { id: 'MEX', name: 'Mexico', weight: 2.0 },
+      { id: 'PHL', name: 'Philippines', weight: 2.0 }, { id: 'EGY', name: 'Egypt', weight: 2.6 },
+      { id: 'VNM', name: 'Vietnam', weight: 1.5 }, { id: 'TUR', name: 'Turkey', weight: 1.2 },
+      { id: 'DEU', name: 'Germany', weight: 0.8 }, { id: 'GBR', name: 'UK', weight: 0.7 },
+      { id: 'FRA', name: 'France', weight: 0.7 }, { id: 'ZAF', name: 'South Africa', weight: 1.2 },
+      { id: 'OTHER', name: 'Rest of World', weight: 12.0 }
+    ];
+
+    // --- Components ---
+
+    const WorldMap = ({ activeCountryId }) => {
+      const svgRef = useRef(null);
+      const [geoData, setGeoData] = useState(null);
+
+      // Load Map Data
+      useEffect(() => {
+        fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
+          .then(res => res.json())
+          .then(data => setGeoData(data))
+          .catch(err => console.error("Map loading failed:", err));
+      }, []);
+
+      // Initialize Map
+      useEffect(() => {
+        if (!geoData || !svgRef.current) return;
+
+        const svg = d3.select(svgRef.current);
+        const width = svgRef.current.clientWidth;
+        const height = svgRef.current.clientHeight;
+
+        svg.selectAll("*").remove();
+
+        // High-clarity projection
+        const projection = d3.geoMercator()
+          .scale(width / 6.2)
+          .translate([width / 2, height / 1.55]);
+
+        const path = d3.geoPath().projection(projection);
+        const mapGroup = svg.append("g");
+
+        mapGroup.selectAll("path")
+          .data(geoData.features)
+          .enter()
+          .append("path")
+          .attr("d", path)
+          .attr("class", d => `land country-${d.id}`)
+          .style("transition", "fill 0.5s ease, filter 0.5s ease");
+
+        // Resize handler
+        const handleResize = () => {
+          if (!svgRef.current) return;
+          const w = svgRef.current.clientWidth;
+          const h = svgRef.current.clientHeight;
+          projection.scale(w / 6.2).translate([w / 2, h / 1.55]);
+          mapGroup.selectAll("path").attr("d", path);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, [geoData]);
+
+      // Handle Birth Flashes
+      useEffect(() => {
+        if (!activeCountryId || !svgRef.current) return;
+        
+        const gold = "#fbbf24"; // Bright Amber 400
+        const normal = "#334155"; // Slate 700
+        
+        const country = d3.select(svgRef.current).select(`.country-${activeCountryId}`);
+        
+        if (!country.empty()) {
+          country
+            .interrupt()
+            .attr("fill", gold)
+            .style("filter", `drop-shadow(0 0 20px ${gold})`)
+            .transition()
+            .duration(1500)
+            .attr("fill", normal)
+            .style("filter", "none");
+        }
+      }, [activeCountryId]);
+
+      return (
+        <div className="w-full h-full relative">
+          <svg ref={svgRef} className="w-full h-full" />
+          {/* Legend */}
+          <div className="absolute bottom-10 right-10 flex items-center gap-3 opacity-40">
+            <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>
+            <span className="text-[10px] font-black tracking-widest uppercase">Live Signal Tracking</span>
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [totalToday, setTotalToday] = useState(0);
+      const [activeCountryId, setActiveCountryId] = useState(null);
+      const totalTodayRef = useRef(0);
+
+      useEffect(() => {
+        // Initial count based on current time
+        const now = new Date();
+        const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        const initial = Math.floor(secondsSinceMidnight * GLOBAL_BIRTHS_PER_SECOND);
+        setTotalToday(initial);
+        totalTodayRef.current = initial;
+
+        // Birth simulation loop
+        let timer;
+        const tick = () => {
+          const meanInterval = 1000 / GLOBAL_BIRTHS_PER_SECOND;
+          const nextInterval = -Math.log(Math.random()) * meanInterval;
+          
+          timer = setTimeout(() => {
+            // Select random country based on birth weight
+            const totalWeight = COUNTRIES.reduce((acc, c) => acc + c.weight, 0);
+            let r = Math.random() * totalWeight;
+            let selectedId = COUNTRIES[0].id;
+            for (const c of COUNTRIES) {
+              if (r < c.weight) { selectedId = c.id; break; }
+              r -= c.weight;
+            }
+
+            totalTodayRef.current += 1;
+            setTotalToday(totalTodayRef.current);
+            setActiveCountryId(selectedId);
+            
+            tick();
+          }, nextInterval);
+        };
+
+        tick();
+        return () => clearTimeout(timer);
+      }, []);
+
+      return (
+        <div className="h-screen w-screen flex flex-col bg-[#020617] text-slate-100 overflow-hidden">
+          <main className="flex-1 flex overflow-hidden">
+            
+            {/* Left Column: Metrics (30%) */}
+            <div className="w-[30%] min-w-[350px] flex flex-col border-r border-slate-800/50 bg-slate-900/10 p-12 justify-center relative">
+              <div className="absolute top-8 left-12 flex items-center gap-2 opacity-50">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                <span className="text-[10px] font-black tracking-[0.3em] text-amber-500 uppercase">Global Data Stream</span>
+              </div>
+
+              <div className="space-y-4">
+                <h1 className="text-[12px] font-black tracking-[0.5em] text-slate-500 uppercase">Worldwide Births Today</h1>
+                <div className="text-[8vw] font-black text-amber-400 tabular-nums mono tracking-tighter gold-glow leading-none">
+                  {totalToday.toLocaleString()}
+                </div>
+              </div>
+
+              <div className="absolute bottom-8 left-12 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-ping"></div>
+                <span className="text-[9px] font-bold text-slate-600 tracking-widest uppercase">System: Normal</span>
+              </div>
+            </div>
+
+            {/* Right Column: World Map (70%) */}
+            <div className="flex-1 bg-[#020617] relative">
+              <WorldMap activeCountryId={activeCountryId} />
+              
+              {/* Subtle Tech Overlay */}
+              <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-amber-500/5 to-transparent pointer-events-none"></div>
+            </div>
+          </main>
+
+          {/* Footer Bar */}
+          <footer className="h-6 px-12 bg-black/40 border-t border-slate-900 flex items-center justify-between">
+            <div className="text-[8px] text-slate-700 font-mono tracking-widest">INF_GEN://SYNC.SUCCESSFUL</div>
+            <div className="text-[8px] text-slate-700 font-mono uppercase">Refresh Rate: 60Hz | Protocol: D3_GEO_MERCATOR</div>
+          </footer>
+        </div>
+      );
+    };
+
+    // Use createRoot for React 18
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
 </body>
 </html>
