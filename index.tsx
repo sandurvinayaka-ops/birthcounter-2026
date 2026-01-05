@@ -1,1 +1,1 @@
-// Consolidation complete. Using index.html for deployment.
+// This file is no longer used. Please see index.html for the full application.
