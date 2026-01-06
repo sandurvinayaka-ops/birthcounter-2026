@@ -108,7 +108,7 @@
       100% { opacity: 1; transform: scale(1.1); filter: brightness(1.4); }
     }
 
-    /* Asteroids / Meteoroids - Larger, more visible, and rocky */
+    /* Realistic Asteroids / Meteoroids */
     .asteroid {
       position: absolute;
       z-index: 1;
@@ -119,44 +119,51 @@
     .asteroid-body {
       width: var(--size);
       height: var(--size);
-      background: #4a5568;
-      background-image: radial-gradient(circle at 30% 30%, #718096 0%, #1a202c 90%);
+      background: #3f444d;
+      /* Directional Lighting Simulation */
+      background-image: radial-gradient(circle at 70% 30%, #718096 0%, #2d3748 40%, #1a202c 90%);
       clip-path: polygon(var(--path));
       box-shadow: 
-        inset -10px -10px 20px rgba(0,0,0,0.95), 
-        inset 10px 10px 15px rgba(255,255,255,0.15),
-        0 0 15px rgba(148, 163, 184, 0.25);
+        inset -12px -12px 20px rgba(0,0,0,0.9), 
+        inset 10px 10px 15px rgba(255,255,255,0.1),
+        0 0 10px rgba(0,0,0,0.5);
       position: relative;
       animation: asteroid-spin var(--spin-speed) linear infinite;
+      overflow: hidden;
     }
 
-    /* Enhanced cratered texture */
-    .asteroid-body::before, .asteroid-body::after {
+    /* Multi-layered crater effects using box-shadows on pseudo-elements */
+    .asteroid-body::before {
       content: '';
       position: absolute;
-      background: rgba(0,0,0,0.45);
+      width: 100%;
+      height: 100%;
+      top: 0; left: 0;
+      opacity: 0.6;
+      /* Random craters scattered across the surface */
+      box-shadow: 
+        inset 5px 8px 3px rgba(0,0,0,0.6),
+        inset -2px -4px 3px rgba(255,255,255,0.05),
+        /* Specific craters */
+        var(--crater-shadows);
       border-radius: 50%;
-      filter: blur(1px);
-    }
-    .asteroid-body::before {
-      width: 25%; height: 25%;
-      top: 20%; left: 40%;
-      box-shadow: 15px 25px 0 rgba(0,0,0,0.3), -12px 18px 0 rgba(0,0,0,0.3);
-    }
-    .asteroid-body::after {
-      width: 15%; height: 15%;
-      bottom: 25%; right: 30%;
-      box-shadow: -20px -10px 0 rgba(0,0,0,0.2);
     }
 
     .asteroid-trail {
       position: absolute;
       top: 50%; left: 0;
-      height: 4px; width: 140px;
-      background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3));
+      height: 6px; 
+      width: var(--trail-width);
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(148, 163, 184, 0.1) 20%, 
+        rgba(255, 255, 255, 0.2) 80%,
+        rgba(255, 255, 255, 0.4) 100%
+      );
       transform-origin: right center;
       transform: translateX(-100%) rotate(180deg);
-      filter: blur(5px);
+      filter: blur(8px);
+      mix-blend-mode: screen;
     }
 
     @keyframes asteroid-spin {
@@ -169,8 +176,8 @@
         transform: translate(var(--start-x), var(--start-y));
         opacity: 0;
       }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
       100% {
         transform: translate(var(--end-x), var(--end-y));
         opacity: 0;
@@ -312,13 +319,13 @@
       useEffect(() => {
         const spawnAsteroid = () => {
           const id = Date.now();
-          const speed = Math.random() * 8 + 5; 
-          const size = Math.random() * 60 + 35; // Larger and more prominent
-          const spinSpeed = (Math.random() * 20 + 10) + 's';
+          const speed = Math.random() * 10 + 6; 
+          const size = Math.random() * 80 + 40; 
+          const spinSpeed = (Math.random() * 25 + 15) + 's';
           
           const startSide = Math.floor(Math.random() * 4);
           let startX, startY, endX, endY;
-          const padding = 50;
+          const padding = 100;
 
           switch(startSide) {
             case 0: // Top
@@ -340,13 +347,23 @@
               break;
           }
 
-          // More jagged and irregular rocky points
+          // Generate highly jagged rocky points (16-24 vertices)
           const points = [];
-          const vertexCount = 12;
+          const vertexCount = 18;
           for (let i = 0; i < vertexCount; i++) {
             const angle = (i / vertexCount) * Math.PI * 2;
-            const r = 35 + Math.random() * 65; 
+            const r = 30 + Math.random() * 70; 
             points.push(`${50 + Math.cos(angle) * r / 2}% ${50 + Math.sin(angle) * r / 2}%`);
+          }
+
+          // Generate unique crater positions for this rock
+          const craterShadows = [];
+          const craterCount = 4 + Math.floor(Math.random() * 5);
+          for(let i=0; i<craterCount; i++) {
+            const cx = (Math.random() * 60 - 30);
+            const cy = (Math.random() * 60 - 30);
+            const cr = Math.random() * 8 + 2;
+            craterShadows.push(`inset ${cx}px ${cy}px ${cr}px rgba(0,0,0,0.8)`);
           }
 
           setAsteroids(prev => [...prev, { 
@@ -354,11 +371,13 @@
             speed: `${speed}s`, 
             size: `${size}px`,
             spinSpeed,
-            path: points.join(', ')
+            path: points.join(', '),
+            craterShadows: craterShadows.join(', '),
+            trailWidth: `${size * 3}px`
           }]);
 
           setTimeout(() => setAsteroids(prev => prev.filter(c => c.id !== id)), (speed * 1000) + 100);
-          setTimeout(spawnAsteroid, 1000 + Math.random() * 3000);
+          setTimeout(spawnAsteroid, 1500 + Math.random() * 4000);
         };
 
         const timer = setTimeout(spawnAsteroid, 500);
@@ -400,9 +419,10 @@
               <div className="asteroid-body" style={{ 
                 '--size': ast.size, 
                 '--path': ast.path,
-                '--spin-speed': ast.spinSpeed 
+                '--spin-speed': ast.spinSpeed,
+                '--crater-shadows': ast.craterShadows
               }}></div>
-              <div className="asteroid-trail"></div>
+              <div className="asteroid-trail" style={{ '--trail-width': ast.trailWidth }}></div>
             </div>
           ))}
         </div>
