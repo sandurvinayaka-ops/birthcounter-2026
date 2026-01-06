@@ -120,7 +120,6 @@
       width: var(--size);
       height: var(--size);
       background: #3f444d;
-      /* Directional Lighting Simulation */
       background-image: radial-gradient(circle at 70% 30%, #718096 0%, #2d3748 40%, #1a202c 90%);
       clip-path: polygon(var(--path));
       box-shadow: 
@@ -132,7 +131,6 @@
       overflow: hidden;
     }
 
-    /* Multi-layered crater effects using box-shadows on pseudo-elements */
     .asteroid-body::before {
       content: '';
       position: absolute;
@@ -140,11 +138,9 @@
       height: 100%;
       top: 0; left: 0;
       opacity: 0.6;
-      /* Random craters scattered across the surface */
       box-shadow: 
         inset 5px 8px 3px rgba(0,0,0,0.6),
         inset -2px -4px 3px rgba(255,255,255,0.05),
-        /* Specific craters */
         var(--crater-shadows);
       border-radius: 50%;
     }
@@ -184,24 +180,43 @@
       }
     }
 
-    /* Globe */
+    /* Globe Realism */
     .land {
-      stroke: #000;
-      stroke-width: 0.3;
+      stroke: rgba(0,0,0,0.1);
+      stroke-width: 0.1;
       transition: fill 0.3s ease; 
     }
 
     .graticule {
       fill: none;
-      stroke: #818cf8;
-      stroke-width: 0.1;
-      opacity: 0.08;
+      stroke: #ffffff;
+      stroke-width: 0.2;
+      opacity: 0.05;
     }
 
     .globe-outline {
-      fill: url(#globeGradient); 
-      stroke: rgba(129, 140, 248, 0.15);
+      fill: url(#oceanGradient); 
+      stroke: rgba(255, 255, 255, 0.1);
       stroke-width: 0.5px;
+    }
+
+    .atmosphere {
+      fill: none;
+      stroke: rgba(147, 197, 253, 0.15);
+      stroke-width: 15px;
+      filter: blur(10px);
+    }
+
+    .clouds {
+      opacity: 0.45;
+      pointer-events: none;
+      filter: blur(3px);
+      mix-blend-mode: screen;
+    }
+
+    .night-side {
+      fill: url(#terminatorGradient);
+      pointer-events: none;
     }
 
     /* Fully Transparent UI */
@@ -271,8 +286,7 @@
     const BIRTHS_PER_SECOND = 4.35;
     const GOLD_COLOR = "#fbbf24"; 
     const IMPACT_COLOR = "#FFFFFF"; 
-    const LAND_COLOR = "#1e1b4b";
-    const STROKE_COLOR = "#000";
+    const LAND_COLOR = "#1B3A1B"; 
     const ROTATION_SPEED = 0.8; 
     
     const COUNTRIES_WEIGHTS = [
@@ -328,26 +342,12 @@
           const padding = 100;
 
           switch(startSide) {
-            case 0: // Top
-              startX = Math.random() * 100 + 'vw'; startY = -padding + 'vh';
-              endX = (Math.random() * 100) + 'vw'; endY = (100 + padding) + 'vh';
-              break;
-            case 1: // Right
-              startX = (100 + padding) + 'vw'; startY = Math.random() * 100 + 'vh';
-              endX = -padding + 'vw'; endY = (Math.random() * 100) + 'vh';
-              break;
-            case 2: // Bottom
-              startX = Math.random() * 100 + 'vw'; startY = (100 + padding) + 'vh';
-              endX = (Math.random() * 100) + 'vw'; endY = -padding + 'vh';
-              break;
-            case 3: 
-            default:
-              startX = -padding + 'vw'; startY = Math.random() * 100 + 'vh';
-              endX = (100 + padding) + 'vw'; endY = (Math.random() * 100) + 'vh';
-              break;
+            case 0: startX = Math.random() * 100 + 'vw'; startY = -padding + 'vh'; endX = (Math.random() * 100) + 'vw'; endY = (100 + padding) + 'vh'; break;
+            case 1: startX = (100 + padding) + 'vw'; startY = Math.random() * 100 + 'vh'; endX = -padding + 'vw'; endY = (Math.random() * 100) + 'vh'; break;
+            case 2: startX = Math.random() * 100 + 'vw'; startY = (100 + padding) + 'vh'; endX = (Math.random() * 100) + 'vw'; endY = -padding + 'vh'; break;
+            case 3: default: startX = -padding + 'vw'; startY = Math.random() * 100 + 'vh'; endX = (100 + padding) + 'vw'; endY = (100 + padding) + 'vh'; break;
           }
 
-          // Generate highly jagged rocky points (16-24 vertices)
           const points = [];
           const vertexCount = 18;
           for (let i = 0; i < vertexCount; i++) {
@@ -356,7 +356,6 @@
             points.push(`${50 + Math.cos(angle) * r / 2}% ${50 + Math.sin(angle) * r / 2}%`);
           }
 
-          // Generate unique crater positions for this rock
           const craterShadows = [];
           const craterCount = 4 + Math.floor(Math.random() * 5);
           for(let i=0; i<craterCount; i++) {
@@ -367,21 +366,12 @@
           }
 
           setAsteroids(prev => [...prev, { 
-            id, startX, startY, endX, endY, 
-            speed: `${speed}s`, 
-            size: `${size}px`,
-            spinSpeed,
-            path: points.join(', '),
-            craterShadows: craterShadows.join(', '),
-            trailWidth: `${size * 3}px`
+            id, startX, startY, endX, endY, speed: `${speed}s`, size: `${size}px`, spinSpeed, path: points.join(', '), craterShadows: craterShadows.join(', '), trailWidth: `${size * 3}px`
           }]);
-
           setTimeout(() => setAsteroids(prev => prev.filter(c => c.id !== id)), (speed * 1000) + 100);
           setTimeout(spawnAsteroid, 1500 + Math.random() * 4000);
         };
-
-        const timer = setTimeout(spawnAsteroid, 500);
-        return () => clearTimeout(timer);
+        setTimeout(spawnAsteroid, 500);
       }, []);
 
       return (
@@ -389,39 +379,15 @@
           <div className="sun-glow"></div>
           <div className="nebula-layer nebula-1"></div>
           <div className="nebula-layer nebula-2"></div>
-          
           {starLayers.flat().map(star => (
-            <div 
-              key={star.id} 
-              className={`star twinkle ${star.isBright ? 'star-bright' : ''}`} 
-              style={{
-                top: star.top, left: star.left,
-                width: `${star.size}px`, height: `${star.size}px`,
-                backgroundColor: star.color,
-                '--duration': star.duration,
-                animationDelay: star.delay,
-                opacity: star.layer === 1 ? 0.4 : 0.9,
-                zIndex: star.layer
+            <div key={star.id} className={`star twinkle ${star.isBright ? 'star-bright' : ''}`} style={{
+                top: star.top, left: star.left, width: `${star.size}px`, height: `${star.size}px`, backgroundColor: star.color, '--duration': star.duration, animationDelay: star.delay, opacity: star.layer === 1 ? 0.4 : 0.9, zIndex: star.layer
               }}
             />
           ))}
-
           {asteroids.map(ast => (
-            <div 
-              key={ast.id}
-              className="asteroid"
-              style={{
-                '--start-x': ast.startX, '--start-y': ast.startY,
-                '--end-x': ast.endX, '--end-y': ast.endY,
-                '--speed': ast.speed
-              }}
-            >
-              <div className="asteroid-body" style={{ 
-                '--size': ast.size, 
-                '--path': ast.path,
-                '--spin-speed': ast.spinSpeed,
-                '--crater-shadows': ast.craterShadows
-              }}></div>
+            <div key={ast.id} className="asteroid" style={{ '--start-x': ast.startX, '--start-y': ast.startY, '--end-x': ast.endX, '--end-y': ast.endY, '--speed': ast.speed }}>
+              <div className="asteroid-body" style={{ '--size': ast.size, '--path': ast.path, '--spin-speed': ast.spinSpeed, '--crater-shadows': ast.craterShadows }}></div>
               <div className="asteroid-trail" style={{ '--trail-width': ast.trailWidth }}></div>
             </div>
           ))}
@@ -433,6 +399,7 @@
       const svgRef = useRef(null);
       const [geoData, setGeoData] = useState(null);
       const rotationRef = useRef([0, -12]); 
+      const cloudRotationRef = useRef(0);
       const activeFlashesRef = useRef(new Map()); 
 
       useEffect(() => {
@@ -454,13 +421,42 @@
         svg.selectAll("*").remove();
         const defs = svg.append("defs");
         
-        const globeGrad = defs.append("radialGradient")
-          .attr("id", "globeGradient")
+        // Deep Ocean
+        const oceanGrad = defs.append("radialGradient")
+          .attr("id", "oceanGradient")
+          .attr("cx", "70%")
+          .attr("cy", "30%")
+          .attr("r", "70%");
+        oceanGrad.append("stop").attr("offset", "0%").attr("stop-color", "#004b7a");
+        oceanGrad.append("stop").attr("offset", "100%").attr("stop-color", "#001a2d");
+
+        // Specular highlight
+        const specularGrad = defs.append("radialGradient")
+          .attr("id", "specularGrad")
+          .attr("cx", "65%")
+          .attr("cy", "25%")
+          .attr("r", "50%");
+        specularGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.18)");
+        specularGrad.append("stop").attr("offset", "100%").attr("stop-color", "transparent");
+
+        // Day/Night Shadow (Terminator)
+        const terminatorGrad = defs.append("radialGradient")
+          .attr("id", "terminatorGradient")
           .attr("cx", "75%")
           .attr("cy", "25%")
-          .attr("r", "70%");
-        globeGrad.append("stop").attr("offset", "0%").attr("stop-color", "#0f172a");
-        globeGrad.append("stop").attr("offset", "100%").attr("stop-color", "#020617");
+          .attr("r", "80%");
+        terminatorGrad.append("stop").attr("offset", "0%").attr("stop-color", "transparent");
+        terminatorGrad.append("stop").attr("offset", "80%").attr("stop-color", "rgba(0,0,5,0.7)");
+
+        // Cloud Pattern (simulated with a blurred circle and noise-like clip)
+        const cloudGrad = defs.append("radialGradient")
+          .attr("id", "cloudGrad")
+          .attr("cx", "50%")
+          .attr("cy", "50%")
+          .attr("r", "50%");
+        cloudGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.7)");
+        cloudGrad.append("stop").attr("offset", "40%").attr("stop-color", "rgba(255,255,255,0.3)");
+        cloudGrad.append("stop").attr("offset", "100%").attr("stop-color", "transparent");
 
         const globeRadius = Math.min(width, height) / 2.3;
         const projection = d3.geoOrthographic()
@@ -470,6 +466,14 @@
 
         const path = d3.geoPath().projection(projection);
         
+        // Atmosphere layer
+        svg.append("circle")
+          .attr("cx", width / 2)
+          .attr("cy", height / 2)
+          .attr("r", globeRadius + 3)
+          .attr("class", "atmosphere");
+
+        // Ocean Base
         svg.append("path")
           .datum({type: "Sphere"})
           .attr("class", "globe-outline")
@@ -488,15 +492,47 @@
           .append("path")
           .attr("d", path)
           .attr("class", d => `land country-${d.id}`)
-          .attr("fill", LAND_COLOR)
-          .attr("stroke", STROKE_COLOR);
+          .attr("fill", LAND_COLOR);
+
+        // Clouds Layer (Fake rotating blobs for depth)
+        const cloudGroup = svg.append("g").attr("class", "clouds");
+        const cloudCount = 12;
+        const cloudData = Array.from({length: cloudCount}).map(() => ({
+          lon: Math.random() * 360,
+          lat: Math.random() * 160 - 80,
+          size: Math.random() * 30 + 10
+        }));
+
+        const cloudElements = cloudGroup.selectAll("circle")
+          .data(cloudData)
+          .enter()
+          .append("circle")
+          .attr("fill", "url(#cloudGrad)")
+          .attr("r", d => d.size);
+
+        // Specular Glare (fixed in screen space)
+        svg.append("circle")
+          .attr("cx", width / 2)
+          .attr("cy", height / 2)
+          .attr("r", globeRadius)
+          .attr("fill", "url(#specularGrad)")
+          .attr("pointer-events", "none");
+
+        // Night Overlay
+        svg.append("circle")
+          .attr("cx", width / 2)
+          .attr("cy", height / 2)
+          .attr("r", globeRadius)
+          .attr("class", "night-side");
 
         const timer = d3.timer((elapsed) => {
           rotationRef.current[0] += ROTATION_SPEED;
+          cloudRotationRef.current += ROTATION_SPEED * 1.1; // Clouds move a bit faster
+          
           projection.rotate(rotationRef.current);
 
           graticulePath.attr("d", path);
-          svg.select(".globe-outline").attr("d", path);
+          svg.selectAll(".globe-outline").attr("d", path);
 
           const now = Date.now();
           countries.each(function(d) {
@@ -517,7 +553,7 @@
               const age = now - flash.startTime;
               if (age > 2000) {
                 activeFlashesRef.current.delete(d.id);
-                countryPath.attr("fill", LAND_COLOR).attr("stroke", STROKE_COLOR).style("filter", "none");
+                countryPath.attr("fill", LAND_COLOR).style("filter", "none");
               } else {
                 let color;
                 if (age < 50) {
@@ -528,9 +564,20 @@
                   color = d3.interpolateRgb(GOLD_COLOR, LAND_COLOR)(t);
                   countryPath.style("filter", t < 0.5 ? `drop-shadow(0 0 ${15 * (1-t)}px ${GOLD_COLOR})` : "none");
                 }
-                countryPath.attr("fill", color).attr("stroke", color);
+                countryPath.attr("fill", color);
               }
             }
+          });
+
+          // Cloud positioning
+          cloudElements.each(function(d) {
+             const cPos = projection([d.lon + cloudRotationRef.current, d.lat]);
+             const geoDist = d3.geoDistance([d.lon + cloudRotationRef.current, d.lat], [-rotationRef.current[0], -rotationRef.current[1]]);
+             const visible = geoDist < Math.PI / 2.1; 
+             d3.select(this)
+               .attr("cx", cPos[0])
+               .attr("cy", cPos[1])
+               .attr("opacity", visible ? 1 : 0);
           });
         });
 
@@ -539,6 +586,7 @@
           const w = svgRef.current.clientWidth;
           const h = svgRef.current.clientHeight;
           projection.scale(Math.min(w, h) / 2.3).translate([w / 2, h / 2]);
+          svg.selectAll("circle.night-side, circle.atmosphere").attr("cx", w/2).attr("cy", h/2).attr("r", Math.min(w,h)/2.3);
         };
 
         window.addEventListener('resize', handleResize);
@@ -580,7 +628,6 @@
           const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           const secondsElapsed = (now.getTime() - startOfDay.getTime()) / 1000;
           setDayProgress((secondsElapsed / 86400) * 100);
-          
           const hh = String(now.getHours()).padStart(2, '0');
           const mm = String(now.getMinutes()).padStart(2, '0');
           setCurrentTime(`${hh}:${mm}`);
@@ -612,7 +659,6 @@
           }, delay);
         };
         schedule();
-
         return () => clearInterval(progressInterval);
       }, []);
 
@@ -628,14 +674,9 @@
                 <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-8">
                   {new Intl.NumberFormat('de-DE').format(totalToday)}
                 </div>
-                
-                {/* 24-Hour Progress Bar Container */}
                 <div className="w-[70%] mx-auto mt-4 text-left relative">
                    <div className="h-6 relative w-full mb-1">
-                      <div 
-                        className="absolute bottom-0 text-[10px] font-black text-white mono whitespace-nowrap transition-all duration-1000 linear" 
-                        style={{ left: `${dayProgress}%`, transform: 'translateX(-50%)' }}
-                      >
+                      <div className="absolute bottom-0 text-[10px] font-black text-white mono whitespace-nowrap transition-all duration-1000 linear" style={{ left: `${dayProgress}%`, transform: 'translateX(-50%)' }}>
                         {currentTime}
                       </div>
                    </div>
@@ -649,7 +690,6 @@
                 </div>
               </div>
             </div>
-
             <div className="flex-1 relative">
                <WorldMap lastBirth={lastBirth} />
             </div>
