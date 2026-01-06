@@ -21,7 +21,6 @@
     }
     .mono { font-family: 'JetBrains+Mono', monospace; }
     
-    /* Cinematic Deep Space Background - GPU Optimized */
     .space-background {
       position: fixed;
       top: 0;
@@ -117,7 +116,7 @@
     }
 
     .glass-sidebar {
-      background: linear-gradient(90deg, rgba(1, 1, 8, 0.95) 0%, rgba(1, 1, 8, 0.7) 60%, rgba(1, 1, 8, 0) 100%);
+      background: linear-gradient(90deg, rgba(1, 1, 8, 0.98) 0%, rgba(1, 1, 8, 0.9) 30%, rgba(1, 1, 8, 0) 100%);
       border: none;
     }
 
@@ -172,6 +171,7 @@
     const ICE_COLOR = "#f8fafc";  
     const ROTATION_SPEED = 0.5; 
     const ATMOSPHERE_PADDING = 80; 
+    const EDGE_MARGIN = 20; // Reduced to snap globe as far right as possible
     
     const COUNTRIES_WEIGHTS = [
       { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
@@ -285,8 +285,8 @@
           
           const globeRadius = Math.max(10, (Math.min(width, height) / 2) - ATMOSPHERE_PADDING);
           
-          // Calculate translate to right align the globe within its container
-          const translateX = width - globeRadius - ATMOSPHERE_PADDING;
+          // STRICT RIGHT ALIGN: Width - Radius - EdgeMargin ensures the globe border is snapped to the right
+          const translateX = width - globeRadius - EDGE_MARGIN;
           const translateY = height / 2;
 
           const projection = d3.geoOrthographic()
@@ -450,8 +450,8 @@
           <StarBackground />
           <div className="flex-1 relative overflow-hidden">
             
-            {/* Sidebar - Fixed Left Positioning */}
-            <div className="absolute top-0 left-0 bottom-0 w-[35%] flex flex-col justify-center items-center p-20 z-20 glass-sidebar pointer-events-none">
+            {/* Sidebar - Fixed Left Positioning with sharp contrast */}
+            <div className="absolute top-0 left-0 bottom-0 w-[40%] flex flex-col justify-center items-center p-20 z-20 glass-sidebar pointer-events-none">
               <div className="w-full max-w-2xl text-left pointer-events-auto">
                 <div className="header-spaced text-4xl uppercase mb-10 leading-tight font-black opacity-60">
                   Global<br/>Live Births
@@ -476,8 +476,8 @@
               </div>
             </div>
 
-            {/* Globe Container - Right-aligned viewport space */}
-            <div className="absolute top-0 right-0 bottom-0 left-[35%] z-10 flex items-center justify-end p-0">
+            {/* Globe Container - Shifted left to give even more room on right */}
+            <div className="absolute top-0 right-0 bottom-0 left-[30%] z-10 flex items-center justify-end p-0">
                <WorldMap lastBirth={lastBirth} />
             </div>
 
