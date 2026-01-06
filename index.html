@@ -176,7 +176,7 @@
 
     /* Globe Realism */
     .land {
-      stroke: rgba(255,255,255,0.12);
+      stroke: rgba(255,255,255,0.2);
       stroke-width: 0.15;
       transition: fill 0.3s ease; 
     }
@@ -190,13 +190,13 @@
 
     .globe-outline {
       fill: url(#oceanGradient); 
-      stroke: rgba(255, 255, 255, 0.1);
+      stroke: rgba(255, 255, 255, 0.15);
       stroke-width: 0.5px;
     }
 
     .atmosphere {
       fill: none;
-      stroke: rgba(147, 197, 253, 0.25);
+      stroke: rgba(147, 197, 253, 0.45);
       stroke-width: 30px;
       filter: blur(20px);
     }
@@ -270,10 +270,10 @@
     const BIRTHS_PER_SECOND = 4.35;
     const FLASH_BURST_COLOR = "#FFFFFF"; 
     const FLASH_BLOOM_COLOR = "#fbbf24"; // High contrast Gold
-    const LAND_COLOR = "#242428"; // Slightly lighter metallic charcoal for better visibility
+    const LAND_COLOR = "#33333a"; // Lightened metallic charcoal for much better visibility
     const ICE_COLOR = "#f8fafc";  
     const ROTATION_SPEED = 0.8; 
-    const GLOBE_SCALE_FACTOR = 2.2; // Optimized scale factor to fit exactly within viewport with padding
+    const GLOBE_SCALE_FACTOR = 2.2; // Optimized scale factor
     
     const COUNTRIES_WEIGHTS = [
       { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
@@ -395,14 +395,14 @@
         svg.selectAll("*").remove();
         const defs = svg.append("defs");
         
-        // Deep Azure Ocean
+        // Brighter Deep Azure Ocean
         const oceanGrad = defs.append("radialGradient")
           .attr("id", "oceanGradient")
           .attr("cx", "70%")
           .attr("cy", "30%")
           .attr("r", "70%");
-        oceanGrad.append("stop").attr("offset", "0%").attr("stop-color", "#00477d");
-        oceanGrad.append("stop").attr("offset", "100%").attr("stop-color", "#001424");
+        oceanGrad.append("stop").attr("offset", "0%").attr("stop-color", "#0066cc");
+        oceanGrad.append("stop").attr("offset", "100%").attr("stop-color", "#002b4d");
 
         // Specular highlight
         const specularGrad = defs.append("radialGradient")
@@ -410,17 +410,17 @@
           .attr("cx", "65%")
           .attr("cy", "25%")
           .attr("r", "50%");
-        specularGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.12)");
+        specularGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.15)");
         specularGrad.append("stop").attr("offset", "100%").attr("stop-color", "transparent");
 
-        // Dramatic Day/Night terminator
+        // Softened Day/Night terminator
         const terminatorGrad = defs.append("radialGradient")
           .attr("id", "terminatorGradient")
           .attr("cx", "80%")
           .attr("cy", "20%")
           .attr("r", "85%");
         terminatorGrad.append("stop").attr("offset", "0%").attr("stop-color", "transparent");
-        terminatorGrad.append("stop").attr("offset", "90%").attr("stop-color", "rgba(0,0,15,0.8)");
+        terminatorGrad.append("stop").attr("offset", "100%").attr("stop-color", "rgba(0,0,20,0.4)");
 
         const globeRadius = Math.min(width, height) / GLOBE_SCALE_FACTOR;
         const projection = d3.geoOrthographic()
@@ -546,7 +546,7 @@
 
       return (
         <div className="relative w-full h-full flex items-center justify-center">
-          <div className="absolute w-[85vh] h-[85vh] rounded-full bg-amber-500/5 blur-[120px] pointer-events-none"></div>
+          <div className="absolute w-[85vh] h-[85vh] rounded-full bg-amber-500/10 blur-[120px] pointer-events-none"></div>
           <svg ref={svgRef} className="w-full h-full relative z-10" />
         </div>
       );
