@@ -13,7 +13,7 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #020205; 
+      background-color: #010105; 
       color: #f1f5f9;
       margin: 0;
       padding: 0;
@@ -21,7 +21,7 @@
     }
     .mono { font-family: 'JetBrains+Mono', monospace; }
     
-    /* Natural Space Background */
+    /* Advanced Cosmic Background */
     .space-background {
       position: fixed;
       top: 0;
@@ -30,108 +30,129 @@
       height: 100%;
       z-index: -1;
       overflow: hidden;
-      background: #010103;
+      background: radial-gradient(circle at center, #050b1d 0%, #010105 100%);
     }
 
-    .nebula-layer {
+    .nebula-layer-1 {
       position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
+      top: -25%; left: -25%; width: 150%; height: 150%;
+      background: radial-gradient(circle at 70% 30%, rgba(76, 29, 149, 0.15) 0%, transparent 50%),
+                  radial-gradient(circle at 20% 70%, rgba(30, 58, 138, 0.1) 0%, transparent 60%);
+      filter: blur(80px);
+      animation: drift-slow 120s linear infinite alternate;
+    }
+
+    .nebula-layer-2 {
+      position: absolute;
+      top: -50%; left: -50%; width: 200%; height: 200%;
       background-image: url('https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=2070&auto=format&fit=crop');
       background-size: cover;
       background-position: center;
-      opacity: 0.35;
-      filter: blur(2px) saturate(0.4) brightness(0.6); 
-      animation: drift 240s linear infinite;
+      opacity: 0.2;
+      filter: blur(4px) saturate(0.5) brightness(0.4);
+      mix-blend-mode: screen;
+      animation: rotate-slow 300s linear infinite;
     }
 
-    /* Stars */
+    /* Star Visuals */
     .star {
       position: absolute;
-      background: white;
+      background: #fff;
       border-radius: 50%;
-      opacity: 0.8;
+      pointer-events: none;
     }
     
+    .star-bright {
+      box-shadow: 0 0 4px 1px rgba(255,255,255,0.4);
+    }
+    
+    .star-bright::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 200%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transform: translate(-50%, -50%);
+    }
+
+    .star-bright::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      height: 200%; width: 1px;
+      background: linear-gradient(0deg, transparent, rgba(255,255,255,0.3), transparent);
+      transform: translate(-50%, -50%);
+    }
+
     .twinkle {
       animation: twinkle-pulse var(--duration) ease-in-out infinite alternate;
     }
 
+    @keyframes drift-slow {
+      from { transform: translate(-5%, -5%); }
+      to { transform: translate(5%, 5%); }
+    }
+
+    @keyframes rotate-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     @keyframes twinkle-pulse {
-      0% { opacity: 0.2; transform: scale(0.8); }
+      0% { opacity: 0.3; transform: scale(0.9); }
       100% { opacity: 1; transform: scale(1.1); }
     }
 
-    /* Comets / Shooting Stars */
+    /* Comets */
     .comet {
       position: absolute;
-      width: 150px;
+      width: 200px;
       height: 2px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 100%);
+      background: linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.4) 10%, transparent 100%);
       transform-origin: left center;
-      filter: drop-shadow(0 0 5px white);
-      z-index: -1;
-      pointer-events: none;
+      filter: blur(0.5px);
+      z-index: 0;
     }
 
-    .cloud-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.2;
-    }
-
-    @keyframes drift {
-      from { transform: rotate(0deg) scale(1); }
-      to { transform: rotate(360deg) scale(1.15); }
-    }
-
-    /* Map Styles */
+    /* Globe Enhancements */
     .land {
       stroke: #020205;
       stroke-width: 0.4;
-      transition: none; 
+      transition: fill 0.3s ease; 
     }
 
     .graticule {
       fill: none;
       stroke: #a78bfa;
       stroke-width: 0.15;
-      opacity: 0.15;
+      opacity: 0.1;
     }
 
     .globe-outline {
-      fill: #12071f; /* Opaque solid deep midnight purple for water */
-      stroke: rgba(167, 139, 250, 0.3);
-      stroke-width: 1.5;
+      fill: #0a0a18; 
+      stroke: rgba(167, 139, 250, 0.2);
+      stroke-width: 1px;
     }
 
     /* Sidebar Glassmorphism */
     .glass-sidebar {
-      background: rgba(10, 11, 30, 0.85);
-      backdrop-filter: blur(25px);
+      background: rgba(4, 5, 15, 0.8);
+      backdrop-filter: blur(40px);
       border-right: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 20px 0 50px rgba(0,0,0,0.5);
     }
 
-    /* Spaced header text */
     .header-spaced {
       letter-spacing: 0.25em;
       font-weight: 800;
-      color: #818cf8; 
+      color: #94a3b8; 
     }
 
-    /* Intense Glow for the Number */
     .amber-bloom {
       color: #fbbf24;
-      filter: drop-shadow(0 0 45px rgba(251, 191, 36, 0.6));
+      filter: drop-shadow(0 0 35px rgba(251, 191, 36, 0.5));
     }
 
-    /* Footer styling */
     .app-footer {
       height: 32px;
       background: rgba(1, 1, 3, 0.9);
@@ -157,11 +178,11 @@
     const { useState, useEffect, useRef, useMemo } = React;
 
     const BIRTHS_PER_SECOND = 4.35;
-    const GOLD_COLOR = "#FFD700"; 
+    const GOLD_COLOR = "#fbbf24"; 
     const IMPACT_COLOR = "#FFFFFF"; 
-    const LAND_COLOR = "#4c1d95"; /* Deep purple for land masses */
-    const STROKE_COLOR = "#020205";
-    const ROTATION_SPEED = 0.45; 
+    const LAND_COLOR = "#2e1065"; /* Rich deep violet */
+    const STROKE_COLOR = "#000000";
+    const ROTATION_SPEED = 0.3; 
     
     const COUNTRIES_WEIGHTS = [
       { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
@@ -178,16 +199,28 @@
     ];
 
     const StarBackground = () => {
-      const stars = useMemo(() => {
-        return Array.from({ length: 150 }).map((_, i) => ({
-          id: i,
-          top: `${Math.random() * 100}%`,
-          left: `${Math.random() * 100}%`,
-          size: Math.random() * 2 + 1,
-          duration: `${Math.random() * 3 + 2}s`,
-          delay: `${Math.random() * 5}s`,
-          color: ['#ffffff', '#e0f2fe', '#fef3c7'][Math.floor(Math.random() * 3)]
-        }));
+      // Parallax star generation
+      const starLayers = useMemo(() => {
+        return [
+          // Layer 1: Far (Small, dim)
+          Array.from({ length: 180 }).map((_, i) => ({
+            id: `l1-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+            size: 1, duration: `${Math.random() * 4 + 3}s`, delay: `${Math.random() * 10}s`,
+            color: '#a5b4fc', layer: 1
+          })),
+          // Layer 2: Mid (Variable size, brighter)
+          Array.from({ length: 80 }).map((_, i) => ({
+            id: `l2-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+            size: Math.random() * 1.5 + 1, duration: `${Math.random() * 2 + 2}s`, delay: `${Math.random() * 5}s`,
+            color: '#fff', layer: 2, isBright: Math.random() > 0.9
+          })),
+          // Layer 3: Near (Large, occasional flares)
+          Array.from({ length: 20 }).map((_, i) => ({
+            id: `l3-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
+            size: 2.5, duration: `${Math.random() * 1 + 1.5}s`, delay: `${Math.random() * 3}s`,
+            color: '#fef3c7', layer: 3, isBright: true
+          }))
+        ];
       }, []);
 
       const [comets, setComets] = useState([]);
@@ -195,41 +228,29 @@
       useEffect(() => {
         const spawnComet = () => {
           const id = Date.now();
-          const startTop = Math.random() * 60;
+          const startTop = Math.random() * 40;
           const startLeft = -20;
-          const angle = 20 + Math.random() * 20; // 20-40 degrees
-          
-          const newComet = {
-            id,
-            top: `${startTop}%`,
-            left: `${startLeft}%`,
-            angle: `${angle}deg`,
-            speed: Math.random() * 2 + 1.5
-          };
+          const angle = 15 + Math.random() * 25; 
+          const speed = Math.random() * 1.5 + 1.2;
 
-          setComets(prev => [...prev, newComet]);
-          
-          // Cleanup after 3s
-          setTimeout(() => {
-            setComets(prev => prev.filter(c => c.id !== id));
-          }, 3000);
-
-          // Random next spawn
-          setTimeout(spawnComet, 2000 + Math.random() * 5000);
+          setComets(prev => [...prev, { id, top: `${startTop}%`, left: `${startLeft}%`, angle: `${angle}deg`, speed }]);
+          setTimeout(() => setComets(prev => prev.filter(c => c.id !== id)), speed * 1000 + 500);
+          setTimeout(spawnComet, 4000 + Math.random() * 8000);
         };
 
-        const initialSpawn = setTimeout(spawnComet, 3000);
-        return () => clearTimeout(initialSpawn);
+        const timer = setTimeout(spawnComet, 2000);
+        return () => clearTimeout(timer);
       }, []);
 
       return (
         <div className="space-background">
-          <div className="nebula-layer"></div>
-          <div className="cloud-overlay"></div>
-          {stars.map(star => (
+          <div className="nebula-layer-1"></div>
+          <div className="nebula-layer-2"></div>
+          
+          {starLayers.flat().map(star => (
             <div 
               key={star.id} 
-              className="star twinkle" 
+              className={`star twinkle ${star.isBright ? 'star-bright' : ''}`} 
               style={{
                 top: star.top,
                 left: star.left,
@@ -238,10 +259,11 @@
                 backgroundColor: star.color,
                 '--duration': star.duration,
                 animationDelay: star.delay,
-                boxShadow: star.size > 2 ? `0 0 5px ${star.color}` : 'none'
+                opacity: star.layer === 1 ? 0.4 : 0.8
               }}
             />
           ))}
+
           {comets.map(comet => (
             <div 
               key={comet.id}
@@ -250,16 +272,16 @@
                 top: comet.top,
                 left: comet.left,
                 transform: `rotate(${comet.angle})`,
-                animation: `cometMove ${comet.speed}s linear forwards`
+                animation: `cometMove ${comet.speed}s cubic-bezier(0.1, 0, 0.9, 1) forwards`
               }}
             />
           ))}
           <style>{`
             @keyframes cometMove {
               0% { left: -10%; opacity: 0; }
-              10% { opacity: 1; }
-              90% { opacity: 1; }
-              100% { left: 120%; opacity: 0; }
+              20% { opacity: 1; }
+              80% { opacity: 1; }
+              100% { left: 130%; opacity: 0; }
             }
           `}</style>
         </div>
@@ -269,7 +291,7 @@
     const WorldMap = ({ lastBirth }) => {
       const svgRef = useRef(null);
       const [geoData, setGeoData] = useState(null);
-      const rotationRef = useRef([0, -15]); 
+      const rotationRef = useRef([0, -10]); 
       const activeFlashesRef = useRef(new Map()); 
 
       useEffect(() => {
@@ -291,12 +313,13 @@
         svg.selectAll("*").remove();
 
         const projection = d3.geoOrthographic()
-          .scale(Math.min(width, height) / 2.1)
+          .scale(Math.min(width, height) / 2.2)
           .translate([width / 2, height / 2])
           .clipAngle(90);
 
         const path = d3.geoPath().projection(projection);
         
+        // Sphere & Atmosphere glow
         svg.append("path")
           .datum({type: "Sphere"})
           .attr("class", "globe-outline")
@@ -350,11 +373,11 @@
                 let color;
                 if (age < 50) {
                   color = IMPACT_COLOR;
-                  countryPath.style("filter", `drop-shadow(0 0 40px ${GOLD_COLOR}) brightness(1.8)`);
+                  countryPath.style("filter", `drop-shadow(0 0 30px ${GOLD_COLOR}) brightness(2)`);
                 } else {
                   const t = (age - 50) / 1950;
                   color = d3.interpolateRgb(GOLD_COLOR, LAND_COLOR)(t);
-                  countryPath.style("filter", t < 0.5 ? `drop-shadow(0 0 ${40 * (1-t)}px ${GOLD_COLOR})` : "none");
+                  countryPath.style("filter", t < 0.6 ? `drop-shadow(0 0 ${20 * (1-t)}px ${GOLD_COLOR})` : "none");
                 }
                 countryPath.attr("fill", color).attr("stroke", color);
               }
@@ -366,7 +389,7 @@
           if (!svgRef.current) return;
           const w = svgRef.current.clientWidth;
           const h = svgRef.current.clientHeight;
-          projection.scale(Math.min(w, h) / 2.1).translate([w / 2, h / 2]);
+          projection.scale(Math.min(w, h) / 2.2).translate([w / 2, h / 2]);
         };
 
         window.addEventListener('resize', handleResize);
@@ -390,7 +413,13 @@
         activeFlashesRef.current.set(targetId, { startTime: Date.now() });
       }, [lastBirth]);
 
-      return <svg ref={svgRef} className="w-full h-full" />;
+      return (
+        <div className="relative w-full h-full flex items-center justify-center">
+          {/* Subtle atmosphere glow behind SVG */}
+          <div className="absolute w-[60vh] h-[60vh] rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none"></div>
+          <svg ref={svgRef} className="w-full h-full relative z-10" />
+        </div>
+      );
     };
 
     const App = () => {
@@ -429,19 +458,19 @@
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
           <StarBackground />
           <div className="flex-1 flex overflow-hidden">
-            {/* Wider Sidebar (40%) with Centered Content */}
-            <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-10 shadow-2xl">
+            {/* Sidebar (40%) */}
+            <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-10">
               
-              <div className="absolute top-12 left-12 flex items-center gap-3 opacity-80">
-                <svg className="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <div className="absolute top-12 left-12 flex items-center gap-3 opacity-60">
+                <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
                 </svg>
-                <span className="text-[12px] font-black tracking-[0.4em] text-amber-500 uppercase">Live Pulse</span>
+                <span className="text-[10px] font-black tracking-[0.4em] text-indigo-400 uppercase">Live Pulse</span>
               </div>
 
               <div className="w-full max-w-xl text-center">
-                <div className="header-spaced text-4xl uppercase mb-8 leading-tight font-black">
-                  Worldwide<br/>Births Today
+                <div className="header-spaced text-3xl uppercase mb-6 leading-tight font-black opacity-80">
+                  Global<br/>Births Today
                 </div>
                 <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap">
                   {totalToday.toLocaleString()}
@@ -449,14 +478,13 @@
               </div>
             </div>
 
-            {/* Rotating 3D Globe Area */}
-            <div className="flex-1 relative flex items-center justify-center">
+            {/* Globe Area */}
+            <div className="flex-1 relative">
                <WorldMap lastBirth={lastBirth} />
             </div>
           </div>
 
-          <footer className="app-footer flex items-center justify-between px-6 shrink-0 z-20">
-          </footer>
+          <footer className="app-footer"></footer>
         </div>
       );
     };
