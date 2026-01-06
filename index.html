@@ -117,7 +117,7 @@
     }
 
     .glass-sidebar {
-      background: linear-gradient(90deg, rgba(1, 1, 8, 0.9) 0%, rgba(1, 1, 8, 0.6) 40%, rgba(1, 1, 8, 0) 100%);
+      background: linear-gradient(90deg, rgba(1, 1, 8, 0.95) 0%, rgba(1, 1, 8, 0.7) 60%, rgba(1, 1, 8, 0) 100%);
       border: none;
     }
 
@@ -171,7 +171,7 @@
     const LAND_COLOR = "#33333a"; 
     const ICE_COLOR = "#f8fafc";  
     const ROTATION_SPEED = 0.5; 
-    const ATMOSPHERE_PADDING = 80; // Increased padding for 65" TV
+    const ATMOSPHERE_PADDING = 80; 
     
     const COUNTRIES_WEIGHTS = [
       { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
@@ -445,18 +445,14 @@
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
           <StarBackground />
           <div className="flex-1 relative overflow-hidden">
-            {/* Globe - Centered on Full Screen */}
-            <div className="absolute inset-0 z-10">
-               <WorldMap lastBirth={lastBirth} />
-            </div>
-
-            {/* Sidebar - Overlay Layer */}
-            <div className="absolute top-0 left-0 bottom-0 w-[40%] flex flex-col justify-center items-center p-20 z-20 glass-sidebar pointer-events-none">
+            
+            {/* Sidebar - Fixed Left Positioning */}
+            <div className="absolute top-0 left-0 bottom-0 w-[35%] flex flex-col justify-center items-center p-20 z-20 glass-sidebar pointer-events-none">
               <div className="w-full max-w-2xl text-left pointer-events-auto">
                 <div className="header-spaced text-4xl uppercase mb-10 leading-tight font-black opacity-60">
                   Global<br/>Live Births
                 </div>
-                <div className="text-[9vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-16">
+                <div className="text-[8vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-16">
                   {new Intl.NumberFormat('de-DE').format(totalToday)}
                 </div>
                 <div className="w-[100%] mt-4 text-left relative">
@@ -475,6 +471,12 @@
                 </div>
               </div>
             </div>
+
+            {/* Globe Container - Occupies the Right Side exclusively */}
+            <div className="absolute top-0 right-0 bottom-0 left-[35%] z-10 flex items-center justify-center p-12">
+               <WorldMap lastBirth={lastBirth} />
+            </div>
+
           </div>
         </div>
       );
