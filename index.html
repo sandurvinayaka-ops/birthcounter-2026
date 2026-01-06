@@ -108,81 +108,75 @@
       100% { opacity: 1; transform: scale(1.1); filter: brightness(1.4); }
     }
 
-    /* Realistic Asteroids / Meteoroids */
-    .asteroid {
+    /* Cinematic Comets (Image Based) */
+    .comet {
       position: absolute;
-      z-index: 1;
+      z-index: 10;
       pointer-events: none;
-      animation: asteroid-travel var(--speed) linear forwards;
+      animation: comet-travel var(--speed) linear forwards;
+      transform: rotate(var(--angle));
     }
 
-    .asteroid-body {
-      width: var(--size);
-      height: var(--size);
-      background: #3f444d;
-      background-image: radial-gradient(circle at 70% 30%, #718096 0%, #2d3748 40%, #1a202c 90%);
-      clip-path: polygon(var(--path));
-      box-shadow: 
-        inset -12px -12px 20px rgba(0,0,0,0.9), 
-        inset 10px 10px 15px rgba(255,255,255,0.1),
-        0 0 10px rgba(0,0,0,0.5);
-      position: relative;
-      animation: asteroid-spin var(--spin-speed) linear infinite;
-      overflow: hidden;
-    }
-
-    .asteroid-body::before {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0; left: 0;
-      opacity: 0.6;
-      box-shadow: 
-        inset 5px 8px 3px rgba(0,0,0,0.6),
-        inset -2px -4px 3px rgba(255,255,255,0.05),
-        var(--crater-shadows);
+    .comet-head {
+      width: 10px;
+      height: 10px;
+      background: #fff;
       border-radius: 50%;
+      box-shadow: 
+        0 0 20px 5px #fff,
+        0 0 40px 15px #f59e0b, /* Orange Glow */
+        0 0 70px 30px rgba(245, 158, 11, 0.3);
+      position: relative;
     }
 
-    .asteroid-trail {
+    .comet-tail {
       position: absolute;
-      top: 50%; left: 0;
-      height: 6px; 
-      width: var(--trail-width);
+      top: 50%;
+      left: 0;
+      height: 12px;
+      width: var(--tail-len);
       background: linear-gradient(90deg, 
         transparent 0%, 
-        rgba(148, 163, 184, 0.1) 20%, 
-        rgba(255, 255, 255, 0.2) 80%,
-        rgba(255, 255, 255, 0.4) 100%
+        rgba(245, 158, 11, 0.2) 20%, 
+        rgba(255, 255, 255, 0.6) 80%,
+        #fff 100%
       );
+      transform: translateY(-50%) rotate(180deg);
       transform-origin: right center;
-      transform: translateX(-100%) rotate(180deg);
-      filter: blur(8px);
+      filter: blur(4px);
+      mix-blend-mode: screen;
+      opacity: 0.8;
+    }
+
+    /* Additional wispy layers for the tail */
+    .comet-tail-wisps {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      height: 25px;
+      width: calc(var(--tail-len) * 1.2);
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(120, 50, 20, 0.1) 10%, 
+        rgba(245, 158, 11, 0.4) 70%,
+        rgba(255, 255, 255, 0.2) 100%
+      );
+      transform: translateY(-50%) rotate(180deg);
+      transform-origin: right center;
+      filter: blur(12px);
       mix-blend-mode: screen;
     }
 
-    @keyframes asteroid-spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    @keyframes asteroid-travel {
-      0% {
-        transform: translate(var(--start-x), var(--start-y));
-        opacity: 0;
-      }
-      15% { opacity: 1; }
-      85% { opacity: 1; }
-      100% {
-        transform: translate(var(--end-x), var(--end-y));
-        opacity: 0;
-      }
+    @keyframes comet-travel {
+      0% { transform: translate(var(--start-x), var(--start-y)) rotate(var(--angle)); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translate(var(--end-x), var(--end-y)) rotate(var(--angle)); opacity: 0; }
     }
 
     /* Globe Realism */
     .land {
-      stroke: rgba(0,0,0,0.05);
+      stroke: rgba(255,255,255,0.05);
       stroke-width: 0.1;
       transition: fill 0.3s ease; 
     }
@@ -202,15 +196,15 @@
 
     .atmosphere {
       fill: none;
-      stroke: rgba(147, 197, 253, 0.2);
-      stroke-width: 20px;
-      filter: blur(12px);
+      stroke: rgba(147, 197, 253, 0.25);
+      stroke-width: 25px;
+      filter: blur(15px);
     }
 
     .clouds {
-      opacity: 0.4;
+      opacity: 0.35;
       pointer-events: none;
-      filter: blur(3.5px);
+      filter: blur(4px);
       mix-blend-mode: screen;
     }
 
@@ -219,7 +213,7 @@
       pointer-events: none;
     }
 
-    /* Fully Transparent UI */
+    /* UI Layout */
     .glass-sidebar {
       background: transparent;
       backdrop-filter: none;
@@ -229,14 +223,14 @@
     .header-spaced {
       letter-spacing: 0.3em;
       font-weight: 900;
-      color: #6366f1; 
-      text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+      color: #818cf8; 
+      text-shadow: 0 0 25px rgba(129, 140, 248, 0.4);
     }
 
     .amber-bloom {
       color: #fbbf24;
-      filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.45));
-      text-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+      filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.5));
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
     }
 
     /* Progress Bar Styles */
@@ -254,16 +248,6 @@
       box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
       transition: width 1s linear;
       position: relative;
-    }
-    .progress-fill::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      height: 100%;
-      width: 4px;
-      background: #fff;
-      box-shadow: 0 0 10px #fff;
     }
   </style>
 <script type="importmap">
@@ -284,10 +268,10 @@
     const { useState, useEffect, useRef, useMemo } = React;
 
     const BIRTHS_PER_SECOND = 4.35;
-    const GOLD_COLOR = "#fbbf24"; 
-    const IMPACT_COLOR = "#FFFFFF"; 
-    const LAND_COLOR = "#1e4d2b"; // Earthy Green
-    const ICE_COLOR = "#f8fafc";  // Bright Snowy White
+    const FLASH_BURST_COLOR = "#FFFFFF"; 
+    const FLASH_BLOOM_COLOR = "#fbbf24"; // High contrast Gold
+    const LAND_COLOR = "#18181b"; // Dark zinc charcoal for high contrast with gold
+    const ICE_COLOR = "#f8fafc";  
     const ROTATION_SPEED = 0.8; 
     
     const COUNTRIES_WEIGHTS = [
@@ -329,50 +313,34 @@
         ];
       }, []);
 
-      const [asteroids, setAsteroids] = useState([]);
+      const [comets, setComets] = useState([]);
 
       useEffect(() => {
-        const spawnAsteroid = () => {
+        const spawnComet = () => {
           const id = Date.now();
-          const speed = Math.random() * 10 + 6; 
-          const size = Math.random() * 80 + 40; 
-          const spinSpeed = (Math.random() * 25 + 15) + 's';
+          const speed = Math.random() * 5 + 3; 
+          const tailLen = Math.random() * 250 + 150; 
           
-          const startSide = Math.floor(Math.random() * 4);
-          let startX, startY, endX, endY;
-          const padding = 100;
+          const startXVal = Math.random() * 100;
+          const startYVal = Math.random() * 100;
+          const angle = Math.atan2(50 - startYVal, 50 - startXVal) * (180 / Math.PI);
 
-          switch(startSide) {
-            case 0: startX = Math.random() * 100 + 'vw'; startY = -padding + 'vh'; endX = (Math.random() * 100) + 'vw'; endY = (100 + padding) + 'vh'; break;
-            case 1: startX = (100 + padding) + 'vw'; startY = Math.random() * 100 + 'vh'; endX = -padding + 'vw'; endY = (Math.random() * 100) + 'vh'; break;
-            case 2: startX = Math.random() * 100 + 'vw'; startY = (100 + padding) + 'vh'; endX = (Math.random() * 100) + 'vw'; endY = -padding + 'vh'; break;
-            case 3: default: startX = -padding + 'vw'; startY = Math.random() * 100 + 'vh'; endX = (100 + padding) + 'vw'; endY = (100 + padding) + 'vh'; break;
-          }
+          const startX = startXVal + 'vw';
+          const startY = startYVal + 'vh';
+          const endX = (startXVal + (Math.cos(angle * Math.PI / 180) * 150)) + 'vw';
+          const endY = (startYVal + (Math.sin(angle * Math.PI / 180) * 150)) + 'vh';
 
-          const points = [];
-          const vertexCount = 18;
-          for (let i = 0; i < vertexCount; i++) {
-            const angle = (i / vertexCount) * Math.PI * 2;
-            const r = 30 + Math.random() * 70; 
-            points.push(`${50 + Math.cos(angle) * r / 2}% ${50 + Math.sin(angle) * r / 2}%`);
-          }
-
-          const craterShadows = [];
-          const craterCount = 4 + Math.floor(Math.random() * 5);
-          for(let i=0; i<craterCount; i++) {
-            const cx = (Math.random() * 60 - 30);
-            const cy = (Math.random() * 60 - 30);
-            const cr = Math.random() * 8 + 2;
-            craterShadows.push(`inset ${cx}px ${cy}px ${cr}px rgba(0,0,0,0.8)`);
-          }
-
-          setAsteroids(prev => [...prev, { 
-            id, startX, startY, endX, endY, speed: `${speed}s`, size: `${size}px`, spinSpeed, path: points.join(', '), craterShadows: craterShadows.join(', '), trailWidth: `${size * 3}px`
+          setComets(prev => [...prev, { 
+            id, startX, startY, endX, endY, 
+            speed: `${speed}s`, 
+            tailLen: `${tailLen}px`,
+            angle: `${angle}deg`
           }]);
-          setTimeout(() => setAsteroids(prev => prev.filter(c => c.id !== id)), (speed * 1000) + 100);
-          setTimeout(spawnAsteroid, 1500 + Math.random() * 4000);
+
+          setTimeout(() => setComets(prev => prev.filter(c => c.id !== id)), speed * 1000 + 100);
+          setTimeout(spawnComet, 2000 + Math.random() * 5000);
         };
-        setTimeout(spawnAsteroid, 500);
+        setTimeout(spawnComet, 1000);
       }, []);
 
       return (
@@ -386,10 +354,16 @@
               }}
             />
           ))}
-          {asteroids.map(ast => (
-            <div key={ast.id} className="asteroid" style={{ '--start-x': ast.startX, '--start-y': ast.startY, '--end-x': ast.endX, '--end-y': ast.endY, '--speed': ast.speed }}>
-              <div className="asteroid-body" style={{ '--size': ast.size, '--path': ast.path, '--spin-speed': ast.spinSpeed, '--crater-shadows': ast.craterShadows }}></div>
-              <div className="asteroid-trail" style={{ '--trail-width': ast.trailWidth }}></div>
+          {comets.map(c => (
+            <div key={c.id} className="comet" style={{ 
+              '--start-x': c.startX, '--start-y': c.startY, 
+              '--end-x': c.endX, '--end-y': c.endY, 
+              '--speed': c.speed, '--angle': c.angle,
+              '--tail-len': c.tailLen 
+            }}>
+              <div className="comet-tail"></div>
+              <div className="comet-tail-wisps"></div>
+              <div className="comet-head"></div>
             </div>
           ))}
         </div>
@@ -400,14 +374,12 @@
       const svgRef = useRef(null);
       const [geoData, setGeoData] = useState(null);
       const rotationRef = useRef([0, -12]); 
-      const cloudRotationRef = useRef(0);
       const activeFlashesRef = useRef(new Map()); 
 
       useEffect(() => {
         fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
           .then(res => res.json())
           .then(data => {
-            // Keep all features for realistic ice caps
             setGeoData(data);
           });
       }, []);
@@ -422,42 +394,32 @@
         svg.selectAll("*").remove();
         const defs = svg.append("defs");
         
-        // Vibrant Deep Ocean Gradient
+        // Deep Azure Ocean
         const oceanGrad = defs.append("radialGradient")
           .attr("id", "oceanGradient")
           .attr("cx", "70%")
           .attr("cy", "30%")
           .attr("r", "70%");
-        oceanGrad.append("stop").attr("offset", "0%").attr("stop-color", "#005a9e");
-        oceanGrad.append("stop").attr("offset", "100%").attr("stop-color", "#001e33");
+        oceanGrad.append("stop").attr("offset", "0%").attr("stop-color", "#00477d");
+        oceanGrad.append("stop").attr("offset", "100%").attr("stop-color", "#001424");
 
-        // Specular ocean glare
+        // Specular highlight
         const specularGrad = defs.append("radialGradient")
           .attr("id", "specularGrad")
           .attr("cx", "65%")
           .attr("cy", "25%")
           .attr("r", "50%");
-        specularGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.15)");
+        specularGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.12)");
         specularGrad.append("stop").attr("offset", "100%").attr("stop-color", "transparent");
 
-        // Day/Night Terminator
+        // Dramatic Day/Night terminator
         const terminatorGrad = defs.append("radialGradient")
           .attr("id", "terminatorGradient")
-          .attr("cx", "75%")
-          .attr("cy", "25%")
-          .attr("r", "80%");
+          .attr("cx", "80%")
+          .attr("cy", "20%")
+          .attr("r", "85%");
         terminatorGrad.append("stop").attr("offset", "0%").attr("stop-color", "transparent");
-        terminatorGrad.append("stop").attr("offset", "85%").attr("stop-color", "rgba(0,0,10,0.65)");
-
-        // Wispy Cloud Patterns
-        const cloudGrad = defs.append("radialGradient")
-          .attr("id", "cloudGrad")
-          .attr("cx", "50%")
-          .attr("cy", "50%")
-          .attr("r", "50%");
-        cloudGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.65)");
-        cloudGrad.append("stop").attr("offset", "50%").attr("stop-color", "rgba(255,255,255,0.25)");
-        cloudGrad.append("stop").attr("offset", "100%").attr("stop-color", "transparent");
+        terminatorGrad.append("stop").attr("offset", "90%").attr("stop-color", "rgba(0,0,15,0.8)");
 
         const globeRadius = Math.min(width, height) / 2.3;
         const projection = d3.geoOrthographic()
@@ -467,14 +429,12 @@
 
         const path = d3.geoPath().projection(projection);
         
-        // Atmosphere layer
         svg.append("circle")
           .attr("cx", width / 2)
           .attr("cy", height / 2)
           .attr("r", globeRadius + 3)
           .attr("class", "atmosphere");
 
-        // Ocean Base
         svg.append("path")
           .datum({type: "Sphere"})
           .attr("class", "globe-outline")
@@ -493,32 +453,9 @@
           .append("path")
           .attr("d", path)
           .attr("class", d => `land country-${d.id}`)
-          .attr("fill", d => {
-            if (d.id === 'ATA' || d.id === 'GRL' || d.properties.name === 'Antarctica') return ICE_COLOR;
-            return LAND_COLOR;
-          });
+          .attr("fill", d => (d.id === 'ATA' || d.id === 'GRL') ? ICE_COLOR : LAND_COLOR);
 
-        // Clouds Layer (Rotating wisps)
-        const cloudGroup = svg.append("g").attr("class", "clouds");
-        const cloudCount = 18;
-        const cloudData = Array.from({length: cloudCount}).map(() => ({
-          lon: Math.random() * 360,
-          lat: Math.random() * 160 - 80,
-          sizeX: Math.random() * 60 + 20,
-          sizeY: Math.random() * 30 + 10,
-          opacity: Math.random() * 0.5 + 0.3
-        }));
-
-        const cloudElements = cloudGroup.selectAll("ellipse")
-          .data(cloudData)
-          .enter()
-          .append("ellipse")
-          .attr("fill", "url(#cloudGrad)")
-          .attr("rx", d => d.sizeX)
-          .attr("ry", d => d.sizeY)
-          .attr("opacity", d => d.opacity);
-
-        // Specular Highlight
+        // Specular Glare
         svg.append("circle")
           .attr("cx", width / 2)
           .attr("cy", height / 2)
@@ -533,10 +470,8 @@
           .attr("r", globeRadius)
           .attr("class", "night-side");
 
-        const timer = d3.timer((elapsed) => {
+        const timer = d3.timer(() => {
           rotationRef.current[0] += ROTATION_SPEED;
-          cloudRotationRef.current += ROTATION_SPEED * 1.05; 
-          
           projection.rotate(rotationRef.current);
 
           graticulePath.attr("d", path);
@@ -548,7 +483,7 @@
             countryPath.attr("d", path);
 
             const centroid = d3.geoCentroid(d);
-            const visible = projection.clipAngle() === null || d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]) < Math.PI / 2;
+            const visible = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]) < Math.PI / 2;
             
             if (!visible) {
               countryPath.attr("opacity", 0);
@@ -559,59 +494,36 @@
             const flash = activeFlashesRef.current.get(d.id);
             if (flash) {
               const age = now - flash.startTime;
-              if (age > 2000) {
+              const duration = 2200;
+              if (age > duration) {
                 activeFlashesRef.current.delete(d.id);
-                const originalColor = (d.id === 'ATA' || d.id === 'GRL') ? ICE_COLOR : LAND_COLOR;
-                countryPath.attr("fill", originalColor).style("filter", "none");
+                const baseCol = (d.id === 'ATA' || d.id === 'GRL') ? ICE_COLOR : LAND_COLOR;
+                countryPath.attr("fill", baseCol).style("filter", "none");
               } else {
                 let color;
-                const originalColor = (d.id === 'ATA' || d.id === 'GRL') ? ICE_COLOR : LAND_COLOR;
-                if (age < 50) {
-                  color = IMPACT_COLOR;
-                  countryPath.style("filter", `drop-shadow(0 0 25px ${GOLD_COLOR}) brightness(2.5)`);
+                const baseCol = (d.id === 'ATA' || d.id === 'GRL') ? ICE_COLOR : LAND_COLOR;
+                if (age < 80) { // Initial Burst
+                  color = FLASH_BURST_COLOR;
+                  countryPath.style("filter", `drop-shadow(0 0 50px ${FLASH_BLOOM_COLOR}) brightness(5)`);
                 } else {
-                  const t = (age - 50) / 1950;
-                  color = d3.interpolateRgb(GOLD_COLOR, originalColor)(t);
-                  countryPath.style("filter", t < 0.5 ? `drop-shadow(0 0 ${15 * (1-t)}px ${GOLD_COLOR})` : "none");
+                  const t = (age - 80) / (duration - 80);
+                  color = d3.interpolateRgb(FLASH_BLOOM_COLOR, baseCol)(t);
+                  countryPath.style("filter", t < 0.6 ? `drop-shadow(0 0 ${40 * (1-t)}px ${FLASH_BLOOM_COLOR})` : "none");
                 }
                 countryPath.attr("fill", color);
               }
             }
           });
-
-          // Clouds positioning
-          cloudElements.each(function(d) {
-             const cPos = projection([d.lon + cloudRotationRef.current, d.lat]);
-             const geoDist = d3.geoDistance([d.lon + cloudRotationRef.current, d.lat], [-rotationRef.current[0], -rotationRef.current[1]]);
-             const visible = geoDist < Math.PI / 2.05; 
-             d3.select(this)
-               .attr("cx", cPos[0])
-               .attr("cy", cPos[1])
-               .attr("opacity", visible ? d.opacity : 0);
-          });
         });
 
-        const handleResize = () => {
-          if (!svgRef.current) return;
-          const w = svgRef.current.clientWidth;
-          const h = svgRef.current.clientHeight;
-          projection.scale(Math.min(w, h) / 2.3).translate([w / 2, h / 2]);
-          svg.selectAll("circle.night-side, circle.atmosphere").attr("cx", w/2).attr("cy", h/2).attr("r", Math.min(w,h)/2.3);
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => {
-          timer.stop();
-          window.removeEventListener('resize', handleResize);
-        };
+        return () => timer.stop();
       }, [geoData]);
 
       useEffect(() => {
         if (!lastBirth || !geoData) return;
         let targetId = lastBirth.countryId;
         if (targetId === "OTHER") {
-          const validFeatures = geoData.features.filter(f => f.id !== 'ATA');
-          const others = validFeatures.filter(f => !COUNTRIES_WEIGHTS.some(c => c.id === f.id));
+          const others = geoData.features.filter(f => f.id !== 'ATA' && !COUNTRIES_WEIGHTS.some(c => c.id === f.id));
           if (others.length > 0) targetId = others[Math.floor(Math.random() * others.length)].id;
         }
         activeFlashesRef.current.set(targetId, { startTime: Date.now() });
@@ -619,8 +531,7 @@
 
       return (
         <div className="relative w-full h-full flex items-center justify-center">
-          <div className="absolute w-[62vh] h-[62vh] rounded-full border border-indigo-500/10 bg-indigo-500/5 blur-[80px] pointer-events-none"></div>
-          <div className="absolute w-[58vh] h-[58vh] rounded-full ring-1 ring-blue-400/20 blur-[2px] pointer-events-none"></div>
+          <div className="absolute w-[65vh] h-[65vh] rounded-full bg-amber-500/5 blur-[100px] pointer-events-none"></div>
           <svg ref={svgRef} className="w-full h-full relative z-10" />
         </div>
       );
@@ -651,7 +562,7 @@
         totalTodayRef.current = initialCount;
         updateProgress();
 
-        const progressInterval = setInterval(updateProgress, 1000);
+        setInterval(updateProgress, 1000);
 
         const schedule = () => {
           const delay = -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND);
@@ -670,14 +581,13 @@
           }, delay);
         };
         schedule();
-        return () => clearInterval(progressInterval);
       }, []);
 
       return (
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
           <StarBackground />
           <div className="flex-1 flex overflow-hidden">
-            <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-10">
+            <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-20">
               <div className="w-full max-w-xl text-center">
                 <div className="header-spaced text-3xl uppercase mb-6 leading-tight font-black opacity-70">
                   Global<br/>Live Births
@@ -694,14 +604,10 @@
                    <div className="progress-track">
                      <div className="progress-fill" style={{ width: `${dayProgress}%` }}></div>
                    </div>
-                   <div className="flex justify-between mt-1 text-[8px] font-bold text-slate-500 uppercase tracking-tighter">
-                     <span>00:00</span>
-                     <span>24:00</span>
-                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex-1 relative">
+            <div className="flex-1 relative z-10">
                <WorldMap lastBirth={lastBirth} />
             </div>
           </div>
