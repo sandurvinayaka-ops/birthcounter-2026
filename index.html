@@ -548,7 +548,7 @@
                   Global<br/>Live Births
                 </div>
                 <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-8">
-                  {totalToday.toLocaleString()}
+                  {new Intl.NumberFormat('de-DE').format(totalToday)}
                 </div>
                 
                 {/* 24-Hour Progress Bar Container */}
