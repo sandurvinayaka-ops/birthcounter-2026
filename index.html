@@ -108,7 +108,7 @@
       100% { opacity: 1; transform: scale(1.1); filter: brightness(1.4); }
     }
 
-    /* Asteroids / Meteoroids */
+    /* Asteroids / Meteoroids - Larger and more visible */
     .asteroid {
       position: absolute;
       z-index: 0;
@@ -119,33 +119,40 @@
     .asteroid-body {
       width: var(--size);
       height: var(--size);
-      background: #334155;
-      background-image: radial-gradient(circle at 30% 30%, #475569 0%, #1e293b 80%);
+      background: #475569;
+      background-image: radial-gradient(circle at 35% 35%, #64748b 0%, #1e293b 85%);
       clip-path: polygon(var(--path));
-      box-shadow: inset -5px -5px 15px rgba(0,0,0,0.8), inset 5px 5px 10px rgba(255,255,255,0.1);
+      box-shadow: 
+        inset -8px -8px 15px rgba(0,0,0,0.9), 
+        inset 8px 8px 12px rgba(255,255,255,0.2),
+        0 0 10px rgba(148, 163, 184, 0.3);
       position: relative;
       animation: asteroid-spin var(--spin-speed) linear infinite;
     }
 
+    /* Crater textures on asteroids */
     .asteroid-body::after {
       content: '';
       position: absolute;
-      width: 25%; height: 25%;
-      background: rgba(0,0,0,0.4);
+      width: 20%; height: 20%;
+      background: rgba(0,0,0,0.5);
       border-radius: 50%;
-      top: 20%; left: 40%;
-      box-shadow: 8px 12px 0 rgba(0,0,0,0.3), -10px 5px 0 rgba(0,0,0,0.3);
-      filter: blur(1px);
+      top: 15%; left: 35%;
+      box-shadow: 
+        12px 18px 0 rgba(0,0,0,0.4), 
+        -15px 10px 0 rgba(0,0,0,0.4),
+        8px -5px 0 rgba(0,0,0,0.4);
+      filter: blur(1.5px);
     }
 
     .asteroid-trail {
       position: absolute;
       top: 50%; left: 0;
-      height: 2px; width: 80px;
-      background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.2));
+      height: 3px; width: 120px;
+      background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.4));
       transform-origin: right center;
       transform: translateX(-100%) rotate(180deg);
-      filter: blur(2px);
+      filter: blur(3px);
     }
 
     @keyframes asteroid-spin {
@@ -158,15 +165,15 @@
         transform: translate(var(--start-x), var(--start-y));
         opacity: 0;
       }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
       100% {
         transform: translate(var(--end-x), var(--end-y));
         opacity: 0;
       }
     }
 
-    /* Globe & Moon */
+    /* Globe */
     .land {
       stroke: #000;
       stroke-width: 0.3;
@@ -184,10 +191,6 @@
       fill: url(#globeGradient); 
       stroke: rgba(129, 140, 248, 0.15);
       stroke-width: 0.5px;
-    }
-
-    .moon {
-      filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6));
     }
 
     /* Fully Transparent UI */
@@ -305,13 +308,13 @@
       useEffect(() => {
         const spawnAsteroid = () => {
           const id = Date.now();
-          const speed = Math.random() * 5 + 3;
-          const size = Math.random() * 20 + 10;
-          const spinSpeed = (Math.random() * 10 + 5) + 's';
+          const speed = Math.random() * 6 + 4; // Slower to look massive
+          const size = Math.random() * 40 + 20; // Bigger than before
+          const spinSpeed = (Math.random() * 15 + 8) + 's';
           
           const startSide = Math.floor(Math.random() * 4);
           let startX, startY, endX, endY;
-          const padding = 20;
+          const padding = 30;
 
           switch(startSide) {
             case 0: // Top
@@ -333,11 +336,12 @@
               break;
           }
 
-          // Random irregular polygon path for clip-path
+          // More complex irregular rocky polygon
           const points = [];
-          for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const r = 30 + Math.random() * 70;
+          const vertexCount = 10;
+          for (let i = 0; i < vertexCount; i++) {
+            const angle = (i / vertexCount) * Math.PI * 2;
+            const r = 40 + Math.random() * 60; // radius variability
             points.push(`${50 + Math.cos(angle) * r / 2}% ${50 + Math.sin(angle) * r / 2}%`);
           }
 
@@ -350,10 +354,10 @@
           }]);
 
           setTimeout(() => setAsteroids(prev => prev.filter(c => c.id !== id)), (speed * 1000) + 100);
-          setTimeout(spawnAsteroid, 2000 + Math.random() * 4000);
+          setTimeout(spawnAsteroid, 1500 + Math.random() * 3000);
         };
 
-        const timer = setTimeout(spawnAsteroid, 1000);
+        const timer = setTimeout(spawnAsteroid, 500);
         return () => clearTimeout(timer);
       }, []);
 
@@ -434,14 +438,6 @@
         globeGrad.append("stop").attr("offset", "0%").attr("stop-color", "#0f172a");
         globeGrad.append("stop").attr("offset", "100%").attr("stop-color", "#020617");
 
-        const moonGrad = defs.append("radialGradient")
-          .attr("id", "moonGradient")
-          .attr("cx", "30%")
-          .attr("cy", "30%")
-          .attr("r", "50%");
-        moonGrad.append("stop").attr("offset", "0%").attr("stop-color", "#ffffff");
-        moonGrad.append("stop").attr("offset", "100%").attr("stop-color", "#cbd5e1");
-
         const globeRadius = Math.min(width, height) / 2.3;
         const projection = d3.geoOrthographic()
           .scale(globeRadius)
@@ -471,37 +467,12 @@
           .attr("fill", LAND_COLOR)
           .attr("stroke", STROKE_COLOR);
 
-        // Add Moon
-        const moonRadius = 25;
-        const moonOrbitRadius = globeRadius * 1.4;
-        const moon = svg.append("circle")
-          .attr("r", moonRadius)
-          .attr("class", "moon")
-          .attr("fill", "url(#moonGradient)");
-
         const timer = d3.timer((elapsed) => {
           rotationRef.current[0] += ROTATION_SPEED;
           projection.rotate(rotationRef.current);
 
           graticulePath.attr("d", path);
           svg.select(".globe-outline").attr("d", path);
-
-          // Update Moon Orbit
-          const moonAngle = elapsed * 0.001; 
-          const mx = width / 2 + Math.cos(moonAngle) * moonOrbitRadius;
-          const my = height / 2 + Math.sin(moonAngle) * moonOrbitRadius * 0.4; // Elliptical tilt
-          
-          moon.attr("cx", mx).attr("cy", my);
-          
-          // Moon layering (simulated depth)
-          const moonIsBehind = Math.sin(moonAngle) < 0;
-          if (moonIsBehind) {
-            moon.lower();
-            moon.attr("opacity", 0.6).attr("r", moonRadius * 0.8);
-          } else {
-            moon.raise();
-            moon.attr("opacity", 1).attr("r", moonRadius);
-          }
 
           const now = Date.now();
           countries.each(function(d) {
