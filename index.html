@@ -321,21 +321,21 @@
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
           
           <div className="flex-1 flex overflow-hidden">
-            {/* Wider Sidebar (35%) to accommodate large numbers perfectly */}
-            <div className="w-[35%] flex flex-col p-12 relative glass-sidebar z-10 shadow-2xl">
+            {/* Wider Sidebar (35%) with Centered Content */}
+            <div className="w-[35%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-10 shadow-2xl">
               
-              <div className="flex items-center gap-3 mb-16 opacity-80">
+              <div className="absolute top-12 left-12 flex items-center gap-3 opacity-80">
                 <svg className="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
                 </svg>
                 <span className="text-[12px] font-black tracking-[0.4em] text-amber-500 uppercase">Live Pulse</span>
               </div>
 
-              <div className="mb-auto">
-                <div className="header-spaced text-4xl uppercase mb-10 leading-tight font-black">
+              <div className="w-full max-w-lg">
+                <div className="header-spaced text-4xl uppercase mb-10 leading-tight font-black text-left">
                   Worldwide<br/>Births Today
                 </div>
-                <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap">
+                <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap text-left">
                   {totalToday.toLocaleString()}
                 </div>
               </div>
