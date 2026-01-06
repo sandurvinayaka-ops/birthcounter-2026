@@ -172,8 +172,8 @@
     const FLASH_BLOOM_COLOR = "#fbbf24"; 
     const LAND_COLOR = "#33333a"; 
     const ICE_COLOR = "#f8fafc";  
-    const ROTATION_SPEED = 0.5; // Slightly slowed for smoother TV viewing
-    const GLOBE_SCALE_FACTOR = 2.2; 
+    const ROTATION_SPEED = 0.5; 
+    const ATMOSPHERE_OFFSET = 50; // Padding to ensure glow is visible on screen
     
     const COUNTRIES_WEIGHTS = [
       { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
@@ -272,7 +272,7 @@
           canvas.height = container.clientHeight * dpr;
           canvas.style.width = `${container.clientWidth}px`;
           canvas.style.height = `${container.clientHeight}px`;
-          context.setTransform(1, 0, 0, 1, 0, 0); // reset
+          context.setTransform(1, 0, 0, 1, 0, 0); 
           context.scale(dpr, dpr);
         };
         updateSize();
@@ -280,12 +280,13 @@
         const render = () => {
           const width = canvas.width / dpr;
           const height = canvas.height / dpr;
-          if (width === 0 || height === 0) {
+          if (width <= 0 || height <= 0) {
             animationFrameRef.current = requestAnimationFrame(render);
             return;
           }
           
-          const globeRadius = Math.max(1, Math.min(width, height) / GLOBE_SCALE_FACTOR);
+          // Dynamically calculate radius to fit vertically and horizontally including glow
+          const globeRadius = Math.max(10, (Math.min(width, height) / 2) - ATMOSPHERE_OFFSET);
 
           const projection = d3.geoOrthographic()
             .scale(globeRadius)
@@ -298,9 +299,9 @@
           rotationRef.current[0] += ROTATION_SPEED;
           projection.rotate(rotationRef.current);
 
-          // 1. Atmosphere Glow (Outer) - Guarding radius
-          const r1 = Math.max(0, globeRadius - 5);
-          const r2 = Math.max(r1 + 1, globeRadius + 40);
+          // 1. Atmosphere Glow (Outer)
+          const r1 = Math.max(0.1, globeRadius - 5);
+          const r2 = globeRadius + 40;
           const atmosphereGrad = context.createRadialGradient(width/2, height/2, r1, width/2, height/2, r2);
           atmosphereGrad.addColorStop(0, 'rgba(147, 197, 253, 0.3)');
           atmosphereGrad.addColorStop(1, 'rgba(147, 197, 253, 0)');
@@ -312,7 +313,7 @@
           // 2. Ocean Base
           context.beginPath();
           context.arc(width/2, height/2, globeRadius, 0, 2*Math.PI);
-          const oceanGrad = context.createRadialGradient(width/2 * 1.2, height/2 * 0.8, Math.max(0, globeRadius*0.2), width/2, height/2, globeRadius);
+          const oceanGrad = context.createRadialGradient(width/2 * 1.2, height/2 * 0.8, Math.max(0.1, globeRadius*0.2), width/2, height/2, globeRadius);
           oceanGrad.addColorStop(0, '#0066cc');
           oceanGrad.addColorStop(1, '#002b4d');
           context.fillStyle = oceanGrad;
@@ -339,7 +340,6 @@
                   } else {
                     const t = age / 2000;
                     context.fillStyle = age < 100 ? FLASH_BURST_COLOR : d3.interpolateRgb(FLASH_BLOOM_COLOR, LAND_COLOR)(t);
-                    // Add extra bloom for active flash
                     context.shadowBlur = 20 * (1 - t);
                     context.shadowColor = FLASH_BLOOM_COLOR;
                   }
@@ -356,8 +356,8 @@
             });
           }
 
-          // 4. Night Overlay (Smooth Shadow)
-          const shadowGrad = context.createRadialGradient(width/2 * 0.6, height/2 * 0.6, Math.max(0, globeRadius*0.3), width/2, height/2, globeRadius);
+          // 4. Night Overlay
+          const shadowGrad = context.createRadialGradient(width/2 * 0.6, height/2 * 0.6, Math.max(0.1, globeRadius*0.3), width/2, height/2, globeRadius);
           shadowGrad.addColorStop(0, 'rgba(255,255,255,0.05)');
           shadowGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
           context.fillStyle = shadowGrad;
@@ -394,9 +394,8 @@
       }, [lastBirth]);
 
       return (
-        <div className="relative w-full h-full flex items-center justify-center">
-          <div className="absolute w-[80vh] h-[80vh] rounded-full bg-amber-500/5 blur-[100px] pointer-events-none"></div>
-          <canvas ref={canvasRef} className="relative z-10" />
+        <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+          <canvas ref={canvasRef} className="block" />
         </div>
       );
     };
@@ -469,7 +468,7 @@
                 </div>
               </div>
             </div>
-            <div className="flex-1 relative z-10 flex items-center justify-center p-8">
+            <div className="flex-1 relative z-10 flex items-center justify-center p-4">
                <WorldMap lastBirth={lastBirth} />
             </div>
           </div>
