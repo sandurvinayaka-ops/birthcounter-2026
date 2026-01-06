@@ -55,14 +55,14 @@
 
     .nebula-1 {
       background-image: url('https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=2070&auto=format&fit=crop');
-      opacity: 0.12;
+      opacity: 0.15;
       filter: blur(6px) hue-rotate(10deg);
       animation: drift-slow 180s linear infinite alternate;
     }
 
     .nebula-2 {
       background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=2072&auto=format&fit=crop');
-      opacity: 0.08;
+      opacity: 0.1;
       filter: blur(15px) saturate(1.5);
       animation: rotate-slow 240s linear infinite;
     }
@@ -75,18 +75,19 @@
     }
     
     .star-bright {
-      box-shadow: 0 0 6px 1px rgba(255,255,255,0.4);
+      box-shadow: 0 0 10px 2px rgba(255,255,255,0.7), 0 0 20px 5px rgba(147, 197, 253, 0.3);
+      background-color: #fff !important;
     }
     
     .star-bright::after, .star-bright::before {
       content: '';
       position: absolute;
       top: 50%; left: 50%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
       transform: translate(-50%, -50%);
     }
-    .star-bright::after { width: 300%; height: 0.5px; }
-    .star-bright::before { width: 0.5px; height: 300%; }
+    .star-bright::after { width: 500%; height: 1px; }
+    .star-bright::before { width: 1px; height: 500%; }
 
     .twinkle {
       animation: twinkle-pulse var(--duration) ease-in-out infinite alternate;
@@ -103,17 +104,17 @@
     }
 
     @keyframes twinkle-pulse {
-      0% { opacity: 0.3; transform: scale(0.85); }
-      100% { opacity: 1; transform: scale(1.05); }
+      0% { opacity: 0.2; transform: scale(0.7); filter: brightness(0.8); }
+      100% { opacity: 1; transform: scale(1.1); filter: brightness(1.4); }
     }
 
-    /* Lively Comets */
+    /* Lively Comets - Multi-directional */
     .comet {
       position: absolute;
       height: 2px;
-      transform-origin: left center;
       z-index: 0;
       pointer-events: none;
+      animation: comet-travel var(--speed) linear forwards;
     }
 
     .comet-head {
@@ -125,7 +126,7 @@
       background: #fff;
       border-radius: 50%;
       transform: translateY(-50%);
-      box-shadow: 0 0 10px 2px #fff, 0 0 20px 5px rgba(147, 197, 253, 0.5);
+      box-shadow: 0 0 15px 3px #fff, 0 0 30px 8px rgba(147, 197, 253, 0.6);
     }
 
     .comet-tail {
@@ -134,13 +135,28 @@
       left: 0;
       height: 100%;
       background: linear-gradient(90deg, 
-        rgba(255,255,255,0.8) 0%, 
-        rgba(147, 197, 253, 0.4) 10%, 
-        rgba(99, 102, 241, 0.1) 30%, 
+        rgba(255,255,255,0.9) 0%, 
+        rgba(147, 197, 253, 0.5) 15%, 
+        rgba(99, 102, 241, 0.1) 40%, 
         transparent 100%
       );
       transform: translateY(-50%);
       filter: blur(0.5px);
+      transform-origin: left center;
+      rotate: 180deg; /* Points away from head */
+    }
+
+    @keyframes comet-travel {
+      0% {
+        transform: translate(var(--start-x), var(--start-y)) rotate(var(--angle));
+        opacity: 0;
+      }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% {
+        transform: translate(var(--end-x), var(--end-y)) rotate(var(--angle));
+        opacity: 0;
+      }
     }
 
     /* Globe Directional Lighting */
@@ -255,19 +271,19 @@
     const StarBackground = () => {
       const starLayers = useMemo(() => {
         return [
-          Array.from({ length: 250 }).map((_, i) => ({
+          Array.from({ length: 200 }).map((_, i) => ({
             id: `l1-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: 0.8, duration: `${Math.random() * 5 + 4}s`, delay: `${Math.random() * 10}s`,
+            size: 1.2, duration: `${Math.random() * 4 + 3}s`, delay: `${Math.random() * 10}s`,
             color: STELLAR_COLORS[Math.floor(Math.random() * 3)], layer: 1
           })),
-          Array.from({ length: 120 }).map((_, i) => ({
+          Array.from({ length: 150 }).map((_, i) => ({
             id: `l2-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: Math.random() * 1.2 + 0.8, duration: `${Math.random() * 3 + 2}s`, delay: `${Math.random() * 5}s`,
-            color: STELLAR_COLORS[Math.floor(Math.random() * STELLAR_COLORS.length)], layer: 2, isBright: Math.random() > 0.94
+            size: Math.random() * 2 + 1, duration: `${Math.random() * 3 + 1}s`, delay: `${Math.random() * 5}s`,
+            color: STELLAR_COLORS[Math.floor(Math.random() * STELLAR_COLORS.length)], layer: 2, isBright: Math.random() > 0.85
           })),
-          Array.from({ length: 25 }).map((_, i) => ({
+          Array.from({ length: 30 }).map((_, i) => ({
             id: `l3-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: 2, duration: `${Math.random() * 2 + 1.5}s`, delay: `${Math.random() * 3}s`,
+            size: 2.5, duration: `${Math.random() * 2 + 1}s`, delay: `${Math.random() * 2}s`,
             color: '#fff', layer: 3, isBright: true
           }))
         ];
@@ -278,18 +294,60 @@
       useEffect(() => {
         const spawnComet = () => {
           const id = Date.now();
-          const startTop = Math.random() * 40;
-          const startLeft = -25;
-          const angle = 10 + Math.random() * 40; 
-          const speed = Math.random() * 1.5 + 0.7;
-          const tailWidth = Math.random() * 150 + 200;
+          const speed = Math.random() * 3 + 1.5; // Seconds
+          
+          // Randomize start and end positions for any direction
+          const startSide = Math.floor(Math.random() * 4); // 0: Top, 1: Right, 2: Bottom, 3: Left
+          let startX, startY, endX, endY;
+          const padding = 20; // Start/End outside the viewport
 
-          setComets(prev => [...prev, { id, top: `${startTop}%`, left: `${startLeft}%`, angle: `${angle}deg`, speed, tailWidth }]);
-          setTimeout(() => setComets(prev => prev.filter(c => c.id !== id)), speed * 1000 + 500);
-          setTimeout(spawnComet, 2500 + Math.random() * 6000);
+          switch(startSide) {
+            case 0: // Top
+              startX = Math.random() * 100 + 'vw';
+              startY = -padding + 'vh';
+              endX = (Math.random() * 100) + 'vw';
+              endY = (100 + padding) + 'vh';
+              break;
+            case 1: // Right
+              startX = (100 + padding) + 'vw';
+              startY = Math.random() * 100 + 'vh';
+              endX = -padding + 'vw';
+              endY = (Math.random() * 100) + 'vh';
+              break;
+            case 2: // Bottom
+              startX = Math.random() * 100 + 'vw';
+              startY = (100 + padding) + 'vh';
+              endX = (Math.random() * 100) + 'vw';
+              endY = -padding + 'vh';
+              break;
+            case 3: // Left
+            default:
+              startX = -padding + 'vw';
+              startY = Math.random() * 100 + 'vh';
+              endX = (100 + padding) + 'vw';
+              endY = (Math.random() * 100) + 'vh';
+              break;
+          }
+
+          // Calculate angle for the tail to look natural
+          // Using CSS variables to drive the animation
+          const angle = Math.atan2(parseFloat(endY) - parseFloat(startY), parseFloat(endX) - parseFloat(startX)) * (180 / Math.PI);
+
+          setComets(prev => [...prev, { 
+            id, 
+            startX, startY, endX, endY, 
+            angle: `${angle}deg`, 
+            speed: `${speed}s`, 
+            tailWidth: `${Math.random() * 150 + 150}px` 
+          }]);
+
+          setTimeout(() => setComets(prev => prev.filter(c => c.id !== id)), (speed * 1000) + 100);
+          
+          // Vary spawn rate
+          setTimeout(spawnComet, 1000 + Math.random() * 3000);
         };
 
-        const timer = setTimeout(spawnComet, 2000);
+        const timer = setTimeout(spawnComet, 1000);
         return () => clearTimeout(timer);
       }, []);
 
@@ -311,7 +369,7 @@
                 backgroundColor: star.color,
                 '--duration': star.duration,
                 animationDelay: star.delay,
-                opacity: star.layer === 1 ? 0.35 : 0.85,
+                opacity: star.layer === 1 ? 0.4 : 0.9,
                 zIndex: star.layer
               }}
             />
@@ -322,24 +380,18 @@
               key={comet.id}
               className="comet"
               style={{
-                top: comet.top,
-                left: comet.left,
-                transform: `rotate(${comet.angle})`,
-                animation: `cometMove ${comet.speed}s cubic-bezier(0.2, 0, 0.8, 1) forwards`
+                '--start-x': comet.startX,
+                '--start-y': comet.startY,
+                '--end-x': comet.endX,
+                '--end-y': comet.endY,
+                '--angle': comet.angle,
+                '--speed': comet.speed
               }}
             >
               <div className="comet-head"></div>
-              <div className="comet-tail" style={{ width: `${comet.tailWidth}px` }}></div>
+              <div className="comet-tail" style={{ width: comet.tailWidth }}></div>
             </div>
           ))}
-          <style>{`
-            @keyframes cometMove {
-              0% { left: -15%; opacity: 0; scale: 0.8; }
-              15% { opacity: 1; scale: 1.1; }
-              85% { opacity: 1; scale: 1.1; }
-              100% { left: 145%; opacity: 0; scale: 0.8; }
-            }
-          `}</style>
         </div>
       );
     };
