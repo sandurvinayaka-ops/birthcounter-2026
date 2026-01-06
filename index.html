@@ -134,9 +134,9 @@
       left: 0;
       height: 100%;
       background: linear-gradient(90deg, 
-        rgba(255,255,255,1) 0%, 
-        rgba(147, 197, 253, 0.6) 10%, 
-        rgba(99, 102, 241, 0.2) 30%, 
+        rgba(255,255,255,0.8) 0%, 
+        rgba(147, 197, 253, 0.4) 10%, 
+        rgba(99, 102, 241, 0.1) 30%, 
         transparent 100%
       );
       transform: translateY(-50%);
@@ -167,7 +167,7 @@
     .glass-sidebar {
       background: transparent;
       backdrop-filter: none;
-      border: none; /* Removed borders for full transparency */
+      border: none;
     }
 
     .header-spaced {
@@ -181,6 +181,33 @@
       color: #fbbf24;
       filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.45));
       text-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+    }
+
+    /* Progress Bar Styles */
+    .progress-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #fbbf24);
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+      transition: width 1s linear;
+      position: relative;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: #fff;
+      box-shadow: 0 0 10px #fff;
     }
   </style>
 <script type="importmap">
@@ -259,8 +286,6 @@
 
           setComets(prev => [...prev, { id, top: `${startTop}%`, left: `${startLeft}%`, angle: `${angle}deg`, speed, tailWidth }]);
           setTimeout(() => setComets(prev => prev.filter(c => c.id !== id)), speed * 1000 + 500);
-          
-          // More frequent spawns for "liveliness"
           setTimeout(spawnComet, 2500 + Math.random() * 6000);
         };
 
@@ -460,14 +485,30 @@
     const App = () => {
       const [totalToday, setTotalToday] = useState(0);
       const [lastBirth, setLastBirth] = useState(null);
+      const [dayProgress, setDayProgress] = useState(0);
+      const [currentTime, setCurrentTime] = useState('');
       const totalTodayRef = useRef(0);
 
       useEffect(() => {
+        const updateProgress = () => {
+          const now = new Date();
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const secondsElapsed = (now.getTime() - startOfDay.getTime()) / 1000;
+          setDayProgress((secondsElapsed / 86400) * 100);
+          
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          setCurrentTime(`${hh}:${mm}`);
+        };
+
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const initialCount = Math.floor(((now.getTime() - startOfDay.getTime()) / 1000) * BIRTHS_PER_SECOND);
         setTotalToday(initialCount);
         totalTodayRef.current = initialCount;
+        updateProgress();
+
+        const progressInterval = setInterval(updateProgress, 1000);
 
         const schedule = () => {
           const delay = -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND);
@@ -486,13 +527,14 @@
           }, delay);
         };
         schedule();
+
+        return () => clearInterval(progressInterval);
       }, []);
 
       return (
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
           <StarBackground />
           <div className="flex-1 flex overflow-hidden">
-            {/* Fully Transparent Sidebar */}
             <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-10">
               <div className="absolute top-12 left-12 flex items-center gap-3 opacity-50">
                 <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -505,8 +547,27 @@
                 <div className="header-spaced text-3xl uppercase mb-6 leading-tight font-black opacity-70">
                   Global<br/>Live Births
                 </div>
-                <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap">
+                <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-8">
                   {totalToday.toLocaleString()}
+                </div>
+                
+                {/* 24-Hour Progress Bar Container */}
+                <div className="w-[70%] mx-auto mt-4 text-left relative">
+                   <div className="h-6 relative w-full mb-1">
+                      <div 
+                        className="absolute bottom-0 text-[10px] font-black text-white mono whitespace-nowrap transition-all duration-1000 linear" 
+                        style={{ left: `${dayProgress}%`, transform: 'translateX(-50%)' }}
+                      >
+                        {currentTime}
+                      </div>
+                   </div>
+                   <div className="progress-track">
+                     <div className="progress-fill" style={{ width: `${dayProgress}%` }}></div>
+                   </div>
+                   <div className="flex justify-between mt-1 text-[8px] font-bold text-slate-500 uppercase tracking-tighter">
+                     <span>00:00</span>
+                     <span>24:00</span>
+                   </div>
                 </div>
               </div>
             </div>
