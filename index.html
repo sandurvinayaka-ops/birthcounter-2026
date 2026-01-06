@@ -176,8 +176,8 @@
 
     /* Globe Realism */
     .land {
-      stroke: rgba(255,255,255,0.05);
-      stroke-width: 0.1;
+      stroke: rgba(255,255,255,0.12);
+      stroke-width: 0.15;
       transition: fill 0.3s ease; 
     }
 
@@ -197,8 +197,8 @@
     .atmosphere {
       fill: none;
       stroke: rgba(147, 197, 253, 0.25);
-      stroke-width: 25px;
-      filter: blur(15px);
+      stroke-width: 30px;
+      filter: blur(20px);
     }
 
     .clouds {
@@ -270,9 +270,10 @@
     const BIRTHS_PER_SECOND = 4.35;
     const FLASH_BURST_COLOR = "#FFFFFF"; 
     const FLASH_BLOOM_COLOR = "#fbbf24"; // High contrast Gold
-    const LAND_COLOR = "#18181b"; // Dark zinc charcoal for high contrast with gold
+    const LAND_COLOR = "#242428"; // Slightly lighter metallic charcoal for better visibility
     const ICE_COLOR = "#f8fafc";  
     const ROTATION_SPEED = 0.8; 
+    const GLOBE_SCALE_FACTOR = 2.2; // Optimized scale factor to fit exactly within viewport with padding
     
     const COUNTRIES_WEIGHTS = [
       { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
@@ -421,7 +422,7 @@
         terminatorGrad.append("stop").attr("offset", "0%").attr("stop-color", "transparent");
         terminatorGrad.append("stop").attr("offset", "90%").attr("stop-color", "rgba(0,0,15,0.8)");
 
-        const globeRadius = Math.min(width, height) / 2.3;
+        const globeRadius = Math.min(width, height) / GLOBE_SCALE_FACTOR;
         const projection = d3.geoOrthographic()
           .scale(globeRadius)
           .translate([width / 2, height / 2])
@@ -516,7 +517,21 @@
           });
         });
 
-        return () => timer.stop();
+        const handleResize = () => {
+          if (!svgRef.current) return;
+          const w = svgRef.current.clientWidth;
+          const h = svgRef.current.clientHeight;
+          const newRadius = Math.min(w, h) / GLOBE_SCALE_FACTOR;
+          projection.scale(newRadius).translate([w / 2, h / 2]);
+          svg.selectAll("circle.night-side").attr("cx", w/2).attr("cy", h/2).attr("r", newRadius);
+          svg.selectAll("circle.atmosphere").attr("cx", w/2).attr("cy", h/2).attr("r", newRadius + 3);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => {
+          timer.stop();
+          window.removeEventListener('resize', handleResize);
+        };
       }, [geoData]);
 
       useEffect(() => {
@@ -531,7 +546,7 @@
 
       return (
         <div className="relative w-full h-full flex items-center justify-center">
-          <div className="absolute w-[65vh] h-[65vh] rounded-full bg-amber-500/5 blur-[100px] pointer-events-none"></div>
+          <div className="absolute w-[85vh] h-[85vh] rounded-full bg-amber-500/5 blur-[120px] pointer-events-none"></div>
           <svg ref={svgRef} className="w-full h-full relative z-10" />
         </div>
       );
@@ -562,7 +577,7 @@
         totalTodayRef.current = initialCount;
         updateProgress();
 
-        setInterval(updateProgress, 1000);
+        const interval = setInterval(updateProgress, 1000);
 
         const schedule = () => {
           const delay = -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND);
@@ -581,21 +596,22 @@
           }, delay);
         };
         schedule();
+        return () => clearInterval(interval);
       }, []);
 
       return (
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
           <StarBackground />
           <div className="flex-1 flex overflow-hidden">
-            <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-20">
+            <div className="w-[35%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-20">
               <div className="w-full max-w-xl text-center">
                 <div className="header-spaced text-3xl uppercase mb-6 leading-tight font-black opacity-70">
                   Global<br/>Live Births
                 </div>
-                <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-8">
+                <div className="text-[7vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-8">
                   {new Intl.NumberFormat('de-DE').format(totalToday)}
                 </div>
-                <div className="w-[70%] mx-auto mt-4 text-left relative">
+                <div className="w-[80%] mx-auto mt-4 text-left relative">
                    <div className="h-6 relative w-full mb-1">
                       <div className="absolute bottom-0 text-[10px] font-black text-white mono whitespace-nowrap transition-all duration-1000 linear" style={{ left: `${dayProgress}%`, transform: 'translateX(-50%)' }}>
                         {currentTime}
@@ -607,7 +623,7 @@
                 </div>
               </div>
             </div>
-            <div className="flex-1 relative z-10">
+            <div className="flex-1 relative z-10 flex items-center justify-center p-4">
                <WorldMap lastBirth={lastBirth} />
             </div>
           </div>
