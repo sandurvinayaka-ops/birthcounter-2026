@@ -182,7 +182,7 @@
 
     /* Globe Realism */
     .land {
-      stroke: rgba(0,0,0,0.1);
+      stroke: rgba(0,0,0,0.05);
       stroke-width: 0.1;
       transition: fill 0.3s ease; 
     }
@@ -202,15 +202,15 @@
 
     .atmosphere {
       fill: none;
-      stroke: rgba(147, 197, 253, 0.15);
-      stroke-width: 15px;
-      filter: blur(10px);
+      stroke: rgba(147, 197, 253, 0.2);
+      stroke-width: 20px;
+      filter: blur(12px);
     }
 
     .clouds {
-      opacity: 0.45;
+      opacity: 0.4;
       pointer-events: none;
-      filter: blur(3px);
+      filter: blur(3.5px);
       mix-blend-mode: screen;
     }
 
@@ -286,7 +286,8 @@
     const BIRTHS_PER_SECOND = 4.35;
     const GOLD_COLOR = "#fbbf24"; 
     const IMPACT_COLOR = "#FFFFFF"; 
-    const LAND_COLOR = "#1B3A1B"; 
+    const LAND_COLOR = "#1e4d2b"; // Earthy Green
+    const ICE_COLOR = "#f8fafc";  // Bright Snowy White
     const ROTATION_SPEED = 0.8; 
     
     const COUNTRIES_WEIGHTS = [
@@ -406,8 +407,8 @@
         fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
           .then(res => res.json())
           .then(data => {
-            const filteredFeatures = data.features.filter(feature => feature.id !== 'ATA');
-            setGeoData({ ...data, features: filteredFeatures });
+            // Keep all features for realistic ice caps
+            setGeoData(data);
           });
       }, []);
 
@@ -421,41 +422,41 @@
         svg.selectAll("*").remove();
         const defs = svg.append("defs");
         
-        // Deep Ocean
+        // Vibrant Deep Ocean Gradient
         const oceanGrad = defs.append("radialGradient")
           .attr("id", "oceanGradient")
           .attr("cx", "70%")
           .attr("cy", "30%")
           .attr("r", "70%");
-        oceanGrad.append("stop").attr("offset", "0%").attr("stop-color", "#004b7a");
-        oceanGrad.append("stop").attr("offset", "100%").attr("stop-color", "#001a2d");
+        oceanGrad.append("stop").attr("offset", "0%").attr("stop-color", "#005a9e");
+        oceanGrad.append("stop").attr("offset", "100%").attr("stop-color", "#001e33");
 
-        // Specular highlight
+        // Specular ocean glare
         const specularGrad = defs.append("radialGradient")
           .attr("id", "specularGrad")
           .attr("cx", "65%")
           .attr("cy", "25%")
           .attr("r", "50%");
-        specularGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.18)");
+        specularGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.15)");
         specularGrad.append("stop").attr("offset", "100%").attr("stop-color", "transparent");
 
-        // Day/Night Shadow (Terminator)
+        // Day/Night Terminator
         const terminatorGrad = defs.append("radialGradient")
           .attr("id", "terminatorGradient")
           .attr("cx", "75%")
           .attr("cy", "25%")
           .attr("r", "80%");
         terminatorGrad.append("stop").attr("offset", "0%").attr("stop-color", "transparent");
-        terminatorGrad.append("stop").attr("offset", "80%").attr("stop-color", "rgba(0,0,5,0.7)");
+        terminatorGrad.append("stop").attr("offset", "85%").attr("stop-color", "rgba(0,0,10,0.65)");
 
-        // Cloud Pattern (simulated with a blurred circle and noise-like clip)
+        // Wispy Cloud Patterns
         const cloudGrad = defs.append("radialGradient")
           .attr("id", "cloudGrad")
           .attr("cx", "50%")
           .attr("cy", "50%")
           .attr("r", "50%");
-        cloudGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.7)");
-        cloudGrad.append("stop").attr("offset", "40%").attr("stop-color", "rgba(255,255,255,0.3)");
+        cloudGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.65)");
+        cloudGrad.append("stop").attr("offset", "50%").attr("stop-color", "rgba(255,255,255,0.25)");
         cloudGrad.append("stop").attr("offset", "100%").attr("stop-color", "transparent");
 
         const globeRadius = Math.min(width, height) / 2.3;
@@ -492,25 +493,32 @@
           .append("path")
           .attr("d", path)
           .attr("class", d => `land country-${d.id}`)
-          .attr("fill", LAND_COLOR);
+          .attr("fill", d => {
+            if (d.id === 'ATA' || d.id === 'GRL' || d.properties.name === 'Antarctica') return ICE_COLOR;
+            return LAND_COLOR;
+          });
 
-        // Clouds Layer (Fake rotating blobs for depth)
+        // Clouds Layer (Rotating wisps)
         const cloudGroup = svg.append("g").attr("class", "clouds");
-        const cloudCount = 12;
+        const cloudCount = 18;
         const cloudData = Array.from({length: cloudCount}).map(() => ({
           lon: Math.random() * 360,
           lat: Math.random() * 160 - 80,
-          size: Math.random() * 30 + 10
+          sizeX: Math.random() * 60 + 20,
+          sizeY: Math.random() * 30 + 10,
+          opacity: Math.random() * 0.5 + 0.3
         }));
 
-        const cloudElements = cloudGroup.selectAll("circle")
+        const cloudElements = cloudGroup.selectAll("ellipse")
           .data(cloudData)
           .enter()
-          .append("circle")
+          .append("ellipse")
           .attr("fill", "url(#cloudGrad)")
-          .attr("r", d => d.size);
+          .attr("rx", d => d.sizeX)
+          .attr("ry", d => d.sizeY)
+          .attr("opacity", d => d.opacity);
 
-        // Specular Glare (fixed in screen space)
+        // Specular Highlight
         svg.append("circle")
           .attr("cx", width / 2)
           .attr("cy", height / 2)
@@ -527,7 +535,7 @@
 
         const timer = d3.timer((elapsed) => {
           rotationRef.current[0] += ROTATION_SPEED;
-          cloudRotationRef.current += ROTATION_SPEED * 1.1; // Clouds move a bit faster
+          cloudRotationRef.current += ROTATION_SPEED * 1.05; 
           
           projection.rotate(rotationRef.current);
 
@@ -553,15 +561,17 @@
               const age = now - flash.startTime;
               if (age > 2000) {
                 activeFlashesRef.current.delete(d.id);
-                countryPath.attr("fill", LAND_COLOR).style("filter", "none");
+                const originalColor = (d.id === 'ATA' || d.id === 'GRL') ? ICE_COLOR : LAND_COLOR;
+                countryPath.attr("fill", originalColor).style("filter", "none");
               } else {
                 let color;
+                const originalColor = (d.id === 'ATA' || d.id === 'GRL') ? ICE_COLOR : LAND_COLOR;
                 if (age < 50) {
                   color = IMPACT_COLOR;
                   countryPath.style("filter", `drop-shadow(0 0 25px ${GOLD_COLOR}) brightness(2.5)`);
                 } else {
                   const t = (age - 50) / 1950;
-                  color = d3.interpolateRgb(GOLD_COLOR, LAND_COLOR)(t);
+                  color = d3.interpolateRgb(GOLD_COLOR, originalColor)(t);
                   countryPath.style("filter", t < 0.5 ? `drop-shadow(0 0 ${15 * (1-t)}px ${GOLD_COLOR})` : "none");
                 }
                 countryPath.attr("fill", color);
@@ -569,15 +579,15 @@
             }
           });
 
-          // Cloud positioning
+          // Clouds positioning
           cloudElements.each(function(d) {
              const cPos = projection([d.lon + cloudRotationRef.current, d.lat]);
              const geoDist = d3.geoDistance([d.lon + cloudRotationRef.current, d.lat], [-rotationRef.current[0], -rotationRef.current[1]]);
-             const visible = geoDist < Math.PI / 2.1; 
+             const visible = geoDist < Math.PI / 2.05; 
              d3.select(this)
                .attr("cx", cPos[0])
                .attr("cy", cPos[1])
-               .attr("opacity", visible ? 1 : 0);
+               .attr("opacity", visible ? d.opacity : 0);
           });
         });
 
@@ -600,7 +610,8 @@
         if (!lastBirth || !geoData) return;
         let targetId = lastBirth.countryId;
         if (targetId === "OTHER") {
-          const others = geoData.features.filter(f => !COUNTRIES_WEIGHTS.some(c => c.id === f.id));
+          const validFeatures = geoData.features.filter(f => f.id !== 'ATA');
+          const others = validFeatures.filter(f => !COUNTRIES_WEIGHTS.some(c => c.id === f.id));
           if (others.length > 0) targetId = others[Math.floor(Math.random() * others.length)].id;
         }
         activeFlashesRef.current.set(targetId, { startTime: Date.now() });
