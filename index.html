@@ -117,7 +117,7 @@
     }
 
     .glass-sidebar {
-      background: linear-gradient(90deg, rgba(1, 1, 8, 0.8) 0%, rgba(1, 1, 8, 0) 100%);
+      background: linear-gradient(90deg, rgba(1, 1, 8, 0.9) 0%, rgba(1, 1, 8, 0.6) 40%, rgba(1, 1, 8, 0) 100%);
       border: none;
     }
 
@@ -136,7 +136,7 @@
 
     .progress-track {
       width: 100%;
-      height: 6px;
+      height: 8px;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 10px;
       overflow: hidden;
@@ -171,7 +171,7 @@
     const LAND_COLOR = "#33333a"; 
     const ICE_COLOR = "#f8fafc";  
     const ROTATION_SPEED = 0.5; 
-    const ATMOSPHERE_PADDING = 60; // Extra padding for large TV screens to prevent clipping
+    const ATMOSPHERE_PADDING = 80; // Increased padding for 65" TV
     
     const COUNTRIES_WEIGHTS = [
       { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
@@ -194,12 +194,12 @@
         return [
           Array.from({ length: 150 }).map((_, i) => ({
             id: `l1-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: 1.5, duration: `${Math.random() * 4 + 3}s`, delay: `${Math.random() * 10}s`,
+            size: 1.8, duration: `${Math.random() * 4 + 3}s`, delay: `${Math.random() * 10}s`,
             color: STELLAR_COLORS[Math.floor(Math.random() * 3)], layer: 1
           })),
           Array.from({ length: 100 }).map((_, i) => ({
             id: `l2-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: Math.random() * 3 + 1, duration: `${Math.random() * 3 + 1}s`, delay: `${Math.random() * 5}s`,
+            size: Math.random() * 3.5 + 1.2, duration: `${Math.random() * 3 + 1}s`, delay: `${Math.random() * 5}s`,
             color: STELLAR_COLORS[Math.floor(Math.random() * STELLAR_COLORS.length)], layer: 2, isBright: Math.random() > 0.85
           }))
         ];
@@ -283,7 +283,6 @@
             return;
           }
           
-          // Maximize globe size for TV viewing while fitting inside container
           const globeRadius = Math.max(10, (Math.min(width, height) / 2) - ATMOSPHERE_PADDING);
 
           const projection = d3.geoOrthographic()
@@ -299,9 +298,9 @@
 
           // 1. Atmosphere Glow
           const r1 = Math.max(0.1, globeRadius - 5);
-          const r2 = globeRadius + 50;
+          const r2 = globeRadius + 60;
           const atmosphereGrad = context.createRadialGradient(width/2, height/2, r1, width/2, height/2, r2);
-          atmosphereGrad.addColorStop(0, 'rgba(147, 197, 253, 0.4)');
+          atmosphereGrad.addColorStop(0, 'rgba(147, 197, 253, 0.45)');
           atmosphereGrad.addColorStop(1, 'rgba(147, 197, 253, 0)');
           context.fillStyle = atmosphereGrad;
           context.beginPath();
@@ -338,7 +337,7 @@
                   } else {
                     const t = age / 2000;
                     context.fillStyle = age < 100 ? FLASH_BURST_COLOR : d3.interpolateRgb(FLASH_BLOOM_COLOR, LAND_COLOR)(t);
-                    context.shadowBlur = 25 * (1 - t);
+                    context.shadowBlur = 30 * (1 - t);
                     context.shadowColor = FLASH_BLOOM_COLOR;
                   }
                 } else {
@@ -347,25 +346,25 @@
                 }
                 
                 context.fill();
-                context.strokeStyle = 'rgba(255,255,255,0.15)';
+                context.strokeStyle = 'rgba(255,255,255,0.18)';
                 context.lineWidth = 0.5;
                 context.stroke();
               }
             });
           }
 
-          // 4. Shade
+          // 4. Night Shade
           const shadowGrad = context.createRadialGradient(width/2 * 0.6, height/2 * 0.6, Math.max(0.1, globeRadius*0.3), width/2, height/2, globeRadius);
-          shadowGrad.addColorStop(0, 'rgba(255,255,255,0.08)');
-          shadowGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
+          shadowGrad.addColorStop(0, 'rgba(255,255,255,0.1)');
+          shadowGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
           context.fillStyle = shadowGrad;
           context.beginPath();
           context.arc(width/2, height/2, globeRadius, 0, 2*Math.PI);
           context.fill();
 
-          // 5. Glare
+          // 5. High-quality Glare
           const specular = context.createRadialGradient(width/2 * 0.7, height/2 * 0.7, 0, width/2, height/2, globeRadius);
-          specular.addColorStop(0, 'rgba(255,255,255,0.2)');
+          specular.addColorStop(0, 'rgba(255,255,255,0.25)');
           specular.addColorStop(1, 'transparent');
           context.fillStyle = specular;
           context.fill();
@@ -445,33 +444,36 @@
       return (
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
           <StarBackground />
-          <div className="flex-1 flex overflow-hidden">
-            <div className="w-[30%] flex flex-col justify-center items-center p-16 relative glass-sidebar z-20">
-              <div className="w-full max-w-xl text-left">
-                <div className="header-spaced text-3xl uppercase mb-8 leading-tight font-black opacity-60">
+          <div className="flex-1 relative overflow-hidden">
+            {/* Globe - Centered on Full Screen */}
+            <div className="absolute inset-0 z-10">
+               <WorldMap lastBirth={lastBirth} />
+            </div>
+
+            {/* Sidebar - Overlay Layer */}
+            <div className="absolute top-0 left-0 bottom-0 w-[40%] flex flex-col justify-center items-center p-20 z-20 glass-sidebar pointer-events-none">
+              <div className="w-full max-w-2xl text-left pointer-events-auto">
+                <div className="header-spaced text-4xl uppercase mb-10 leading-tight font-black opacity-60">
                   Global<br/>Live Births
                 </div>
-                <div className="text-[8vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-12">
+                <div className="text-[9vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-16">
                   {new Intl.NumberFormat('de-DE').format(totalToday)}
                 </div>
                 <div className="w-[100%] mt-4 text-left relative">
-                   <div className="h-8 relative w-full mb-2">
-                      <div className="absolute bottom-0 text-[14px] font-black text-white/80 mono whitespace-nowrap transition-all duration-1000 linear" style={{ left: `${dayProgress}%`, transform: 'translateX(-50%)' }}>
+                   <div className="h-10 relative w-full mb-4">
+                      <div className="absolute bottom-0 text-[18px] font-black text-white/90 mono whitespace-nowrap transition-all duration-1000 linear" style={{ left: `${dayProgress}%`, transform: 'translateX(-50%)' }}>
                         {currentTime}
                       </div>
                    </div>
                    <div className="progress-track">
                      <div className="progress-fill" style={{ width: `${dayProgress}%` }}></div>
                    </div>
-                   <div className="mt-4 flex justify-between text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                     <span>Today's Cycle</span>
+                   <div className="mt-6 flex justify-between text-[14px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                     <span>Daily Cycle</span>
                      <span>{Math.floor(dayProgress)}% Complete</span>
                    </div>
                 </div>
               </div>
-            </div>
-            <div className="flex-1 relative z-10 flex items-center justify-center p-0">
-               <WorldMap lastBirth={lastBirth} />
             </div>
           </div>
         </div>
