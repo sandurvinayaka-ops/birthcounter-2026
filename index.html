@@ -21,7 +21,7 @@
     }
     .mono { font-family: 'JetBrains+Mono', monospace; }
     
-    /* Advanced Cosmic Background */
+    /* Cinematic Deep Space Background */
     .space-background {
       position: fixed;
       top: 0;
@@ -30,131 +30,157 @@
       height: 100%;
       z-index: -1;
       overflow: hidden;
-      background: radial-gradient(circle at center, #050b1d 0%, #010105 100%);
+      background: #010108;
     }
 
-    .nebula-layer-1 {
+    .sun-glow {
       position: absolute;
-      top: -25%; left: -25%; width: 150%; height: 150%;
-      background: radial-gradient(circle at 70% 30%, rgba(76, 29, 149, 0.15) 0%, transparent 50%),
-                  radial-gradient(circle at 20% 70%, rgba(30, 58, 138, 0.1) 0%, transparent 60%);
-      filter: blur(80px);
-      animation: drift-slow 120s linear infinite alternate;
+      top: -10%;
+      right: -10%;
+      width: 70vw;
+      height: 70vw;
+      background: radial-gradient(circle, rgba(147, 197, 253, 0.08) 0%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
     }
 
-    .nebula-layer-2 {
+    .nebula-layer {
       position: absolute;
       top: -50%; left: -50%; width: 200%; height: 200%;
-      background-image: url('https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=2070&auto=format&fit=crop');
       background-size: cover;
       background-position: center;
-      opacity: 0.2;
-      filter: blur(4px) saturate(0.5) brightness(0.4);
       mix-blend-mode: screen;
-      animation: rotate-slow 300s linear infinite;
+      pointer-events: none;
+    }
+
+    .nebula-1 {
+      background-image: url('https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=2070&auto=format&fit=crop');
+      opacity: 0.12;
+      filter: blur(6px) hue-rotate(10deg);
+      animation: drift-slow 180s linear infinite alternate;
+    }
+
+    .nebula-2 {
+      background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=2072&auto=format&fit=crop');
+      opacity: 0.08;
+      filter: blur(15px) saturate(1.5);
+      animation: rotate-slow 240s linear infinite;
     }
 
     /* Star Visuals */
     .star {
       position: absolute;
-      background: #fff;
       border-radius: 50%;
       pointer-events: none;
     }
     
     .star-bright {
-      box-shadow: 0 0 4px 1px rgba(255,255,255,0.4);
+      box-shadow: 0 0 6px 1px rgba(255,255,255,0.4);
     }
     
-    .star-bright::after {
+    .star-bright::after, .star-bright::before {
       content: '';
       position: absolute;
       top: 50%; left: 50%;
-      width: 200%; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
       transform: translate(-50%, -50%);
     }
-
-    .star-bright::before {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      height: 200%; width: 1px;
-      background: linear-gradient(0deg, transparent, rgba(255,255,255,0.3), transparent);
-      transform: translate(-50%, -50%);
-    }
+    .star-bright::after { width: 300%; height: 0.5px; }
+    .star-bright::before { width: 0.5px; height: 300%; }
 
     .twinkle {
       animation: twinkle-pulse var(--duration) ease-in-out infinite alternate;
     }
 
     @keyframes drift-slow {
-      from { transform: translate(-5%, -5%); }
-      to { transform: translate(5%, 5%); }
+      from { transform: translate(-3%, -3%) rotate(0deg); }
+      to { transform: translate(3%, 3%) rotate(2deg); }
     }
 
     @keyframes rotate-slow {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      from { transform: rotate(0deg) scale(1.1); }
+      to { transform: rotate(360deg) scale(1); }
     }
 
     @keyframes twinkle-pulse {
-      0% { opacity: 0.3; transform: scale(0.9); }
-      100% { opacity: 1; transform: scale(1.1); }
+      0% { opacity: 0.3; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1.05); }
     }
 
-    /* Comets */
+    /* Lively Comets */
     .comet {
       position: absolute;
-      width: 200px;
       height: 2px;
-      background: linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.4) 10%, transparent 100%);
       transform-origin: left center;
-      filter: blur(0.5px);
       z-index: 0;
+      pointer-events: none;
     }
 
-    /* Globe Enhancements */
+    .comet-head {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 4px;
+      height: 4px;
+      background: #fff;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 0 10px 2px #fff, 0 0 20px 5px rgba(147, 197, 253, 0.5);
+    }
+
+    .comet-tail {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      height: 100%;
+      background: linear-gradient(90deg, 
+        rgba(255,255,255,1) 0%, 
+        rgba(147, 197, 253, 0.6) 10%, 
+        rgba(99, 102, 241, 0.2) 30%, 
+        transparent 100%
+      );
+      transform: translateY(-50%);
+      filter: blur(0.5px);
+    }
+
+    /* Globe Directional Lighting */
     .land {
-      stroke: #020205;
-      stroke-width: 0.4;
+      stroke: #000;
+      stroke-width: 0.3;
       transition: fill 0.3s ease; 
     }
 
     .graticule {
       fill: none;
-      stroke: #a78bfa;
-      stroke-width: 0.15;
-      opacity: 0.1;
+      stroke: #818cf8;
+      stroke-width: 0.1;
+      opacity: 0.08;
     }
 
     .globe-outline {
-      fill: #0a0a18; 
-      stroke: rgba(167, 139, 250, 0.2);
-      stroke-width: 1px;
+      fill: url(#globeGradient); 
+      stroke: rgba(129, 140, 248, 0.15);
+      stroke-width: 0.5px;
     }
 
-    /* Sidebar - Transparent UI */
+    /* Fully Transparent UI */
     .glass-sidebar {
       background: transparent;
       backdrop-filter: none;
-      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      border: none; /* Removed borders for full transparency */
     }
 
     .header-spaced {
-      letter-spacing: 0.25em;
-      font-weight: 800;
-      color: #94a3b8; 
+      letter-spacing: 0.3em;
+      font-weight: 900;
+      color: #6366f1; 
+      text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
     }
 
     .amber-bloom {
       color: #fbbf24;
-      filter: drop-shadow(0 0 35px rgba(251, 191, 36, 0.5));
-    }
-
-    .app-footer {
-      height: 32px;
-      background: transparent;
+      filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.45));
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
     }
   </style>
 <script type="importmap">
@@ -177,9 +203,9 @@
     const BIRTHS_PER_SECOND = 4.35;
     const GOLD_COLOR = "#fbbf24"; 
     const IMPACT_COLOR = "#FFFFFF"; 
-    const LAND_COLOR = "#2e1065"; /* Rich deep violet */
-    const STROKE_COLOR = "#000000";
-    const ROTATION_SPEED = 0.3; 
+    const LAND_COLOR = "#1e1b4b";
+    const STROKE_COLOR = "#000";
+    const ROTATION_SPEED = 0.25; 
     
     const COUNTRIES_WEIGHTS = [
       { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
@@ -195,23 +221,27 @@
       { id: 'OTHER', weight: 12.0 }
     ];
 
+    const STELLAR_COLORS = [
+      '#9bb0ff', '#aabfff', '#cad7ff', '#f8f7ff', '#fff4ea', '#ffd2a1', '#ffcc6f'
+    ];
+
     const StarBackground = () => {
       const starLayers = useMemo(() => {
         return [
-          Array.from({ length: 180 }).map((_, i) => ({
+          Array.from({ length: 250 }).map((_, i) => ({
             id: `l1-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: 1, duration: `${Math.random() * 4 + 3}s`, delay: `${Math.random() * 10}s`,
-            color: '#a5b4fc', layer: 1
+            size: 0.8, duration: `${Math.random() * 5 + 4}s`, delay: `${Math.random() * 10}s`,
+            color: STELLAR_COLORS[Math.floor(Math.random() * 3)], layer: 1
           })),
-          Array.from({ length: 80 }).map((_, i) => ({
+          Array.from({ length: 120 }).map((_, i) => ({
             id: `l2-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: Math.random() * 1.5 + 1, duration: `${Math.random() * 2 + 2}s`, delay: `${Math.random() * 5}s`,
-            color: '#fff', layer: 2, isBright: Math.random() > 0.9
+            size: Math.random() * 1.2 + 0.8, duration: `${Math.random() * 3 + 2}s`, delay: `${Math.random() * 5}s`,
+            color: STELLAR_COLORS[Math.floor(Math.random() * STELLAR_COLORS.length)], layer: 2, isBright: Math.random() > 0.94
           })),
-          Array.from({ length: 20 }).map((_, i) => ({
+          Array.from({ length: 25 }).map((_, i) => ({
             id: `l3-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: 2.5, duration: `${Math.random() * 1 + 1.5}s`, delay: `${Math.random() * 3}s`,
-            color: '#fef3c7', layer: 3, isBright: true
+            size: 2, duration: `${Math.random() * 2 + 1.5}s`, delay: `${Math.random() * 3}s`,
+            color: '#fff', layer: 3, isBright: true
           }))
         ];
       }, []);
@@ -222,13 +252,16 @@
         const spawnComet = () => {
           const id = Date.now();
           const startTop = Math.random() * 40;
-          const startLeft = -20;
-          const angle = 15 + Math.random() * 25; 
-          const speed = Math.random() * 1.5 + 1.2;
+          const startLeft = -25;
+          const angle = 10 + Math.random() * 40; 
+          const speed = Math.random() * 1.5 + 0.7;
+          const tailWidth = Math.random() * 150 + 200;
 
-          setComets(prev => [...prev, { id, top: `${startTop}%`, left: `${startLeft}%`, angle: `${angle}deg`, speed }]);
+          setComets(prev => [...prev, { id, top: `${startTop}%`, left: `${startLeft}%`, angle: `${angle}deg`, speed, tailWidth }]);
           setTimeout(() => setComets(prev => prev.filter(c => c.id !== id)), speed * 1000 + 500);
-          setTimeout(spawnComet, 4000 + Math.random() * 8000);
+          
+          // More frequent spawns for "liveliness"
+          setTimeout(spawnComet, 2500 + Math.random() * 6000);
         };
 
         const timer = setTimeout(spawnComet, 2000);
@@ -237,8 +270,9 @@
 
       return (
         <div className="space-background">
-          <div className="nebula-layer-1"></div>
-          <div className="nebula-layer-2"></div>
+          <div className="sun-glow"></div>
+          <div className="nebula-layer nebula-1"></div>
+          <div className="nebula-layer nebula-2"></div>
           
           {starLayers.flat().map(star => (
             <div 
@@ -252,7 +286,8 @@
                 backgroundColor: star.color,
                 '--duration': star.duration,
                 animationDelay: star.delay,
-                opacity: star.layer === 1 ? 0.4 : 0.8
+                opacity: star.layer === 1 ? 0.35 : 0.85,
+                zIndex: star.layer
               }}
             />
           ))}
@@ -265,16 +300,19 @@
                 top: comet.top,
                 left: comet.left,
                 transform: `rotate(${comet.angle})`,
-                animation: `cometMove ${comet.speed}s cubic-bezier(0.1, 0, 0.9, 1) forwards`
+                animation: `cometMove ${comet.speed}s cubic-bezier(0.2, 0, 0.8, 1) forwards`
               }}
-            />
+            >
+              <div className="comet-head"></div>
+              <div className="comet-tail" style={{ width: `${comet.tailWidth}px` }}></div>
+            </div>
           ))}
           <style>{`
             @keyframes cometMove {
-              0% { left: -10%; opacity: 0; }
-              20% { opacity: 1; }
-              80% { opacity: 1; }
-              100% { left: 130%; opacity: 0; }
+              0% { left: -15%; opacity: 0; scale: 0.8; }
+              15% { opacity: 1; scale: 1.1; }
+              85% { opacity: 1; scale: 1.1; }
+              100% { left: 145%; opacity: 0; scale: 0.8; }
             }
           `}</style>
         </div>
@@ -284,7 +322,7 @@
     const WorldMap = ({ lastBirth }) => {
       const svgRef = useRef(null);
       const [geoData, setGeoData] = useState(null);
-      const rotationRef = useRef([0, -10]); 
+      const rotationRef = useRef([0, -12]); 
       const activeFlashesRef = useRef(new Map()); 
 
       useEffect(() => {
@@ -304,9 +342,18 @@
         const height = svgRef.current.clientHeight;
 
         svg.selectAll("*").remove();
+        const defs = svg.append("defs");
+        
+        const globeGrad = defs.append("radialGradient")
+          .attr("id", "globeGradient")
+          .attr("cx", "75%")
+          .attr("cy", "25%")
+          .attr("r", "70%");
+        globeGrad.append("stop").attr("offset", "0%").attr("stop-color", "#0f172a");
+        globeGrad.append("stop").attr("offset", "100%").attr("stop-color", "#020617");
 
         const projection = d3.geoOrthographic()
-          .scale(Math.min(width, height) / 2.2)
+          .scale(Math.min(width, height) / 2.3)
           .translate([width / 2, height / 2])
           .clipAngle(90);
 
@@ -365,11 +412,11 @@
                 let color;
                 if (age < 50) {
                   color = IMPACT_COLOR;
-                  countryPath.style("filter", `drop-shadow(0 0 30px ${GOLD_COLOR}) brightness(2)`);
+                  countryPath.style("filter", `drop-shadow(0 0 25px ${GOLD_COLOR}) brightness(2.5)`);
                 } else {
                   const t = (age - 50) / 1950;
                   color = d3.interpolateRgb(GOLD_COLOR, LAND_COLOR)(t);
-                  countryPath.style("filter", t < 0.6 ? `drop-shadow(0 0 ${20 * (1-t)}px ${GOLD_COLOR})` : "none");
+                  countryPath.style("filter", t < 0.5 ? `drop-shadow(0 0 ${15 * (1-t)}px ${GOLD_COLOR})` : "none");
                 }
                 countryPath.attr("fill", color).attr("stroke", color);
               }
@@ -381,7 +428,7 @@
           if (!svgRef.current) return;
           const w = svgRef.current.clientWidth;
           const h = svgRef.current.clientHeight;
-          projection.scale(Math.min(w, h) / 2.2).translate([w / 2, h / 2]);
+          projection.scale(Math.min(w, h) / 2.3).translate([w / 2, h / 2]);
         };
 
         window.addEventListener('resize', handleResize);
@@ -393,21 +440,18 @@
 
       useEffect(() => {
         if (!lastBirth || !geoData) return;
-        
         let targetId = lastBirth.countryId;
         if (targetId === "OTHER") {
           const others = geoData.features.filter(f => !COUNTRIES_WEIGHTS.some(c => c.id === f.id));
-          if (others.length > 0) {
-            targetId = others[Math.floor(Math.random() * others.length)].id;
-          }
+          if (others.length > 0) targetId = others[Math.floor(Math.random() * others.length)].id;
         }
-        
         activeFlashesRef.current.set(targetId, { startTime: Date.now() });
       }, [lastBirth]);
 
       return (
         <div className="relative w-full h-full flex items-center justify-center">
-          <div className="absolute w-[60vh] h-[60vh] rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none"></div>
+          <div className="absolute w-[62vh] h-[62vh] rounded-full border border-indigo-500/10 bg-indigo-500/5 blur-[80px] pointer-events-none"></div>
+          <div className="absolute w-[58vh] h-[58vh] rounded-full ring-1 ring-blue-400/20 blur-[2px] pointer-events-none"></div>
           <svg ref={svgRef} className="w-full h-full relative z-10" />
         </div>
       );
@@ -422,7 +466,6 @@
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const initialCount = Math.floor(((now.getTime() - startOfDay.getTime()) / 1000) * BIRTHS_PER_SECOND);
-        
         setTotalToday(initialCount);
         totalTodayRef.current = initialCount;
 
@@ -449,17 +492,18 @@
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
           <StarBackground />
           <div className="flex-1 flex overflow-hidden">
+            {/* Fully Transparent Sidebar */}
             <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-10">
-              <div className="absolute top-12 left-12 flex items-center gap-3 opacity-60">
+              <div className="absolute top-12 left-12 flex items-center gap-3 opacity-50">
                 <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
                 </svg>
-                <span className="text-[10px] font-black tracking-[0.4em] text-indigo-400 uppercase">Live Pulse</span>
+                <span className="text-[10px] font-black tracking-[0.4em] text-indigo-400 uppercase">System Active</span>
               </div>
 
               <div className="w-full max-w-xl text-center">
-                <div className="header-spaced text-3xl uppercase mb-6 leading-tight font-black opacity-80">
-                  Global<br/>Births Today
+                <div className="header-spaced text-3xl uppercase mb-6 leading-tight font-black opacity-70">
+                  Global<br/>Live Births
                 </div>
                 <div className="text-[7.5vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap">
                   {totalToday.toLocaleString()}
@@ -471,8 +515,6 @@
                <WorldMap lastBirth={lastBirth} />
             </div>
           </div>
-
-          <footer className="app-footer"></footer>
         </div>
       );
     };
