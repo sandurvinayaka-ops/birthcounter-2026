@@ -108,58 +108,65 @@
       100% { opacity: 1; transform: scale(1.1); filter: brightness(1.4); }
     }
 
-    /* Lively Comets - Multi-directional */
-    .comet {
+    /* Asteroids / Meteoroids */
+    .asteroid {
       position: absolute;
-      height: 2px;
       z-index: 0;
       pointer-events: none;
-      animation: comet-travel var(--speed) linear forwards;
+      animation: asteroid-travel var(--speed) linear forwards;
     }
 
-    .comet-head {
+    .asteroid-body {
+      width: var(--size);
+      height: var(--size);
+      background: #334155;
+      background-image: radial-gradient(circle at 30% 30%, #475569 0%, #1e293b 80%);
+      clip-path: polygon(var(--path));
+      box-shadow: inset -5px -5px 15px rgba(0,0,0,0.8), inset 5px 5px 10px rgba(255,255,255,0.1);
+      position: relative;
+      animation: asteroid-spin var(--spin-speed) linear infinite;
+    }
+
+    .asteroid-body::after {
+      content: '';
       position: absolute;
-      top: 50%;
-      left: 0;
-      width: 4px;
-      height: 4px;
-      background: #fff;
+      width: 25%; height: 25%;
+      background: rgba(0,0,0,0.4);
       border-radius: 50%;
-      transform: translateY(-50%);
-      box-shadow: 0 0 15px 3px #fff, 0 0 30px 8px rgba(147, 197, 253, 0.6);
+      top: 20%; left: 40%;
+      box-shadow: 8px 12px 0 rgba(0,0,0,0.3), -10px 5px 0 rgba(0,0,0,0.3);
+      filter: blur(1px);
     }
 
-    .comet-tail {
+    .asteroid-trail {
       position: absolute;
-      top: 50%;
-      left: 0;
-      height: 100%;
-      background: linear-gradient(90deg, 
-        rgba(255,255,255,0.9) 0%, 
-        rgba(147, 197, 253, 0.5) 15%, 
-        rgba(99, 102, 241, 0.1) 40%, 
-        transparent 100%
-      );
-      transform: translateY(-50%);
-      filter: blur(0.5px);
-      transform-origin: left center;
-      rotate: 180deg; /* Points away from head */
+      top: 50%; left: 0;
+      height: 2px; width: 80px;
+      background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.2));
+      transform-origin: right center;
+      transform: translateX(-100%) rotate(180deg);
+      filter: blur(2px);
     }
 
-    @keyframes comet-travel {
+    @keyframes asteroid-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes asteroid-travel {
       0% {
-        transform: translate(var(--start-x), var(--start-y)) rotate(var(--angle));
+        transform: translate(var(--start-x), var(--start-y));
         opacity: 0;
       }
       10% { opacity: 1; }
       90% { opacity: 1; }
       100% {
-        transform: translate(var(--end-x), var(--end-y)) rotate(var(--angle));
+        transform: translate(var(--end-x), var(--end-y));
         opacity: 0;
       }
     }
 
-    /* Globe Directional Lighting */
+    /* Globe & Moon */
     .land {
       stroke: #000;
       stroke-width: 0.3;
@@ -177,6 +184,10 @@
       fill: url(#globeGradient); 
       stroke: rgba(129, 140, 248, 0.15);
       stroke-width: 0.5px;
+    }
+
+    .moon {
+      filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6));
     }
 
     /* Fully Transparent UI */
@@ -289,65 +300,60 @@
         ];
       }, []);
 
-      const [comets, setComets] = useState([]);
+      const [asteroids, setAsteroids] = useState([]);
 
       useEffect(() => {
-        const spawnComet = () => {
+        const spawnAsteroid = () => {
           const id = Date.now();
-          const speed = Math.random() * 3 + 1.5; // Seconds
+          const speed = Math.random() * 5 + 3;
+          const size = Math.random() * 20 + 10;
+          const spinSpeed = (Math.random() * 10 + 5) + 's';
           
-          // Randomize start and end positions for any direction
-          const startSide = Math.floor(Math.random() * 4); // 0: Top, 1: Right, 2: Bottom, 3: Left
+          const startSide = Math.floor(Math.random() * 4);
           let startX, startY, endX, endY;
-          const padding = 20; // Start/End outside the viewport
+          const padding = 20;
 
           switch(startSide) {
             case 0: // Top
-              startX = Math.random() * 100 + 'vw';
-              startY = -padding + 'vh';
-              endX = (Math.random() * 100) + 'vw';
-              endY = (100 + padding) + 'vh';
+              startX = Math.random() * 100 + 'vw'; startY = -padding + 'vh';
+              endX = (Math.random() * 100) + 'vw'; endY = (100 + padding) + 'vh';
               break;
             case 1: // Right
-              startX = (100 + padding) + 'vw';
-              startY = Math.random() * 100 + 'vh';
-              endX = -padding + 'vw';
-              endY = (Math.random() * 100) + 'vh';
+              startX = (100 + padding) + 'vw'; startY = Math.random() * 100 + 'vh';
+              endX = -padding + 'vw'; endY = (Math.random() * 100) + 'vh';
               break;
             case 2: // Bottom
-              startX = Math.random() * 100 + 'vw';
-              startY = (100 + padding) + 'vh';
-              endX = (Math.random() * 100) + 'vw';
-              endY = -padding + 'vh';
+              startX = Math.random() * 100 + 'vw'; startY = (100 + padding) + 'vh';
+              endX = (Math.random() * 100) + 'vw'; endY = -padding + 'vh';
               break;
-            case 3: // Left
+            case 3: 
             default:
-              startX = -padding + 'vw';
-              startY = Math.random() * 100 + 'vh';
-              endX = (100 + padding) + 'vw';
-              endY = (Math.random() * 100) + 'vh';
+              startX = -padding + 'vw'; startY = Math.random() * 100 + 'vh';
+              endX = (100 + padding) + 'vw'; endY = (Math.random() * 100) + 'vh';
               break;
           }
 
-          // Calculate angle for the tail to look natural
-          // Using CSS variables to drive the animation
-          const angle = Math.atan2(parseFloat(endY) - parseFloat(startY), parseFloat(endX) - parseFloat(startX)) * (180 / Math.PI);
+          // Random irregular polygon path for clip-path
+          const points = [];
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const r = 30 + Math.random() * 70;
+            points.push(`${50 + Math.cos(angle) * r / 2}% ${50 + Math.sin(angle) * r / 2}%`);
+          }
 
-          setComets(prev => [...prev, { 
-            id, 
-            startX, startY, endX, endY, 
-            angle: `${angle}deg`, 
+          setAsteroids(prev => [...prev, { 
+            id, startX, startY, endX, endY, 
             speed: `${speed}s`, 
-            tailWidth: `${Math.random() * 150 + 150}px` 
+            size: `${size}px`,
+            spinSpeed,
+            path: points.join(', ')
           }]);
 
-          setTimeout(() => setComets(prev => prev.filter(c => c.id !== id)), (speed * 1000) + 100);
-          
-          // Vary spawn rate
-          setTimeout(spawnComet, 1000 + Math.random() * 3000);
+          setTimeout(() => setAsteroids(prev => prev.filter(c => c.id !== id)), (speed * 1000) + 100);
+          setTimeout(spawnAsteroid, 2000 + Math.random() * 4000);
         };
 
-        const timer = setTimeout(spawnComet, 1000);
+        const timer = setTimeout(spawnAsteroid, 1000);
         return () => clearTimeout(timer);
       }, []);
 
@@ -362,10 +368,8 @@
               key={star.id} 
               className={`star twinkle ${star.isBright ? 'star-bright' : ''}`} 
               style={{
-                top: star.top,
-                left: star.left,
-                width: `${star.size}px`,
-                height: `${star.size}px`,
+                top: star.top, left: star.left,
+                width: `${star.size}px`, height: `${star.size}px`,
                 backgroundColor: star.color,
                 '--duration': star.duration,
                 animationDelay: star.delay,
@@ -375,21 +379,22 @@
             />
           ))}
 
-          {comets.map(comet => (
+          {asteroids.map(ast => (
             <div 
-              key={comet.id}
-              className="comet"
+              key={ast.id}
+              className="asteroid"
               style={{
-                '--start-x': comet.startX,
-                '--start-y': comet.startY,
-                '--end-x': comet.endX,
-                '--end-y': comet.endY,
-                '--angle': comet.angle,
-                '--speed': comet.speed
+                '--start-x': ast.startX, '--start-y': ast.startY,
+                '--end-x': ast.endX, '--end-y': ast.endY,
+                '--speed': ast.speed
               }}
             >
-              <div className="comet-head"></div>
-              <div className="comet-tail" style={{ width: comet.tailWidth }}></div>
+              <div className="asteroid-body" style={{ 
+                '--size': ast.size, 
+                '--path': ast.path,
+                '--spin-speed': ast.spinSpeed 
+              }}></div>
+              <div className="asteroid-trail"></div>
             </div>
           ))}
         </div>
@@ -429,8 +434,17 @@
         globeGrad.append("stop").attr("offset", "0%").attr("stop-color", "#0f172a");
         globeGrad.append("stop").attr("offset", "100%").attr("stop-color", "#020617");
 
+        const moonGrad = defs.append("radialGradient")
+          .attr("id", "moonGradient")
+          .attr("cx", "30%")
+          .attr("cy", "30%")
+          .attr("r", "50%");
+        moonGrad.append("stop").attr("offset", "0%").attr("stop-color", "#ffffff");
+        moonGrad.append("stop").attr("offset", "100%").attr("stop-color", "#cbd5e1");
+
+        const globeRadius = Math.min(width, height) / 2.3;
         const projection = d3.geoOrthographic()
-          .scale(Math.min(width, height) / 2.3)
+          .scale(globeRadius)
           .translate([width / 2, height / 2])
           .clipAngle(90);
 
@@ -457,6 +471,14 @@
           .attr("fill", LAND_COLOR)
           .attr("stroke", STROKE_COLOR);
 
+        // Add Moon
+        const moonRadius = 25;
+        const moonOrbitRadius = globeRadius * 1.4;
+        const moon = svg.append("circle")
+          .attr("r", moonRadius)
+          .attr("class", "moon")
+          .attr("fill", "url(#moonGradient)");
+
         const timer = d3.timer((elapsed) => {
           rotationRef.current[0] += ROTATION_SPEED;
           projection.rotate(rotationRef.current);
@@ -464,8 +486,24 @@
           graticulePath.attr("d", path);
           svg.select(".globe-outline").attr("d", path);
 
-          const now = Date.now();
+          // Update Moon Orbit
+          const moonAngle = elapsed * 0.001; 
+          const mx = width / 2 + Math.cos(moonAngle) * moonOrbitRadius;
+          const my = height / 2 + Math.sin(moonAngle) * moonOrbitRadius * 0.4; // Elliptical tilt
           
+          moon.attr("cx", mx).attr("cy", my);
+          
+          // Moon layering (simulated depth)
+          const moonIsBehind = Math.sin(moonAngle) < 0;
+          if (moonIsBehind) {
+            moon.lower();
+            moon.attr("opacity", 0.6).attr("r", moonRadius * 0.8);
+          } else {
+            moon.raise();
+            moon.attr("opacity", 1).attr("r", moonRadius);
+          }
+
+          const now = Date.now();
           countries.each(function(d) {
             const countryPath = d3.select(this);
             countryPath.attr("d", path);
@@ -588,13 +626,6 @@
           <StarBackground />
           <div className="flex-1 flex overflow-hidden">
             <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-10">
-              <div className="absolute top-12 left-12 flex items-center gap-3 opacity-50">
-                <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
-                </svg>
-                <span className="text-[10px] font-black tracking-[0.4em] text-indigo-400 uppercase">System Active</span>
-              </div>
-
               <div className="w-full max-w-xl text-center">
                 <div className="header-spaced text-3xl uppercase mb-6 leading-tight font-black opacity-70">
                   Global<br/>Live Births
