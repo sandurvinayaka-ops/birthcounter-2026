@@ -42,9 +42,38 @@
       background-image: url('https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=2070&auto=format&fit=crop');
       background-size: cover;
       background-position: center;
-      opacity: 0.5;
-      filter: blur(1px) saturate(0.6) brightness(0.7); 
-      animation: drift 180s linear infinite;
+      opacity: 0.35;
+      filter: blur(2px) saturate(0.4) brightness(0.6); 
+      animation: drift 240s linear infinite;
+    }
+
+    /* Stars */
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.8;
+    }
+    
+    .twinkle {
+      animation: twinkle-pulse var(--duration) ease-in-out infinite alternate;
+    }
+
+    @keyframes twinkle-pulse {
+      0% { opacity: 0.2; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* Comets / Shooting Stars */
+    .comet {
+      position: absolute;
+      width: 150px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 100%);
+      transform-origin: left center;
+      filter: drop-shadow(0 0 5px white);
+      z-index: -1;
+      pointer-events: none;
     }
 
     .cloud-overlay {
@@ -54,18 +83,12 @@
       width: 100%;
       height: 100%;
       background: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.4;
-      animation: stars-twinkle 4s ease-in-out infinite alternate;
+      opacity: 0.2;
     }
 
     @keyframes drift {
       from { transform: rotate(0deg) scale(1); }
-      to { transform: rotate(360deg) scale(1.1); }
-    }
-
-    @keyframes stars-twinkle {
-      from { opacity: 0.2; }
-      to { opacity: 0.5; }
+      to { transform: rotate(360deg) scale(1.15); }
     }
 
     /* Map Styles */
@@ -128,14 +151,10 @@
 </script>
 </head>
 <body>
-  <div class="space-background">
-    <div class="nebula-layer"></div>
-    <div class="cloud-overlay"></div>
-  </div>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect, useRef, useMemo } = React;
 
     const BIRTHS_PER_SECOND = 4.35;
     const GOLD_COLOR = "#FFD700"; 
@@ -157,6 +176,95 @@
       { id: 'FRA', weight: 0.7 }, { id: 'ZAF', weight: 1.2 },
       { id: 'OTHER', weight: 12.0 }
     ];
+
+    const StarBackground = () => {
+      const stars = useMemo(() => {
+        return Array.from({ length: 150 }).map((_, i) => ({
+          id: i,
+          top: `${Math.random() * 100}%`,
+          left: `${Math.random() * 100}%`,
+          size: Math.random() * 2 + 1,
+          duration: `${Math.random() * 3 + 2}s`,
+          delay: `${Math.random() * 5}s`,
+          color: ['#ffffff', '#e0f2fe', '#fef3c7'][Math.floor(Math.random() * 3)]
+        }));
+      }, []);
+
+      const [comets, setComets] = useState([]);
+
+      useEffect(() => {
+        const spawnComet = () => {
+          const id = Date.now();
+          const startTop = Math.random() * 60;
+          const startLeft = -20;
+          const angle = 20 + Math.random() * 20; // 20-40 degrees
+          
+          const newComet = {
+            id,
+            top: `${startTop}%`,
+            left: `${startLeft}%`,
+            angle: `${angle}deg`,
+            speed: Math.random() * 2 + 1.5
+          };
+
+          setComets(prev => [...prev, newComet]);
+          
+          // Cleanup after 3s
+          setTimeout(() => {
+            setComets(prev => prev.filter(c => c.id !== id));
+          }, 3000);
+
+          // Random next spawn
+          setTimeout(spawnComet, 2000 + Math.random() * 5000);
+        };
+
+        const initialSpawn = setTimeout(spawnComet, 3000);
+        return () => clearTimeout(initialSpawn);
+      }, []);
+
+      return (
+        <div className="space-background">
+          <div className="nebula-layer"></div>
+          <div className="cloud-overlay"></div>
+          {stars.map(star => (
+            <div 
+              key={star.id} 
+              className="star twinkle" 
+              style={{
+                top: star.top,
+                left: star.left,
+                width: `${star.size}px`,
+                height: `${star.size}px`,
+                backgroundColor: star.color,
+                '--duration': star.duration,
+                animationDelay: star.delay,
+                boxShadow: star.size > 2 ? `0 0 5px ${star.color}` : 'none'
+              }}
+            />
+          ))}
+          {comets.map(comet => (
+            <div 
+              key={comet.id}
+              className="comet"
+              style={{
+                top: comet.top,
+                left: comet.left,
+                transform: `rotate(${comet.angle})`,
+                animation: `cometMove ${comet.speed}s linear forwards`
+              }}
+            />
+          ))}
+          <style>{`
+            @keyframes cometMove {
+              0% { left: -10%; opacity: 0; }
+              10% { opacity: 1; }
+              90% { opacity: 1; }
+              100% { left: 120%; opacity: 0; }
+            }
+          `}</style>
+        </div>
+      );
+    };
 
     const WorldMap = ({ lastBirth }) => {
       const svgRef = useRef(null);
@@ -319,9 +427,9 @@
 
       return (
         <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
-          
+          <StarBackground />
           <div className="flex-1 flex overflow-hidden">
-            {/* Wider Sidebar (35%) with Centered Content */}
+            {/* Wider Sidebar (40%) with Centered Content */}
             <div className="w-[40%] flex flex-col justify-center items-center p-12 relative glass-sidebar z-10 shadow-2xl">
               
               <div className="absolute top-12 left-12 flex items-center gap-3 opacity-80">
