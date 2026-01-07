@@ -49,7 +49,7 @@ const PacifierIcon: React.FC<{ color: string, size: number }> = ({ color, size }
     {/* Shield */}
     <rect x="15" y="40" width="70" height="30" rx="15" fill={color} />
     {/* Nipple */}
-    <path d="M40 40 Q50 0 60 40" fill="white" opacity="0.6" />
+    <circle cx="50" cy="30" r="20" fill="white" opacity="0.6" />
     {/* Detail */}
     <circle cx="50" cy="55" r="6" fill="rgba(0,0,0,0.15)" />
   </svg>
@@ -74,15 +74,6 @@ const SpaceBackground: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-        }
-        .comet-tail {
-          position: absolute;
-          width: 100px;
-          height: 2px;
-          right: 50%;
-          background: linear-gradient(to left, white, transparent);
-          transform: rotate(45deg);
-          opacity: 0.3;
         }
       `}</style>
       
@@ -110,7 +101,7 @@ const SpaceBackground: React.FC = () => {
         ))}
       </div>
 
-      {/* Floating Pacifier "Comets" */}
+      {/* Floating Pacifiers */}
       {pacifiers.map(p => (
         <div 
           key={p.id} 
@@ -122,7 +113,6 @@ const SpaceBackground: React.FC = () => {
             animationDelay: `${p.delay}s`,
           }}
         >
-          <div className="comet-tail" style={{ background: `linear-gradient(to left, ${p.color}, transparent)` }} />
           <PacifierIcon color={p.color} size={p.size} />
         </div>
       ))}
@@ -167,10 +157,9 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const isMobile = w < 768;
       const radius = isMobile ? Math.min(w * 0.4, h * 0.28) : Math.min(w * 0.26, h * 0.35);
       
-      // POSITIONED: Moved Globe left significantly (from 0.54 to 0.48) to be closer to numbers.
-      // cx 0.48 on desktop keeps it next to the 45% wide text container.
+      // POSITIONED: Moved Globe left significantly to be closer to numbers and vertically centered.
       const cx = isMobile ? w * 0.5 : w * 0.48; 
-      const cy = h * 0.5; // Vertically centered
+      const cy = h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
       rotationRef.current[0] += 0.45;
@@ -303,7 +292,7 @@ const App: React.FC = () => {
                   <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-2 py-0.5 rounded shadow-xl">
                     <span className="text-white font-mono text-[8px] font-black tracking-widest">{timeState.label}</span>
                   </div>
-                  <div className="w-px h-1.5 bg-white/30 mt-1" />
+                  {/* Line removed here */}
                 </div>
              </div>
              
@@ -316,7 +305,6 @@ const App: React.FC = () => {
 
       <div className="absolute top-10 left-10 md:left-20 z-30 pointer-events-none opacity-50">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-[2px] bg-blue-500/50" />
           <p className="font-black text-lg md:text-xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
         </div>
       </div>
