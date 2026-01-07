@@ -55,15 +55,36 @@ const PacifierIcon: React.FC<{ color: string, size: number }> = ({ color, size }
   </svg>
 );
 
-const BottleIcon: React.FC<{ size: number }> = ({ size }) => (
-  <svg width={size} height={size * 1.5} viewBox="0 0 100 150" style={{ filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.25))' }}>
-    <path d="M35 22 Q50 2 65 22 L65 35 Q50 45 35 35 Z" fill="#fef3c7" opacity="0.95" />
-    <rect x="25" y="35" width="50" height="15" rx="5" fill="#ffffff" />
-    <rect x="20" y="50" width="60" height="10" rx="3" fill="#e2e8f0" />
-    <path d="M25 60 L75 60 Q85 60 85 75 L85 130 Q85 145 70 145 L30 145 Q15 145 15 130 L15 75 Q15 60 25 60" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-    <path d="M17 105 L83 105 L83 130 Q83 143 70 143 L30 143 Q17 143 17 130 Z" fill="rgba(255,255,255,0.35)" />
-    <text x="50" y="118" fontSize="7" fontWeight="900" textAnchor="middle" fill={COLORS.BOTTLE_LOGO} fontFamily="JetBrains Mono, sans-serif" letterSpacing="1">PHILIPS</text>
-    <text x="50" y="132" fontSize="11" fontWeight="900" textAnchor="middle" fill={COLORS.BOTTLE_LOGO} fontFamily="JetBrains Mono, sans-serif">AVENT</text>
+const BottleIcon: React.FC<{ size?: number; className?: string; style?: React.CSSProperties }> = ({ size, className, style }) => (
+  <svg 
+    width={size ? size : undefined} 
+    height={size ? size * 1.5 : undefined} 
+    viewBox="0 0 100 150" 
+    className={className} 
+    style={{ ...style, filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.2))' }}
+  >
+    {/* Nipple/Top Cap (Clear/White) */}
+    <path d="M30 35 Q50 0 70 35 L75 55 L25 55 Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+    <path d="M45 10 Q50 0 55 10 L55 20 Q50 25 45 20 Z" fill="rgba(255,255,255,0.4)" />
+    
+    {/* White Ring */}
+    <rect x="20" y="55" width="60" height="15" rx="4" fill="#ffffff" />
+    <rect x="18" y="68" width="64" height="4" rx="1" fill="#e2e8f0" />
+
+    {/* Clear Body */}
+    <path d="M22 72 L78 72 Q88 72 88 85 L88 135 Q88 148 72 148 L28 148 Q12 148 12 135 L12 85 Q12 72 22 72" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.25)" strokeWidth="2" />
+    
+    {/* Green Dinosaur Logo */}
+    <g transform="translate(35, 95) scale(0.6)">
+       <path d="M10 40 Q20 40 25 30 L35 30 Q45 30 45 45 L45 55 Q45 65 35 65 L15 65 Q5 65 5 55 L5 45 Q5 40 10 40" fill="#84cc16" />
+       <circle cx="15" cy="48" r="3" fill="white" />
+       <circle cx="15" cy="48" r="1.5" fill="black" />
+       <path d="M45 45 Q55 35 60 45" fill="none" stroke="#84cc16" strokeWidth="4" />
+       <path d="M20 65 L18 75 M30 65 L32 75" stroke="#84cc16" strokeWidth="3" />
+    </g>
+    
+    {/* Liquid inside */}
+    <path d="M14 110 L86 110 L86 135 Q86 146 72 146 L28 146 Q14 146 14 135 Z" fill="rgba(255,255,255,0.3)" />
   </svg>
 );
 
@@ -125,7 +146,7 @@ const SpaceBackground: React.FC = () => {
           {obj.type === 'PACIFIER' ? (
             <PacifierIcon color={obj.color} size={obj.size} />
           ) : (
-            <BottleIcon size={obj.size * 1.4} />
+            <BottleIcon size={obj.size * 1.2} />
           )}
         </div>
       ))}
@@ -304,7 +325,7 @@ const App: React.FC = () => {
             Global Births Today
           </h1>
           
-          <div className="relative flex flex-col text-center md:text-left mb-4">
+          <div className="relative flex flex-row items-baseline justify-center md:justify-start text-center md:text-left mb-4">
             <span className="text-[15vw] md:text-[7.5vw] font-black tabular-nums tracking-tighter leading-none" style={{ color: COLORS.GOLD, textShadow: '0 0 50px rgba(255,215,0,0.2)' }}>
               {total.toLocaleString('en-US')}
             </span>
