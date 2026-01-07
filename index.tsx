@@ -16,7 +16,7 @@ const generateStars = (count: number) => {
     id: i,
     top: `${Math.random() * 100}%`,
     left: `${Math.random() * 100}%`,
-    size: Math.random() * 4 + 1.5, // Brighter and larger for visibility
+    size: Math.random() * 4 + 1.5,
     duration: `${Math.random() * 3 + 2}s`,
     delay: `${Math.random() * -10}s`
   }));
@@ -105,7 +105,7 @@ const WorldGlobe: React.FC<{ lastBirth: { countryId: string } | null }> = ({ las
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       const radius = Math.min(w, h) * 0.46;
-      const cx = w * 0.58; // Repositioned globe left to balance counter
+      const cx = w * 0.58; 
       const cy = h * 0.5;
 
       context.clearRect(0, 0, w, h);
@@ -113,18 +113,15 @@ const WorldGlobe: React.FC<{ lastBirth: { countryId: string } | null }> = ({ las
       const projection = d3.geoOrthographic().scale(radius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
       const path = d3.geoPath(projection, context);
 
-      // Atmosphere Bloom
       const bloom = context.createRadialGradient(cx, cy, radius, cx, cy, radius + 180);
       bloom.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
       bloom.addColorStop(1, 'transparent');
       context.fillStyle = bloom;
       context.beginPath(); context.arc(cx, cy, radius + 180, 0, Math.PI * 2); context.fill();
 
-      // Ocean
       context.beginPath(); context.arc(cx, cy, radius, 0, Math.PI * 2);
       context.fillStyle = OCEAN_COLOR; context.fill();
 
-      // Land & Flashes
       const now = Date.now();
       geoDataRef.current.features.forEach((f: any) => {
         const centroid = d3.geoCentroid(f);
@@ -180,7 +177,7 @@ const WorldGlobe: React.FC<{ lastBirth: { countryId: string } | null }> = ({ las
 };
 
 const App: React.FC = () => {
-  const [totalToday, setTotalToday] = useState(0);
+  const [totalToday, setTotalToday] = useState<number>(0);
   const [lastBirth, setLastBirth] = useState<{ countryId: string } | null>(null);
   const [timeState, setTimeState] = useState({ label: "00:00", pct: 0 });
   const birthCountRef = useRef(0);
@@ -218,7 +215,6 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Use de-DE locale to ensure dots as thousand separators (e.g. 1.234)
   const formattedCount = totalToday.toLocaleString('de-DE');
 
   return (
@@ -236,7 +232,6 @@ const App: React.FC = () => {
             </h2>
           </div>
 
-          {/* Bound container to ensure progress bar width equals counter text width */}
           <div className="flex flex-col items-start max-w-fit">
             <div className="text-[11vw] font-black text-amber-400 leading-none tracking-tighter tabular-nums"
                  style={{ textShadow: '0 0 50px rgba(251, 191, 36, 0.4), 0 0 120px rgba(251, 191, 36, 0.2)' }}>
