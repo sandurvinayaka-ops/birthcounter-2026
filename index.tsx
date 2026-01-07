@@ -95,14 +95,14 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const isMobile = w < 768;
       const radius = isMobile ? Math.min(w * 0.4, h * 0.28) : Math.min(w * 0.26, h * 0.35);
       
-      // POSITIONED: Moved Globe center significantly left to be next to numbers and fully visible
-      // Desktop cx shifted from 0.58 to 0.45
-      const cx = isMobile ? w * 0.5 : w * 0.45; 
+      // POSITIONED: Moved Globe center significantly toward the left to reduce gap with numbers
+      // desktop cx set to 0.6 to bring it "next to" the 45% wide text area without overlap.
+      const cx = isMobile ? w * 0.5 : w * 0.6; 
       const cy = isMobile ? h * 0.72 : h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
-      // ROTATION: Brisk and smooth
-      rotationRef.current[0] += 0.4;
+      // ROTATION: Smooth and brisk speed
+      rotationRef.current[0] += 0.45;
 
       const projection = d3.geoOrthographic()
         .scale(radius)
