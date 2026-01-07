@@ -11,34 +11,35 @@ const COLORS = {
   OCEAN_SHALLOW: '#1a3275',
   GOLD: '#FFD700',
   BLUE: '#3b82f6',      
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.18)', 
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.22)', 
   GRATICULE: 'rgba(255, 255, 255, 0.02)'
 };
 
 const generateStars = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
-    x: Math.random() * 200 - 50, // Wider range for rotation
-    y: Math.random() * 200 - 50, 
-    size: Math.random() * 1.8 + 0.8, 
-    duration: Math.random() * 3 + 2,
+    x: Math.random() * 240 - 70, 
+    y: Math.random() * 240 - 70, 
+    size: Math.random() * 2.2 + 0.6, 
+    duration: Math.random() * 4 + 2,
     delay: Math.random() * 10,
-    opacity: Math.random() * 0.7 + 0.3
+    opacity: Math.random() * 0.8 + 0.2,
+    glow: Math.random() > 0.8 // 20% of stars have extra glow
   }));
 };
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(1200), []);
+  const stars = useMemo(() => generateStars(1500), []);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
-      {/* Dynamic Nebulae */}
+      {/* Cinematic Nebulae */}
       <div className="absolute inset-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[100vw] h-[100vw] bg-blue-900/15 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] bg-indigo-900/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[-15%] right-[-10%] w-[110vw] h-[110vw] bg-blue-900/20 rounded-full blur-[140px] animate-pulse" />
+        <div className="absolute bottom-[-15%] left-[-15%] w-[90vw] h-[90vw] bg-purple-900/10 rounded-full blur-[120px]" />
       </div>
       
-      {/* Rotating Star Field */}
-      <div className="absolute top-1/2 left-1/2 w-[200vw] h-[200vw]" style={{ animation: 'rotate-bg 400s linear infinite' }}>
+      {/* Hyper-Clear Star Field */}
+      <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 600s linear infinite' }}>
         {stars.map(s => (
           <div key={s.id} className="star" style={{
             position: 'absolute',
@@ -46,10 +47,10 @@ const SpaceBackground: React.FC = () => {
             top: `${s.y}%`, 
             width: `${s.size}px`, 
             height: `${s.size}px`,
-            backgroundColor: 'white',
+            backgroundColor: s.glow ? '#e0f2fe' : '#ffffff',
             borderRadius: '50%',
             opacity: s.opacity,
-            boxShadow: s.size > 2 ? `0 0 ${s.size * 2}px rgba(255, 255, 255, 0.8)` : 'none',
+            boxShadow: s.glow ? `0 0 ${s.size * 4}px rgba(255, 255, 255, 1)` : 'none',
             animation: `star-twinkle ${s.duration}s ease-in-out infinite`,
             animationDelay: `${s.delay}s`
           }} />
@@ -93,26 +94,35 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // Responsive globe sizing
+      // Adjusted globe scaling for whole-object visibility
       const isMobile = w < 768;
-      const radius = isMobile ? Math.min(w * 0.4, h * 0.3) : Math.min(w * 0.32, h * 0.42);
-      const cx = isMobile ? w * 0.5 : w * 0.75; 
+      // Reduced radius slightly to ensure atmosphere glow fits in frame
+      const radius = isMobile ? Math.min(w * 0.42, h * 0.3) : Math.min(w * 0.28, h * 0.38);
+      
+      // Positioned globe to be next to numbers but with enough safety margin
+      const cx = isMobile ? w * 0.5 : w * 0.65; 
       const cy = isMobile ? h * 0.72 : h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
-      rotationRef.current[0] += 0.06;
+      rotationRef.current[0] += 0.05;
 
-      const projection = d3.geoOrthographic().scale(radius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
+      const projection = d3.geoOrthographic()
+        .scale(radius)
+        .translate([cx, cy])
+        .rotate(rotationRef.current)
+        .clipAngle(90);
+        
       const path = d3.geoPath(projection, ctx);
       
-      // Enhanced Atmosphere Glow
-      const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 140);
+      // Optimized Atmosphere Glow for visibility
+      const glowRadius = isMobile ? radius + 100 : radius + 130;
+      const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadius);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      glow.addColorStop(0.5, 'rgba(56, 189, 248, 0.05)');
+      glow.addColorStop(0.4, 'rgba(56, 189, 248, 0.1)');
       glow.addColorStop(1, 'transparent');
-      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, radius + 140, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2); ctx.fill();
 
-      // Oceans with light effect
+      // Oceans
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_SHALLOW); oceanGrad.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
@@ -135,7 +145,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
             } else {
               const t = elapsed / 1200;
               ctx.fillStyle = elapsed < 60 ? '#fff' : d3.interpolateRgb(COLORS.GOLD, isIce ? COLORS.ICE : COLORS.LAND)(t);
-              ctx.shadowBlur = 50 * (1 - t); ctx.shadowColor = COLORS.GOLD;
+              ctx.shadowBlur = 60 * (1 - t); ctx.shadowColor = COLORS.GOLD;
             }
           } else {
             ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
@@ -143,7 +153,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           ctx.shadowBlur = 0;
-          ctx.strokeStyle = 'rgba(255,255,255,0.08)'; 
+          ctx.strokeStyle = 'rgba(255,255,255,0.1)'; 
           ctx.lineWidth = 0.5; 
           ctx.stroke();
         }
@@ -160,7 +170,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animId); };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none opacity-100" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none" />;
 };
 
 const App: React.FC = () => {
@@ -208,44 +218,47 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* UI Overlay */}
-      <div className="absolute left-0 inset-y-0 z-20 w-full md:w-[50%] flex flex-col justify-center px-8 md:px-20 pointer-events-none">
-        <div className="flex flex-col items-start gap-0 drop-shadow-2xl">
-          <h1 className="font-bold uppercase tracking-[0.5em] text-[10px] md:text-[12px] opacity-60 mb-2 ml-1" style={{ color: COLORS.BLUE }}>
-            Global births today
+      {/* Cinematic UI Layout */}
+      <div className="absolute inset-0 z-20 flex flex-col justify-center px-8 md:px-20 pointer-events-none">
+        <div className="w-full md:w-[42%] flex flex-col items-start gap-0 drop-shadow-2xl">
+          <h1 className="font-bold uppercase tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1" style={{ color: COLORS.BLUE }}>
+            Today's Birth Cycle
           </h1>
           
-          <div className="relative">
-            <span className="text-[14vw] md:text-[8vw] font-black tabular-nums tracking-tighter leading-[0.9]" style={{ color: COLORS.GOLD, textShadow: '0 0 50px rgba(255,215,0,0.3)' }}>
+          <div className="relative flex flex-col">
+            <span className="text-[12vw] md:text-[7vw] font-black tabular-nums tracking-tighter leading-none" style={{ color: COLORS.GOLD, textShadow: '0 0 40px rgba(255,215,0,0.25)' }}>
               {total.toLocaleString('de-DE')}
             </span>
+            <span className="text-[8px] md:text-[9px] font-mono tracking-[0.8em] uppercase opacity-40 mt-3 ml-2">Biosphere Expansion Rate Active</span>
           </div>
 
-          <div className="w-full max-w-[85vw] md:max-w-[32vw] mt-12 relative">
-             <div className="h-12 w-full relative mb-1">
+          <div className="w-full max-w-[80vw] md:max-w-[26vw] mt-16 relative">
+             <div className="h-10 w-full relative mb-1">
                 <div className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center transition-all duration-1000 linear" style={{ left: `${timeState.pct}%` }}>
-                  <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-3 py-1 rounded-md shadow-2xl">
-                    <span className="text-white font-mono text-[9px] font-black tracking-widest">{timeState.label}</span>
+                  <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-2 py-1 rounded shadow-xl">
+                    <span className="text-white font-mono text-[8px] font-black tracking-widest">{timeState.label}</span>
                   </div>
-                  <div className="w-px h-3 bg-white/40 mt-1" />
+                  <div className="w-px h-2 bg-white/30 mt-1" />
                 </div>
              </div>
              
-             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 backdrop-blur-xl">
-                <div className="h-full bg-gradient-to-r from-blue-600 via-amber-400 to-rose-600 rounded-full transition-all duration-1000 linear shadow-[0_0_15px_rgba(255,215,0,0.2)]" style={{ width: `${timeState.pct}%` }} />
+             <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 backdrop-blur-sm">
+                <div className="h-full bg-gradient-to-r from-blue-500 via-amber-300 to-rose-500 rounded-full transition-all duration-1000 linear" style={{ width: `${timeState.pct}%` }} />
              </div>
              
              <div className="flex justify-between items-start mt-4 px-1">
-                <span className="text-white/30 font-mono text-[7px] uppercase tracking-[0.6em] font-bold">Chronometric Pulse</span>
+                <span className="text-white/20 font-mono text-[6px] uppercase tracking-[0.5em] font-bold">Planetary Synchronization</span>
              </div>
           </div>
         </div>
       </div>
 
       {/* Brand Header */}
-      <div className="absolute top-10 left-10 md:left-20 z-30 pointer-events-none opacity-40">
-        <p className="font-black text-xl md:text-2xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
-        <p className="text-[8px] font-mono tracking-[0.4em] uppercase text-white/50 -mt-1">Real-time Biosphere Analytics</p>
+      <div className="absolute top-10 left-10 md:left-20 z-30 pointer-events-none opacity-50">
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-[2px] bg-blue-500/50" />
+          <p className="font-black text-lg md:text-xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
+        </div>
       </div>
     </div>
   );
