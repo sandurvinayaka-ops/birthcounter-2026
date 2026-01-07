@@ -95,13 +95,14 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const isMobile = w < 768;
       const radius = isMobile ? Math.min(w * 0.4, h * 0.28) : Math.min(w * 0.26, h * 0.35);
       
-      // Positioned globe to the right but closer to the numbers
-      const cx = isMobile ? w * 0.5 : w * 0.65; 
+      // POSITIONED: Moved Globe center significantly left to be next to numbers and fully visible
+      // Desktop cx shifted from 0.58 to 0.45
+      const cx = isMobile ? w * 0.5 : w * 0.45; 
       const cy = isMobile ? h * 0.72 : h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
-      // FASTER ROTATION: increased from 0.05 to 0.25
-      rotationRef.current[0] += 0.25;
+      // ROTATION: Brisk and smooth
+      rotationRef.current[0] += 0.4;
 
       const projection = d3.geoOrthographic()
         .scale(radius)
@@ -215,18 +216,17 @@ const App: React.FC = () => {
       
       <div className="absolute inset-0 z-20 flex flex-col justify-center px-8 md:px-20 pointer-events-none">
         <div className="w-full md:w-[45%] flex flex-col items-start gap-0 drop-shadow-2xl">
-          <h1 className="font-bold uppercase tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1" style={{ color: COLORS.BLUE }}>
-            TOTAL BIRTH COUNT TODAY
+          <h1 className="font-bold tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1" style={{ color: COLORS.BLUE }}>
+            Birth count today
           </h1>
           
           <div className="relative flex flex-col">
             <span className="text-[10vw] md:text-[6.5vw] font-black tabular-nums tracking-tighter leading-none" style={{ color: COLORS.GOLD, textShadow: '0 0 30px rgba(255,215,0,0.25)' }}>
               {total.toLocaleString('de-DE')}
             </span>
-            {/* REMOVED: Global Population Cycle text */}
           </div>
 
-          <div className="w-full max-w-[80vw] md:max-w-[24vw] mt-12 relative">
+          <div className="w-full max-w-[80vw] md:max-w-[24vw] mt-6 relative">
              <div className="h-8 w-full relative mb-1">
                 <div className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center transition-all duration-1000 linear" style={{ left: `${timeState.pct}%` }}>
                   <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-2 py-0.5 rounded shadow-xl">
@@ -239,8 +239,6 @@ const App: React.FC = () => {
              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 backdrop-blur-sm">
                 <div className="h-full bg-gradient-to-r from-blue-500 via-amber-300 to-rose-500 rounded-full transition-all duration-1000 linear" style={{ width: `${timeState.pct}%` }} />
              </div>
-             
-             {/* REMOVED: Chronometric Pulse Synchronization text */}
           </div>
         </div>
       </div>
