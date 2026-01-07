@@ -96,10 +96,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // Radius and center refined for "Full visibility" across all aspect ratios
-      // Uses safe boundaries to never cut off the globe sphere.
-      const radius = Math.min(w * 0.32, h * 0.40);
-      const cx = w * 0.68; 
+      // Radius and center refined for visibility. 
+      // cx shifted to 0.65 (from 0.75) to move Earth left roughly by 2cm on standard screens.
+      const radius = Math.min(w * 0.22, h * 0.38);
+      const cx = w * 0.65; 
       const cy = h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
@@ -243,11 +243,11 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
 
-      {/* Main UI Container */}
-      <div className="absolute left-0 inset-y-0 z-20 w-[60%] flex flex-col justify-center px-20 pointer-events-none">
+      {/* Main UI Container strictly to the left */}
+      <div className="absolute left-0 inset-y-0 z-20 w-[50%] flex flex-col justify-center px-12 md:px-20 pointer-events-none">
         <div className="flex flex-col gap-0 drop-shadow-2xl">
           <h1 
-            className="font-bold uppercase tracking-[0.5em] text-[12px] ml-2"
+            className="font-black uppercase tracking-[0.5em] text-[12px] md:text-[14px] ml-2"
             style={{ color: COLORS.BLUE }}
           >
             Total birth count today
@@ -255,15 +255,15 @@ const App: React.FC = () => {
           
           <div className="relative">
             <span 
-              className={`text-[8vw] font-black tabular-nums tracking-tighter`}
+              className={`text-[9vw] font-black tabular-nums tracking-tighter leading-none`}
               style={{ color: COLORS.GOLD, textShadow: '0 0 50px rgba(255,215,0,0.4)' }}
             >
               {total.toLocaleString('de-DE')}
             </span>
           </div>
 
-          {/* Progress Section: Width matched to counter visual footprint (35vw) */}
-          <div className="w-full max-w-[35vw] mt-2 relative">
+          {/* Progress Section: Width matched to counter footprint */}
+          <div className="w-full max-w-[35vw] mt-4 relative">
              {/* Time Tag */}
              <div className="h-8 w-full relative mb-1">
                 <div 
@@ -293,7 +293,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Brand Watermark */}
-      <div className="absolute top-10 left-20 z-30 pointer-events-none opacity-50">
+      <div className="absolute top-10 left-12 md:left-20 z-30 pointer-events-none opacity-50">
         <p className="font-black text-xl tracking-tighter text-white">
           EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span>
         </p>
