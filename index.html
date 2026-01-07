@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   
-  <!-- Babel for Browser-side TSX Compilation (Fixes Blank Page on GitHub) -->
+  <!-- Babel for Browser-side TSX Compilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script type="importmap">
@@ -45,50 +45,48 @@
       position: fixed;
       inset: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: #000;
       z-index: 9999;
       transition: opacity 0.5s ease;
     }
-    .nebula {
-      filter: blur(140px);
-      mix-blend-mode: screen;
-      pointer-events: none;
-      opacity: 0.15;
+    .loading-text {
+      margin-top: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: #666;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      animation: pulse-text 2s infinite;
     }
-    @keyframes rotate-bg {
-      from { transform: translate(-50%, -50%) rotate(0deg); }
-      to { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-    @keyframes star-twinkle {
-      0%, 100% { opacity: 0.6; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.1); }
-    }
-    .star {
-      position: absolute;
-      background: white;
-      border-radius: 50%;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 1);
+    @keyframes pulse-text {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
     }
   </style>
 </head>
 <body>
   <div id="loading-screen">
-    <div className="flex flex-col items-center">
-      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      <p style="margin-top: 20px; font-family: 'JetBrains Mono'; font-size: 12px; color: #444; letter-spacing: 2px;">INITIALIZING EARTHPULSE...</p>
-    </div>
+    <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <p class="loading-text">Initializing EarthPulse...</p>
+    <div id="error-display" style="display: none; color: #ef4444; font-family: monospace; font-size: 12px; margin-top: 20px; max-width: 80%; text-align: center;"></div>
   </div>
   
   <div id="root"></div>
 
-  <!-- Note: data-type="module" and type="text/babel" tells Babel to compile this TSX module in the browser -->
-  <script type="text/babel" data-type="module" src="index.tsx"></script>
+  <!-- type="text/babel" with data-presets handles TSX and React -->
+  <script 
+    type="text/babel" 
+    data-type="module" 
+    data-presets="typescript,react" 
+    src="index.tsx"
+  ></script>
   
   <script>
-    // Simple observer to hide loading screen once React mounts content
-    const observer = new MutationObserver((mutations) => {
+    // Hide loader when React content appears
+    const observer = new MutationObserver(() => {
       const root = document.getElementById('root');
       if (root && root.children.length > 0) {
         const loader = document.getElementById('loading-screen');
@@ -100,6 +98,17 @@
       }
     });
     observer.observe(document.getElementById('root'), { childList: true });
+
+    // Catch compilation or runtime errors to show they're happening
+    window.addEventListener('error', (event) => {
+      const errorDisplay = document.getElementById('error-display');
+      if (errorDisplay) {
+        errorDisplay.style.display = 'block';
+        errorDisplay.innerText = 'Error: ' + event.message;
+        const loadingText = document.querySelector('.loading-text');
+        if (loadingText) loadingText.style.display = 'none';
+      }
+    });
   </script>
 </body>
 </html>
