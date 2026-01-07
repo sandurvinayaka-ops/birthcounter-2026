@@ -1,20 +1,13 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Global Live Birth Tracker
 
-# Run and deploy your AI Studio app
+A high-performance cinematic visualization of live global births.
 
-This contains everything you need to run your app locally.
+## How to Host on GitHub Pages
 
-View your app in AI Studio: https://ai.studio/apps/drive/1VKsfXpcoSZO0ReFmW9QQ6EgjE3Md9AvV
+1. **Create a new Repository** on your GitHub account.
+2. **Upload only the `index.html` file** to the root of that repository.
+3. Go to **Settings > Pages**.
+4. Under "Build and deployment", ensure the source is set to **Deploy from a branch**.
+5. Select your **main** branch and the **/(root)** folder, then click **Save**.
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Your site will be live at `https://[your-username].github.io/[repo-name]/` within minutes!

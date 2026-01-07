@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Global Live Births | Pulse</title>
+  <title>Live Birth Tracker | Global Pulse</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -23,140 +23,101 @@
     
     .space-background {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0; width: 100%; height: 100%;
       z-index: -1;
-      overflow: hidden;
-      background: #010108;
-      transform: translateZ(0);
+      background: radial-gradient(circle at 70% 30%, #030712 0%, #000000 100%);
     }
 
-    .sun-glow {
+    .nebula {
       position: absolute;
-      top: -10%;
-      right: -10%;
-      width: 70vw;
-      height: 70vw;
-      background: radial-gradient(circle, rgba(147, 197, 253, 0.08) 0%, transparent 70%);
-      filter: blur(100px);
+      width: 150%; height: 150%;
+      top: -25%; left: -25%;
+      background: radial-gradient(circle at 50% 50%, rgba(30, 58, 138, 0.08) 0%, transparent 60%);
+      filter: blur(80px);
       pointer-events: none;
-      transform: translateZ(0);
+      animation: drift 120s linear infinite alternate;
     }
 
-    .nebula-layer {
-      position: absolute;
-      top: -50%; left: -50%; width: 200%; height: 200%;
-      background-size: cover;
-      background-position: center;
-      mix-blend-mode: screen;
-      pointer-events: none;
-      transform: translateZ(0);
-    }
-
-    .nebula-1 {
-      background-image: url('https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=2070&auto=format&fit=crop');
-      opacity: 0.15;
-      filter: blur(6px) hue-rotate(10deg);
-      animation: drift-slow 180s linear infinite alternate;
-    }
-
-    .nebula-2 {
-      background-image: url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=2072&auto=format&fit=crop');
-      opacity: 0.1;
-      filter: blur(15px) saturate(1.5);
-      animation: rotate-slow 240s linear infinite;
+    @keyframes drift {
+      from { transform: translate(-1%, -1%) rotate(0deg); }
+      to { transform: translate(1%, 1%) rotate(2deg); }
     }
 
     .star {
       position: absolute;
       border-radius: 50%;
       pointer-events: none;
-      transform: translateZ(0);
-    }
-    
-    .star-bright {
-      box-shadow: 0 0 10px 2px rgba(255,255,255,0.7), 0 0 20px 5px rgba(147, 197, 253, 0.3);
-      background-color: #fff !important;
     }
 
-    .twinkle {
-      animation: twinkle-pulse var(--duration) ease-in-out infinite alternate;
+    @keyframes shimmer {
+      0% { opacity: 0.1; transform: scale(0.8); }
+      50% { opacity: 0.9; transform: scale(1.2); }
+      100% { opacity: 0.2; transform: scale(1); }
     }
 
-    @keyframes drift-slow {
-      from { transform: translate(-3%, -3%) rotate(0deg) translateZ(0); }
-      to { transform: translate(3%, 3%) rotate(2deg) translateZ(0); }
-    }
-
-    @keyframes rotate-slow {
-      from { transform: rotate(0deg) scale(1.1) translateZ(0); }
-      to { transform: rotate(360deg) scale(1) translateZ(0); }
-    }
-
-    @keyframes twinkle-pulse {
-      0% { opacity: 0.2; transform: scale(0.7) translateZ(0); }
-      100% { opacity: 1; transform: scale(1.1) translateZ(0); }
-    }
-
-    .comet {
-      position: absolute;
-      z-index: 10;
-      pointer-events: none;
-      animation: comet-travel var(--speed) linear forwards;
-      transform: rotate(var(--angle)) translateZ(0);
-    }
-
-    @keyframes comet-travel {
-      0% { transform: translate(var(--start-x), var(--start-y)) rotate(var(--angle)) translateZ(0); opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { transform: translate(var(--end-x), var(--end-y)) rotate(var(--angle)) translateZ(0); opacity: 0; }
+    .star-shine {
+      animation: shimmer var(--duration) ease-in-out infinite alternate;
     }
 
     .glass-sidebar {
-      background: linear-gradient(90deg, rgba(1, 1, 8, 0.98) 0%, rgba(1, 1, 8, 0.9) 30%, rgba(1, 1, 8, 0) 100%);
-      border: none;
+      background: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.8) 70%, transparent 100%);
     }
 
-    .header-spaced {
-      letter-spacing: 0.4em;
-      font-weight: 900;
-      color: #818cf8; 
-      text-shadow: 0 0 25px rgba(129, 140, 248, 0.4);
-    }
-
-    .amber-bloom {
+    .counter-glow {
       color: #fbbf24;
-      filter: drop-shadow(0 0 40px rgba(251, 191, 36, 0.6));
-      text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+      font-weight: 900;
+      text-shadow: 0 0 40px rgba(251, 191, 36, 0.4), 0 0 100px rgba(251, 191, 36, 0.1);
+      letter-spacing: -0.05em;
+      line-height: 0.85;
     }
 
     .progress-track {
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      overflow: hidden;
+      height: 4px;
+      background: rgba(251, 191, 36, 0.08);
+      border-radius: 2px;
     }
+
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #6366f1, #fbbf24);
-      box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+      background: #fbbf24;
+      box-shadow: 0 0 15px #fbbf24;
       transition: width 1s linear;
+      position: relative;
+    }
+
+    .time-pin {
+      position: absolute;
+      top: 100%;
+      padding-top: 20px;
+      transform: translateX(-50%);
+      transition: left 1s linear;
+    }
+
+    .time-label {
+      font-size: 0.85rem;
+      color: #fbbf24;
+      font-weight: 700;
+      text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+      white-space: nowrap;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      box-shadow: 0 0 10px #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 20px #ef4444; }
+      100% { transform: scale(0.95); opacity: 0.7; }
     }
   </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "d3": "https://esm.sh/d3@^7.9.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
-  }
-}
-</script>
 </head>
 <body>
   <div id="root"></div>
@@ -167,86 +128,52 @@
     const BIRTHS_PER_SECOND = 4.35;
     const FLASH_BURST_COLOR = "#FFFFFF"; 
     const FLASH_BLOOM_COLOR = "#fbbf24"; 
-    const LAND_COLOR = "#33333a"; 
-    const ICE_COLOR = "#f8fafc";  
-    const ROTATION_SPEED = 0.5; 
-    const ATMOSPHERE_PADDING = 80; 
-    const EDGE_MARGIN = 20; // Reduced to snap globe as far right as possible
-    
-    const COUNTRIES_WEIGHTS = [
-      { id: 'IND', weight: 24.2 }, { id: 'CHN', weight: 9.4 },
-      { id: 'NGA', weight: 8.0 }, { id: 'PAK', weight: 6.4 },
-      { id: 'IDN', weight: 4.5 }, { id: 'USA', weight: 3.6 },
-      { id: 'ETH', weight: 3.9 }, { id: 'BRA', weight: 2.7 },
-      { id: 'BGD', weight: 3.0 }, { id: 'COD', weight: 4.1 },
-      { id: 'RUS', weight: 1.4 }, { id: 'MEX', weight: 2.0 },
-      { id: 'PHL', weight: 2.0 }, { id: 'EGY', weight: 2.6 },
-      { id: 'VNM', weight: 1.5 }, { id: 'TUR', weight: 1.2 },
-      { id: 'DEU', weight: 0.8 }, { id: 'GBR', weight: 0.7 },
-      { id: 'FRA', weight: 0.7 }, { id: 'ZAF', weight: 1.2 },
-      { id: 'OTHER', weight: 12.0 }
-    ];
+    const LAND_COLOR = "#1a1a20"; 
+    const ROTATION_SPEED = 0.3; 
 
-    const STELLAR_COLORS = ['#9bb0ff', '#aabfff', '#cad7ff', '#f8f7ff', '#fff4ea', '#ffd2a1', '#ffcc6f'];
+    const generateStars = (count) => {
+      const colors = ['#ffffff', '#fffaf0', '#ffd700', '#f1f5f9'];
+      return Array.from({ length: count }).map((_, i) => ({
+        id: i,
+        top: `${Math.random() * 100}%`,
+        left: `${Math.random() * 100}%`,
+        size: Math.random() * 2 + 0.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        duration: `${Math.random() * 3 + 2}s`,
+        delay: `${Math.random() * -10}s`
+      }));
+    };
 
-    const StarBackground = () => {
-      const starLayers = useMemo(() => {
-        return [
-          Array.from({ length: 150 }).map((_, i) => ({
-            id: `l1-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: 1.8, duration: `${Math.random() * 4 + 3}s`, delay: `${Math.random() * 10}s`,
-            color: STELLAR_COLORS[Math.floor(Math.random() * 3)], layer: 1
-          })),
-          Array.from({ length: 100 }).map((_, i) => ({
-            id: `l2-${i}`, top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`,
-            size: Math.random() * 3.5 + 1.2, duration: `${Math.random() * 3 + 1}s`, delay: `${Math.random() * 5}s`,
-            color: STELLAR_COLORS[Math.floor(Math.random() * STELLAR_COLORS.length)], layer: 2, isBright: Math.random() > 0.85
-          }))
-        ];
-      }, []);
-
-      const [comets, setComets] = useState([]);
-
-      useEffect(() => {
-        const spawnComet = () => {
-          const id = Date.now();
-          const speed = Math.random() * 5 + 3; 
-          const startXVal = Math.random() * 100;
-          const startYVal = Math.random() * 100;
-          const angle = Math.atan2(50 - startYVal, 50 - startXVal) * (180 / Math.PI);
-          setComets(prev => [...prev, { id, startX: startXVal+'vw', startY: startYVal+'vh', angle: angle+'deg', speed: speed+'s' }]);
-          setTimeout(() => setComets(prev => prev.filter(c => c.id !== id)), speed * 1000 + 100);
-          setTimeout(spawnComet, 5000 + Math.random() * 10000);
-        };
-        setTimeout(spawnComet, 2000);
-      }, []);
-
+    const StarField = () => {
+      const stars = useMemo(() => generateStars(300), []);
       return (
         <div className="space-background">
-          <div className="sun-glow"></div>
-          <div className="nebula-layer nebula-1"></div>
-          <div className="nebula-layer nebula-2"></div>
-          {starLayers.flat().map(star => (
-            <div key={star.id} className={`star twinkle ${star.isBright ? 'star-bright' : ''}`} style={{
-                top: star.top, left: star.left, width: `${star.size}px`, height: `${star.size}px`, backgroundColor: star.color, '--duration': star.duration, animationDelay: star.delay, opacity: star.layer === 1 ? 0.3 : 0.7
+          <div className="nebula"></div>
+          {stars.map(s => (
+            <div 
+              key={s.id} 
+              className="star star-shine" 
+              style={{
+                top: s.top, 
+                left: s.left, 
+                width: `${s.size}px`, 
+                height: `${s.size}px`,
+                backgroundColor: s.color,
+                '--duration': s.duration,
+                animationDelay: s.delay
               }}
             />
-          ))}
-          {comets.map(c => (
-            <div key={c.id} className="comet" style={{ left: c.startX, top: c.startY, '--angle': c.angle, '--speed': c.speed }}>
-              <div style={{ width: '8px', height: '8px', background: '#fff', borderRadius: '50%', boxShadow: '0 0 20px #fbbf24' }}></div>
-            </div>
           ))}
         </div>
       );
     };
 
-    const WorldMap = ({ lastBirth }) => {
+    const Globe = ({ lastBirth }) => {
       const canvasRef = useRef(null);
       const [geoData, setGeoData] = useState(null);
-      const rotationRef = useRef([0, -12]); 
-      const activeFlashesRef = useRef(new Map()); 
-      const animationFrameRef = useRef(null);
+      const rotationRef = useRef([0, -15]); 
+      const flashesRef = useRef(new Map());
+      const animationRef = useRef();
 
       useEffect(() => {
         fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
@@ -256,231 +183,163 @@
 
       useEffect(() => {
         if (!geoData || !canvasRef.current) return;
-
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
-        if (!context) return;
-        
         const dpr = window.devicePixelRatio || 1;
 
-        const updateSize = () => {
-          const container = canvas.parentElement;
-          if (!container) return;
-          canvas.width = container.clientWidth * dpr;
-          canvas.height = container.clientHeight * dpr;
-          canvas.style.width = `${container.clientWidth}px`;
-          canvas.style.height = `${container.clientHeight}px`;
-          context.setTransform(1, 0, 0, 1, 0, 0); 
+        const resize = () => {
+          const { clientWidth, clientHeight } = canvas.parentElement;
+          canvas.width = clientWidth * dpr;
+          canvas.height = clientHeight * dpr;
+          canvas.style.width = `${clientWidth}px`;
+          canvas.style.height = `${clientHeight}px`;
           context.scale(dpr, dpr);
         };
-        updateSize();
+        resize();
+        window.addEventListener('resize', resize);
 
         const render = () => {
-          const width = canvas.width / dpr;
-          const height = canvas.height / dpr;
-          if (width <= 0 || height <= 0) {
-            animationFrameRef.current = requestAnimationFrame(render);
-            return;
-          }
-          
-          const globeRadius = Math.max(10, (Math.min(width, height) / 2) - ATMOSPHERE_PADDING);
-          
-          // STRICT RIGHT ALIGN: Width - Radius - EdgeMargin ensures the globe border is snapped to the right
-          const translateX = width - globeRadius - EDGE_MARGIN;
-          const translateY = height / 2;
+          const w = canvas.width / dpr;
+          const h = canvas.height / dpr;
+          const radius = Math.min(w, h) * 0.45;
+          const cx = w * 0.75;
+          const cy = h * 0.5;
 
-          const projection = d3.geoOrthographic()
-            .scale(globeRadius)
-            .translate([translateX, translateY])
-            .clipAngle(90);
-
+          const projection = d3.geoOrthographic().scale(radius).translate([cx, cy]).clipAngle(90);
           const path = d3.geoPath(projection, context);
 
-          context.clearRect(0, 0, width, height);
+          context.clearRect(0, 0, w, h);
           rotationRef.current[0] += ROTATION_SPEED;
           projection.rotate(rotationRef.current);
 
-          // 1. Atmosphere Glow
-          const r1 = Math.max(0.1, globeRadius - 5);
-          const r2 = globeRadius + 60;
-          const atmosphereGrad = context.createRadialGradient(translateX, translateY, r1, translateX, translateY, r2);
-          atmosphereGrad.addColorStop(0, 'rgba(147, 197, 253, 0.45)');
-          atmosphereGrad.addColorStop(1, 'rgba(147, 197, 253, 0)');
-          context.fillStyle = atmosphereGrad;
-          context.beginPath();
-          context.arc(translateX, translateY, r2, 0, 2*Math.PI);
-          context.fill();
+          // Atmosphere Glow
+          const grad = context.createRadialGradient(cx, cy, radius, cx, cy, radius + 100);
+          grad.addColorStop(0, 'rgba(59, 130, 246, 0.08)');
+          grad.addColorStop(1, 'transparent');
+          context.fillStyle = grad;
+          context.beginPath(); context.arc(cx, cy, radius + 100, 0, Math.PI * 2); context.fill();
 
-          // 2. Ocean
-          context.beginPath();
-          context.arc(translateX, translateY, globeRadius, 0, 2*Math.PI);
-          const oceanGrad = context.createRadialGradient(translateX + globeRadius * 0.4, translateY - globeRadius * 0.4, Math.max(0.1, globeRadius*0.2), translateX, translateY, globeRadius);
-          oceanGrad.addColorStop(0, '#0066cc');
-          oceanGrad.addColorStop(1, '#002b4d');
-          context.fillStyle = oceanGrad;
-          context.fill();
+          context.beginPath(); context.arc(cx, cy, radius, 0, Math.PI * 2);
+          context.fillStyle = '#020617'; context.fill();
 
-          // 3. Land
           const now = Date.now();
-          if (geoData && geoData.features) {
-            geoData.features.forEach(feature => {
-              const centroid = d3.geoCentroid(feature);
-              const visible = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]) < Math.PI / 2.1;
-              
-              if (visible) {
-                context.beginPath();
-                path(feature);
-                
-                const flash = activeFlashesRef.current.get(feature.id);
-                if (flash) {
-                  const age = now - flash.startTime;
-                  if (age > 2000) {
-                    activeFlashesRef.current.delete(feature.id);
-                    context.fillStyle = (feature.id === 'ATA' || feature.id === 'GRL') ? ICE_COLOR : LAND_COLOR;
-                    context.shadowBlur = 0;
-                  } else {
-                    const t = age / 2000;
-                    context.fillStyle = age < 100 ? FLASH_BURST_COLOR : d3.interpolateRgb(FLASH_BLOOM_COLOR, LAND_COLOR)(t);
-                    context.shadowBlur = 30 * (1 - t);
-                    context.shadowColor = FLASH_BLOOM_COLOR;
-                  }
+          geoData.features.forEach(f => {
+            const centroid = d3.geoCentroid(f);
+            const isVisible = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]) < Math.PI/2;
+            if (isVisible) {
+              context.beginPath(); path(f);
+              const flash = flashesRef.current.get(f.id);
+              if (flash) {
+                const age = now - flash.start;
+                if (age > 1000) { 
+                  flashesRef.current.delete(f.id); 
+                  context.fillStyle = LAND_COLOR; 
                 } else {
-                  context.fillStyle = (feature.id === 'ATA' || feature.id === 'GRL') ? ICE_COLOR : LAND_COLOR;
-                  context.shadowBlur = 0;
+                  const t = age / 1000;
+                  context.fillStyle = age < 50 ? FLASH_BURST_COLOR : d3.interpolateRgb(FLASH_BLOOM_COLOR, LAND_COLOR)(t);
+                  context.shadowBlur = 20 * (1 - t);
+                  context.shadowColor = FLASH_BLOOM_COLOR;
                 }
-                
-                context.fill();
-                context.strokeStyle = 'rgba(255,255,255,0.18)';
-                context.lineWidth = 0.5;
-                context.stroke();
+              } else {
+                context.fillStyle = LAND_COLOR;
+                context.shadowBlur = 0;
               }
-            });
-          }
+              context.fill();
+              context.strokeStyle = 'rgba(255,255,255,0.02)';
+              context.stroke();
+            }
+          });
 
-          // 4. Night Shade
-          const shadowGrad = context.createRadialGradient(translateX - globeRadius * 0.4, translateY - globeRadius * 0.4, Math.max(0.1, globeRadius*0.3), translateX, translateY, globeRadius);
-          shadowGrad.addColorStop(0, 'rgba(255,255,255,0.1)');
-          shadowGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
-          context.fillStyle = shadowGrad;
-          context.beginPath();
-          context.arc(translateX, translateY, globeRadius, 0, 2*Math.PI);
-          context.fill();
-
-          // 5. High-quality Glare
-          const specular = context.createRadialGradient(translateX - globeRadius * 0.3, translateY - globeRadius * 0.3, 0, translateX, translateY, globeRadius);
-          specular.addColorStop(0, 'rgba(255,255,255,0.25)');
-          specular.addColorStop(1, 'transparent');
-          context.fillStyle = specular;
-          context.fill();
-
-          animationFrameRef.current = requestAnimationFrame(render);
+          animationRef.current = requestAnimationFrame(render);
         };
-
-        animationFrameRef.current = requestAnimationFrame(render);
-        window.addEventListener('resize', updateSize);
+        render();
         return () => {
-          if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-          window.removeEventListener('resize', updateSize);
+          window.removeEventListener('resize', resize);
+          cancelAnimationFrame(animationRef.current);
         };
       }, [geoData]);
 
       useEffect(() => {
         if (!lastBirth || !geoData) return;
-        let targetId = lastBirth.countryId;
-        if (targetId === "OTHER") {
-          const others = geoData.features.filter(f => f.id !== 'ATA' && !COUNTRIES_WEIGHTS.some(c => c.id === f.id));
-          if (others.length > 0) targetId = others[Math.floor(Math.random() * others.length)].id;
-        }
-        activeFlashesRef.current.set(targetId, { startTime: Date.now() });
+        flashesRef.current.set(lastBirth.countryId, { start: Date.now() });
       }, [lastBirth]);
 
-      return (
-        <div className="relative w-full h-full overflow-hidden">
-          <canvas ref={canvasRef} className="block w-full h-full" />
-        </div>
-      );
+      return <div className="w-full h-full"><canvas ref={canvasRef} /></div>;
     };
 
     const App = () => {
       const [totalToday, setTotalToday] = useState(0);
       const [lastBirth, setLastBirth] = useState(null);
-      const [dayProgress, setDayProgress] = useState(0);
-      const [currentTime, setCurrentTime] = useState('');
-      const totalTodayRef = useRef(0);
+      const [time, setTime] = useState({ label: "00:00", pct: 0 });
+      const count = useRef(0);
 
       useEffect(() => {
-        const updateProgress = () => {
-          const now = new Date();
-          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const secondsElapsed = (now.getTime() - startOfDay.getTime()) / 1000;
-          setDayProgress((secondsElapsed / 86400) * 100);
-          setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
+        const updateTime = () => {
+          const d = new Date();
+          const midnight = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+          const elapsed = (d.getTime() - midnight) / 1000;
+          const pct = (elapsed / 86400) * 100;
+          setTime({ 
+            label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), 
+            pct 
+          });
+          if (count.current === 0) {
+            count.current = Math.floor(elapsed * BIRTHS_PER_SECOND);
+            setTotalToday(count.current);
+          }
         };
+        updateTime();
+        const t = setInterval(updateTime, 1000);
 
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const initialCount = Math.floor(((now.getTime() - startOfDay.getTime()) / 1000) * BIRTHS_PER_SECOND);
-        setTotalToday(initialCount);
-        totalTodayRef.current = initialCount;
-
-        const interval = setInterval(updateProgress, 1000);
-
-        const schedule = () => {
+        const spawn = () => {
           const delay = -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND);
           setTimeout(() => {
-            const totalWeight = COUNTRIES_WEIGHTS.reduce((acc, c) => acc + c.weight, 0);
-            let r = Math.random() * totalWeight;
-            let selectedId = "OTHER";
-            for (const c of COUNTRIES_WEIGHTS) {
-              if (r < c.weight) { selectedId = c.id; break; }
-              r -= c.weight;
-            }
-            totalTodayRef.current += 1;
-            setTotalToday(totalTodayRef.current);
-            setLastBirth({ countryId: selectedId, timestamp: Date.now() });
-            schedule();
+            count.current++;
+            setTotalToday(count.current);
+            const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'USA', 'ETH', 'BRA', 'BGD', 'COD', 'MEX', 'EGY', 'PHL', 'VNM', 'TUR'];
+            setLastBirth({ countryId: countries[Math.floor(Math.random() * countries.length)], ts: Date.now() });
+            spawn();
           }, delay);
         };
-        schedule();
-        return () => clearInterval(interval);
+        spawn();
+        return () => clearInterval(t);
       }, []);
 
       return (
-        <div className="h-screen w-screen flex flex-col bg-transparent overflow-hidden">
-          <StarBackground />
-          <div className="flex-1 relative overflow-hidden">
-            
-            {/* Sidebar - Fixed Left Positioning with sharp contrast */}
-            <div className="absolute top-0 left-0 bottom-0 w-[40%] flex flex-col justify-center items-center p-20 z-20 glass-sidebar pointer-events-none">
-              <div className="w-full max-w-2xl text-left pointer-events-auto">
-                <div className="header-spaced text-4xl uppercase mb-10 leading-tight font-black opacity-60">
-                  Global<br/>Live Births
-                </div>
-                <div className="text-[8vw] font-black amber-bloom mono leading-none tracking-tighter whitespace-nowrap mb-16">
-                  {new Intl.NumberFormat('de-DE').format(totalToday)}
-                </div>
-                <div className="w-[100%] mt-4 text-left relative">
-                   <div className="h-10 relative w-full mb-4">
-                      <div className="absolute bottom-0 text-[18px] font-black text-white/90 mono whitespace-nowrap transition-all duration-1000 linear" style={{ left: `${dayProgress}%`, transform: 'translateX(-50%)' }}>
-                        {currentTime}
-                      </div>
-                   </div>
-                   <div className="progress-track">
-                     <div className="progress-fill" style={{ width: `${dayProgress}%` }}></div>
-                   </div>
-                   <div className="mt-6 flex justify-between text-[14px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                     <span>Daily Cycle</span>
-                     <span>{Math.floor(dayProgress)}% Complete</span>
-                   </div>
+        <div className="h-screen w-screen relative overflow-hidden bg-black">
+          <StarField />
+          <div className="absolute inset-0 z-10"><Globe lastBirth={lastBirth} /></div>
+          
+          <div className="absolute top-0 left-0 bottom-0 w-1/2 flex flex-col justify-center pl-24 z-20 glass-sidebar pointer-events-none">
+            <div className="pointer-events-auto flex flex-col max-w-fit">
+              
+              <div className="mb-6 flex items-center">
+                <span className="pulse-dot"></span>
+                <span className="text-xs font-black tracking-[0.4em] uppercase text-red-500 opacity-90">Live Population Pulse</span>
+              </div>
+
+              <div className="mb-4">
+                <div className="text-[0.75rem] uppercase tracking-[0.5em] text-blue-400 font-bold opacity-80">
+                  Births Since Midnight
                 </div>
               </div>
-            </div>
 
-            {/* Globe Container - Shifted left to give even more room on right */}
-            <div className="absolute top-0 right-0 bottom-0 left-[30%] z-10 flex items-center justify-end p-0">
-               <WorldMap lastBirth={lastBirth} />
-            </div>
+              <div className="mb-14">
+                <div className="text-[12vw] counter-glow mono tabular-nums leading-none">
+                  {new Intl.NumberFormat('en-US').format(totalToday)}
+                </div>
+              </div>
 
+              <div className="w-full">
+                <div className="progress-track relative">
+                  <div className="progress-fill" style={{ width: `${time.pct}%` }}></div>
+                  <div className="time-pin" style={{ left: `${time.pct}%` }}>
+                    <span className="time-label mono">{time.label} UTC</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
       );
