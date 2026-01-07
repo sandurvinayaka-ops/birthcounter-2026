@@ -38,8 +38,8 @@ const generateSpaceObjects = (count: number) => {
     id: i,
     type: Math.random() > 0.4 ? 'PACIFIER' : 'BOTTLE',
     delay: Math.random() * -20,
-    duration: Math.random() * 15 + 20,
-    size: Math.random() * 20 + 30,
+    duration: Math.random() * 15 + 25,
+    size: Math.random() * 15 + 25,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
     rotation: Math.random() * 360,
@@ -74,8 +74,8 @@ const BottleIcon: React.FC<{ size: number }> = ({ size }) => (
 );
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(1200), []);
-  const spaceObjects = useMemo(() => generateSpaceObjects(15), []);
+  const stars = useMemo(() => generateStars(800), []);
+  const spaceObjects = useMemo(() => generateSpaceObjects(12), []);
   
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
@@ -104,7 +104,7 @@ const SpaceBackground: React.FC = () => {
       `}</style>
       
       <div className="absolute inset-0">
-        <div className="absolute top-[-15%] right-[-10%] w-[110vw] h-[110vw] bg-blue-900/20 rounded-full blur-[140px] animate-pulse" />
+        <div className="absolute top-[-15%] right-[-10%] w-[110vw] h-[110vw] bg-blue-900/10 rounded-full blur-[140px] animate-pulse" />
         <div className="absolute bottom-[-15%] left-[-15%] w-[90vw] h-[90vw] bg-purple-900/10 rounded-full blur-[120px]" />
       </div>
       
@@ -141,7 +141,7 @@ const SpaceBackground: React.FC = () => {
           {obj.type === 'PACIFIER' ? (
             <PacifierIcon color={obj.color} size={obj.size} />
           ) : (
-            <BottleIcon size={obj.size * 1.2} />
+            <BottleIcon size={obj.size * 1.3} />
           )}
         </div>
       ))}
@@ -184,9 +184,14 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const isMobile = w < 768;
-      const radius = isMobile ? Math.min(w * 0.45, h * 0.28) : Math.min(w * 0.28, h * 0.38);
+      // Responsive scale: prioritize filling space but keeping center
+      const radius = isMobile 
+        ? Math.min(w * 0.42, h * 0.3) 
+        : Math.min(w * 0.28, h * 0.38);
+      
       const cx = w * 0.5; 
-      const cy = radius + (isMobile ? 10 : 40);
+      // Offset cy slightly higher on mobile to make room for text below if needed
+      const cy = isMobile ? h * 0.45 : h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
       rotationRef.current[0] += 0.45;
@@ -199,24 +204,21 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const glowRadius = radius + (isMobile ? 80 : 120);
+      // Atmospheric Glow
+      const glowRadius = radius + (isMobile ? 60 : 100);
       const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadius);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      glow.addColorStop(0.3, 'rgba(56, 189, 248, 0.12)');
+      glow.addColorStop(0.3, 'rgba(56, 189, 248, 0.08)');
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2); ctx.fill();
 
+      // Ocean Base
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
       oceanGrad.addColorStop(0.3, COLORS.OCEAN_SHALLOW);
       oceanGrad.addColorStop(0.8, COLORS.OCEAN_DEEP);
       oceanGrad.addColorStop(1, '#000000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
-
-      const specGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx - radius * 0.4, cy - radius * 0.4, radius * 0.7);
-      specGrad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
-      specGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
@@ -238,38 +240,26 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
             } else {
               const t = elapsed / 1200;
               ctx.fillStyle = elapsed < 60 ? '#fff' : d3.interpolateRgb(COLORS.GOLD, isIce ? COLORS.ICE : COLORS.LAND)(t);
-              ctx.shadowBlur = 60 * (1 - t); ctx.shadowColor = COLORS.GOLD;
+              ctx.shadowBlur = (isMobile ? 30 : 60) * (1 - t); ctx.shadowColor = COLORS.GOLD;
             }
           } else {
-            if (isIce) {
-              const iceGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-              iceGrad.addColorStop(0, '#ffffff');
-              iceGrad.addColorStop(0.5, '#f1f5f9');
-              iceGrad.addColorStop(1, '#cbd5e1');
-              ctx.fillStyle = iceGrad;
-            } else {
-              ctx.fillStyle = COLORS.LAND;
-            }
+            ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
           
           ctx.shadowBlur = 0;
-          ctx.strokeStyle = isIce ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.1)'; 
+          ctx.strokeStyle = 'rgba(255,255,255,0.05)'; 
           ctx.lineWidth = 0.5; 
           ctx.stroke();
         }
       });
 
+      // Shading / Depth
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.7, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
-      rimGrad.addColorStop(1, 'rgba(0,0,0,0.7)');
+      rimGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
       ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
-
-      const fringeGrad = ctx.createRadialGradient(cx, cy, radius * 0.95, cx, cy, radius);
-      fringeGrad.addColorStop(0, 'transparent');
-      fringeGrad.addColorStop(1, 'rgba(56, 189, 248, 0.4)');
-      ctx.fillStyle = fringeGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       animId = requestAnimationFrame(render);
     };
@@ -331,37 +321,37 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      <div className="absolute inset-0 z-20 flex flex-col justify-center px-8 md:px-20 pointer-events-none">
-        <div className="w-full md:w-[45%] flex flex-col items-start gap-0 drop-shadow-2xl">
-          <h1 className="font-bold tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1 uppercase" style={{ color: COLORS.BLUE }}>
+      <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 md:px-20 pointer-events-none">
+        <div className="w-full md:w-[45%] flex flex-col items-center md:items-start gap-0 drop-shadow-2xl">
+          <h1 className="font-bold tracking-[0.4em] md:tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 uppercase" style={{ color: COLORS.BLUE }}>
             Birth count today
           </h1>
           
-          <div className="relative flex flex-col">
-            <span className="text-[10vw] md:text-[6.5vw] font-black tabular-nums tracking-tighter leading-none" style={{ color: COLORS.GOLD, textShadow: '0 0 30px rgba(255,215,0,0.25)' }}>
+          <div className="relative flex flex-col text-center md:text-left">
+            <span className="text-[14vw] md:text-[6.5vw] font-black tabular-nums tracking-tighter leading-none" style={{ color: COLORS.GOLD, textShadow: '0 0 40px rgba(255,215,0,0.15)' }}>
               {total.toLocaleString('de-DE')}
             </span>
           </div>
 
-          <div className="w-full max-w-[80vw] md:max-w-[24vw] mt-6 relative">
+          <div className="w-full max-w-[85vw] md:max-w-[24vw] mt-8 relative">
              <div className="h-8 w-full relative mb-1">
                 <div className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center transition-all duration-1000 linear" style={{ left: `${timeState.pct}%` }}>
                   <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-2 py-0.5 rounded shadow-xl">
-                    <span className="text-white font-mono text-[8px] font-black tracking-widest">{timeState.label}</span>
+                    <span className="text-white font-mono text-[9px] font-black tracking-widest">{timeState.label}</span>
                   </div>
                 </div>
              </div>
              
-             <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 backdrop-blur-sm">
+             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 backdrop-blur-sm">
                 <div className="h-full bg-gradient-to-r from-blue-500 via-amber-300 to-rose-500 rounded-full transition-all duration-1000 linear" style={{ width: `${timeState.pct}%` }} />
              </div>
           </div>
         </div>
       </div>
 
-      <div className="absolute top-10 left-10 md:left-20 z-30 pointer-events-none opacity-50">
+      <div className="absolute top-6 left-6 md:top-10 md:left-20 z-30 pointer-events-none opacity-60">
         <div className="flex items-center gap-3">
-          <p className="font-black text-lg md:text-xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
+          <p className="font-black text-sm md:text-xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
         </div>
       </div>
     </div>
