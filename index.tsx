@@ -155,12 +155,14 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const isMobile = w < 768;
-      const radius = isMobile ? Math.min(w * 0.4, h * 0.28) : Math.min(w * 0.26, h * 0.35);
+      // Adjusted radius to ensure globe fits nicely after moving up
+      const radius = isMobile ? Math.min(w * 0.45, h * 0.3) : Math.min(w * 0.3, h * 0.4);
       
-      // POSITIONED: "Top vertically center" interpretation.
-      // cx shifted to 0.5 for horizontal prominence, cy shifted slightly up (0.48) to feel "top" while remaining "vertically center"-ish.
-      const cx = isMobile ? w * 0.5 : w * 0.5; 
-      const cy = h * 0.48; // Shifted slightly up to avoid cutoffs and satisfy 'top' request.
+      // POSITIONED: "Move the earth to top vertically center"
+      // cx 0.5 centers it horizontally. 
+      // cy shifted to 0.4 makes it sit prominently in the upper half of the screen.
+      const cx = w * 0.5; 
+      const cy = h * 0.4;
 
       ctx.clearRect(0, 0, w, h);
       rotationRef.current[0] += 0.45;
@@ -173,7 +175,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const glowRadius = isMobile ? radius + 90 : radius + 120;
+      const glowRadius = radius + (isMobile ? 80 : 120);
       const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadius);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       glow.addColorStop(0.4, 'rgba(56, 189, 248, 0.1)');
