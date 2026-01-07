@@ -2,269 +2,326 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as d3 from 'd3';
 
-// --- Constants ---
+// --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const FLASH_BURST_COLOR = "#FFFFFF";
-const FLASH_BLOOM_COLOR = "#fbbf24";
-const LAND_COLOR = "#4b5563";
-const OCEAN_COLOR = "#050814";
-const GLOBE_ROTATION_SPEED = 0.5;
+const COLORS = {
+  LAND: '#334155',
+  OCEAN: '#030712',
+  FLASH_BURST: '#ffffff',
+  FLASH_GLOW: '#fbbf24', // Amber-400
+  ATMOSPHERE: 'rgba(37, 99, 235, 0.15)' // Blue-600
+};
 
-// --- Helper: Generate Stars ---
+// --- Star Generator ---
 const generateStars = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
-    top: `${Math.random() * 100}%`,
-    left: `${Math.random() * 100}%`,
-    size: Math.random() * 4 + 1.5,
-    duration: `${Math.random() * 3 + 2}s`,
-    delay: `${Math.random() * -10}s`
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: Math.random() * 1.8 + 0.5,
+    duration: Math.random() * 4 + 3,
+    delay: Math.random() * 10
   }));
 };
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(600), []);
-  const [comets, setComets] = useState<{ id: number, startX: number, startY: number }[]>([]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.6) {
-        const id = Date.now();
-        setComets(prev => [...prev, { id, startX: Math.random() * 100, startY: Math.random() * -10 }]);
-        setTimeout(() => setComets(p => p.filter(c => c.id !== id)), 5000);
-      }
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
+  const stars = useMemo(() => generateStars(500), []);
+  
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden bg-[#000005]" style={{ zIndex: -1 }}>
-      <div className="absolute top-1/2 left-1/2 w-[200vmax] h-[200vmax]" 
-           style={{ animation: 'space-rotate 1000s linear infinite', zIndex: -2 }}>
-        <div className="absolute inset-0 opacity-40" 
-             style={{ 
-               background: 'radial-gradient(circle at 70% 30%, rgba(37, 99, 235, 0.25) 0%, transparent 50%), radial-gradient(circle at 30% 70%, rgba(126, 34, 206, 0.2) 0%, transparent 50%)',
-               filter: 'blur(100px)' 
-             }} />
-        {stars.map(s => (
-          <div key={s.id} 
-               className="absolute rounded-full bg-white"
-               style={{
-                 top: s.top,
-                 left: s.left,
-                 width: `${s.size}px`,
-                 height: `${s.size}px`,
-                 boxShadow: '0 0 15px rgba(255,255,255,0.9)',
-                 animation: `twinkle ${s.duration} ease-in-out infinite`,
-                 animationDelay: s.delay
-               }} />
-        ))}
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
+      {/* Nebulas */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="nebula absolute -top-[10%] -left-[10%] w-[70vw] h-[70vw] bg-blue-900 rounded-full animate-pulse" />
+        <div className="nebula absolute -bottom-[10%] -right-[10%] w-[60vw] h-[60vw] bg-purple-900 rounded-full animate-pulse" style={{ animationDelay: '3s' }} />
       </div>
-      <div className="absolute inset-0">
-        {comets.map(c => (
-          <div key={c.id} 
-               className="absolute w-1 h-1 bg-white rounded-full shadow-[0_0_20px_6px_rgba(255,255,255,0.8)]"
-               style={{
-                 left: `${c.startX}%`,
-                 top: `${c.startY}%`,
-                 animation: 'comet-fly 5s linear forwards'
-               }}>
-            <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[250px] h-[2px]" 
-                 style={{ background: 'linear-gradient(to left, #fff, transparent)' }} />
-          </div>
+
+      {/* Rotating Star Field */}
+      <div 
+        className="absolute top-1/2 left-1/2 w-[300vmax] h-[300vmax]"
+        style={{ animation: 'rotate-bg 1200s linear infinite' }}
+      >
+        {stars.map(s => (
+          <div 
+            key={s.id}
+            className="star"
+            style={{
+              left: `${s.x}%`,
+              top: `${s.y}%`,
+              width: `${s.size}px`,
+              height: `${s.size}px`,
+              animation: `star-twinkle ${s.duration}s ease-in-out infinite`,
+              animationDelay: `${s.delay}s`
+            }}
+          />
         ))}
       </div>
     </div>
   );
 };
 
-const WorldGlobe: React.FC<{ lastBirth: { countryId: string } | null }> = ({ lastBirth }) => {
+const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rotationRef = useRef<[number, number]>([0, -10]);
-  const flashesRef = useRef<Map<string, number>>(new Map());
   const geoDataRef = useRef<any>(null);
+  const rotationRef = useRef<[number, number]>([0, -10]);
+  const activeFlashes = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
+    // Load world data
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
       .then(data => { geoDataRef.current = data; });
   }, []);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (lastFlash) {
+      activeFlashes.current.set(lastFlash, Date.now());
+    }
+  }, [lastFlash]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const dpr = window.devicePixelRatio || 1;
+    let animId: number;
 
     const render = () => {
       if (!geoDataRef.current) {
-        requestAnimationFrame(render);
+        animId = requestAnimationFrame(render);
         return;
       }
+
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
-      const radius = Math.min(w, h) * 0.46;
-      const cx = w * 0.58; 
+      
+      // Responsive sizing: Ensure globe is fully visible and nicely centered
+      const isMobile = w < 768;
+      const radius = isMobile ? Math.min(w, h) * 0.35 : Math.min(w, h) * 0.42;
+      const cx = isMobile ? w * 0.5 : w * 0.65; // Offset to the right on desktop to leave room for UI
       const cy = h * 0.5;
 
-      context.clearRect(0, 0, w, h);
-      rotationRef.current[0] += GLOBE_ROTATION_SPEED;
-      const projection = d3.geoOrthographic().scale(radius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
-      const path = d3.geoPath(projection, context);
+      ctx.clearRect(0, 0, w, h);
+      rotationRef.current[0] += 0.25; // Gentle rotation
 
-      const bloom = context.createRadialGradient(cx, cy, radius, cx, cy, radius + 180);
-      bloom.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
-      bloom.addColorStop(1, 'transparent');
-      context.fillStyle = bloom;
-      context.beginPath(); context.arc(cx, cy, radius + 180, 0, Math.PI * 2); context.fill();
+      const projection = d3.geoOrthographic()
+        .scale(radius)
+        .translate([cx, cy])
+        .rotate(rotationRef.current)
+        .clipAngle(90);
 
-      context.beginPath(); context.arc(cx, cy, radius, 0, Math.PI * 2);
-      context.fillStyle = OCEAN_COLOR; context.fill();
+      const path = d3.geoPath(projection, ctx);
 
+      // 1. Atmosphere Glow (Radial Gradient behind the globe)
+      const grad = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 150);
+      grad.addColorStop(0, COLORS.ATMOSPHERE);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 150, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Base Ocean Disc
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS.OCEAN;
+      ctx.fill();
+
+      // 3. Draw Geography and Active Birth Flashes
       const now = Date.now();
-      geoDataRef.current.features.forEach((f: any) => {
-        const centroid = d3.geoCentroid(f);
-        const isVisible = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]) < Math.PI/2.05;
-        if (isVisible) {
-          context.beginPath(); path(f);
-          const flashStart = flashesRef.current.get(f.id);
+      geoDataRef.current.features.forEach((d: any) => {
+        const centroid = d3.geoCentroid(d);
+        const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
+        
+        // Only render features on the visible hemisphere
+        if (distance < Math.PI / 2) {
+          ctx.beginPath();
+          path(d);
+          
+          const flashStart = activeFlashes.current.get(d.id);
           if (flashStart) {
-            const age = now - flashStart;
-            if (age > 1400) {
-              flashesRef.current.delete(f.id);
-              context.fillStyle = LAND_COLOR;
+            const elapsed = now - flashStart;
+            if (elapsed > 1800) {
+              activeFlashes.current.delete(d.id);
+              ctx.fillStyle = COLORS.LAND;
             } else {
-              const t = age / 1400;
-              context.fillStyle = age < 80 ? FLASH_BURST_COLOR : d3.interpolateRgb(FLASH_BLOOM_COLOR, LAND_COLOR)(t);
-              context.shadowBlur = 60 * (1 - t);
-              context.shadowColor = FLASH_BLOOM_COLOR;
+              const t = elapsed / 1800;
+              // Initial burst is pure white, then fades to amber, then back to land color
+              const flashColor = elapsed < 100 
+                ? COLORS.FLASH_BURST 
+                : d3.interpolateRgb(COLORS.FLASH_GLOW, COLORS.LAND)(t);
+              ctx.fillStyle = flashColor;
+              ctx.shadowBlur = 50 * (1 - t);
+              ctx.shadowColor = COLORS.FLASH_GLOW;
             }
           } else {
-            context.fillStyle = LAND_COLOR;
-            context.shadowBlur = 0;
+            ctx.fillStyle = COLORS.LAND;
+            ctx.shadowBlur = 0;
           }
-          context.fill();
-          context.strokeStyle = 'rgba(255,255,255,0.2)';
-          context.lineWidth = 0.5;
-          context.stroke();
+
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
         }
       });
 
-      requestAnimationFrame(render);
+      animId = requestAnimationFrame(render);
     };
 
-    const handleResize = () => {
+    const resize = () => {
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
-      context.scale(dpr, dpr);
+      ctx.scale(dpr, dpr);
     };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    const animId = requestAnimationFrame(render);
+
+    window.addEventListener('resize', resize);
+    resize();
+    render();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', resize);
       cancelAnimationFrame(animId);
     };
   }, []);
-
-  useEffect(() => {
-    if (lastBirth) flashesRef.current.set(lastBirth.countryId, Date.now());
-  }, [lastBirth]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none" />;
 };
 
 const App: React.FC = () => {
-  const [totalToday, setTotalToday] = useState<number>(0);
-  const [lastBirth, setLastBirth] = useState<{ countryId: string } | null>(null);
+  const [total, setTotal] = useState<number>(0);
+  const [flashId, setFlashId] = useState<string | null>(null);
   const [timeState, setTimeState] = useState({ label: "00:00", pct: 0 });
-  const birthCountRef = useRef(0);
+  const countRef = useRef(0);
 
   useEffect(() => {
-    const updateTime = () => {
+    // Initial clock and progress sync
+    const updateProgress = () => {
       const d = new Date();
       const midnight = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
       const elapsed = (d.getTime() - midnight) / 1000;
       const pct = (elapsed / 86400) * 100;
-      setTimeState({ 
-        label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), 
-        pct 
-      });
-      if (birthCountRef.current === 0) {
-        birthCountRef.current = Math.floor(elapsed * BIRTHS_PER_SECOND);
-        setTotalToday(birthCountRef.current);
+      
+      if (countRef.current === 0) {
+        countRef.current = Math.floor(elapsed * BIRTHS_PER_SECOND);
+        setTotal(countRef.current);
       }
+      
+      setTimeState({
+        label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        pct
+      });
     };
-    updateTime();
-    const timer = setInterval(updateTime, 1000);
 
+    updateProgress();
+    const interval = setInterval(updateProgress, 1000);
+
+    // Poisson-like birth spawner
     const spawn = () => {
-      const delay = -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND);
+      const wait = -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND);
       setTimeout(() => {
-        birthCountRef.current++;
-        setTotalToday(birthCountRef.current);
-        const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'USA', 'ETH', 'BRA', 'BGD', 'COD', 'MEX', 'EGY', 'PHL', 'VNM', 'TUR'];
-        setLastBirth({ countryId: countries[Math.floor(Math.random() * countries.length)] });
+        countRef.current += 1;
+        setTotal(countRef.current);
+        
+        // Pool of country IDs that exist in the GeoJSON
+        const countryPool = ['IND', 'CHN', 'NGA', 'USA', 'PAK', 'IDN', 'BRA', 'ETH', 'BGD', 'COD', 'MEX', 'EGY', 'PHL', 'VNM', 'TUR', 'RUS', 'JPN', 'DEU', 'FRA', 'GBR'];
+        const randomCountry = countryPool[Math.floor(Math.random() * countryPool.length)];
+        setFlashId(randomCountry);
+        
         spawn();
-      }, delay);
+      }, wait);
     };
     spawn();
 
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, []);
 
-  const formattedCount = totalToday.toLocaleString('de-DE');
+  // Format count as string for safe rendering
+  const displayCount = total.toLocaleString('de-DE');
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black">
+    <div className="relative w-full h-full select-none">
       <SpaceBackground />
-      <WorldGlobe lastBirth={lastBirth} />
+      <Globe lastFlash={flashId} />
 
-      <div className="absolute top-0 left-0 bottom-0 w-full flex flex-col justify-center pl-24 z-20 pointer-events-none"
-           style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }}>
-        
-        <div className="pointer-events-auto flex flex-col items-start text-left">
-          <div className="mb-4">
-            <h2 className="text-[0.8rem] uppercase tracking-[0.6em] text-blue-400 font-black">
-              Global Births Since Midnight
+      {/* Hero UI Overlay */}
+      <div className="absolute inset-0 z-20 flex items-center px-8 md:px-24 pointer-events-none">
+        <div className="flex flex-col items-start w-full max-w-3xl pointer-events-auto">
+          
+          <header className="mb-6">
+            <h2 className="text-blue-500 font-black uppercase tracking-[0.5em] text-[10px] md:text-xs mb-1">
+              Live Galactic Feed
             </h2>
+            <h1 className="text-white text-lg md:text-xl font-bold tracking-tight opacity-70">
+              Global Human Expansion Pulse
+            </h1>
+          </header>
+          
+          <div className="flex flex-col mb-16">
+            <span className="text-[14vw] md:text-[120px] font-black text-amber-400 leading-none tabular-nums drop-shadow-[0_0_40px_rgba(251,191,36,0.5)]">
+              {displayCount}
+            </span>
+            <span className="text-blue-100/50 text-sm md:text-lg font-medium tracking-widest uppercase mt-2">
+              Estimated births since midnight
+            </span>
           </div>
 
-          <div className="flex flex-col items-start max-w-fit">
-            <div className="text-[11vw] font-black text-amber-400 leading-none tracking-tighter tabular-nums"
-                 style={{ textShadow: '0 0 50px rgba(251, 191, 36, 0.4), 0 0 120px rgba(251, 191, 36, 0.2)' }}>
-              {formattedCount}
+          {/* Time Tracking Progress Bar */}
+          <div className="w-full max-w-md relative py-12">
+            <div 
+              className="absolute top-0 flex flex-col items-center -translate-x-1/2 transition-all duration-1000 linear"
+              style={{ left: `${timeState.pct}%` }}
+            >
+              <div className="bg-white/5 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/20 mb-3 shadow-2xl">
+                <span className="text-white font-mono font-black text-sm tracking-widest">{timeState.label}</span>
+              </div>
+              <div className="w-px h-8 bg-gradient-to-b from-white to-transparent" />
             </div>
 
-            <div className="relative w-full mt-14 mb-8 h-4">
-              <div className="absolute bottom-full mb-5 -translate-x-1/2 transition-all duration-1000 ease-linear"
-                   style={{ left: `${timeState.pct}%` }}>
-                <span className="text-2xl font-black font-mono text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]">
-                  {timeState.label}
-                </span>
-              </div>
-              
-              <div className="w-full h-full bg-white/20 rounded-full overflow-hidden shadow-[inset_0_2px_10px_rgba(0,0,0,1)]">
-                <div className="h-full bg-gradient-to-r from-blue-500 via-amber-400 to-orange-500 rounded-full shadow-[0_0_40px_rgba(251,191,36,0.8)] transition-all duration-1000 ease-linear"
-                     style={{ width: `${timeState.pct}%` }} />
-              </div>
+            <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-0.5">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-700 via-amber-400 to-orange-600 rounded-full shadow-[0_0_25px_rgba(251,191,36,0.6)] transition-all duration-1000 linear"
+                style={{ width: `${timeState.pct}%` }}
+              />
+            </div>
+            
+            <div className="flex justify-between mt-4 text-[9px] text-white/30 font-black uppercase tracking-[0.2em]">
+              <span>Midnight</span>
+              <span>Noon</span>
+              <span>Next Cycle</span>
             </div>
           </div>
 
-          <div className="mt-6 opacity-80 text-blue-100 text-sm tracking-widest uppercase font-bold flex items-center gap-3">
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-            Live Population Pulse • {BIRTHS_PER_SECOND} Per Second
-          </div>
+          <footer className="mt-10 flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-500/10 border border-green-500/20">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <p className="text-green-400 text-[10px] font-black uppercase tracking-widest">
+                Real-time Sync
+              </p>
+            </div>
+            <p className="text-blue-100/40 text-[10px] font-bold uppercase tracking-widest">
+              Avg Frequency: {BIRTHS_PER_SECOND} / Sec
+            </p>
+          </footer>
         </div>
+      </div>
+
+      {/* Branding / Credit */}
+      <div className="absolute bottom-12 right-12 z-30 opacity-30 hover:opacity-100 transition-all duration-500 group">
+        <p className="text-right font-black text-2xl tracking-tighter text-white">
+          EARTH<span className="text-amber-500 group-hover:text-blue-500 transition-colors">PULSE</span>
+        </p>
+        <p className="text-right text-[8px] font-bold tracking-[0.4em] uppercase text-white/40 mt-1">
+          Planetary Vital Stats 2025
+        </p>
       </div>
     </div>
   );
 };
 
+// standard root rendering
 const container = document.getElementById('root');
 if (container) {
-  const root = createRoot(container);
-  root.render(<App />);
+  createRoot(container).render(<App />);
 }
