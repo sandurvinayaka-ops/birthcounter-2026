@@ -61,10 +61,22 @@
       text-transform: uppercase;
       animation: pulse-text 2s infinite;
     }
+
     @keyframes pulse-text {
       0%, 100% { opacity: 0.4; }
       50% { opacity: 1; }
     }
+
+    @keyframes rotate-bg {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    @keyframes star-twinkle {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
     #error-display {
       display: none;
       color: #f87171;
@@ -90,10 +102,6 @@
   
   <div id="root"></div>
 
-  <!-- 
-    The script must use data-type="module" to correctly resolve the ESM imports from the importmap.
-    Babel transforms the .tsx into standard JS that the browser can execute.
-  -->
   <script 
     type="text/babel" 
     data-type="module" 
@@ -102,7 +110,6 @@
   ></script>
   
   <script>
-    // Monitor the root div for content to hide the loader
     const observer = new MutationObserver(() => {
       const root = document.getElementById('root');
       if (root && root.children.length > 0) {
@@ -120,15 +127,14 @@
       observer.observe(rootEl, { childList: true });
     }
 
-    // Enhanced Error Reporting for debugging
     function showError(msg, details) {
       const display = document.getElementById('error-display');
       const text = document.querySelector('.loading-text');
       if (display) {
         display.style.display = 'block';
-        display.innerHTML = `<strong>System Compatibility Error</strong><br><span style="opacity: 0.8">${msg}</span>`;
+        display.innerHTML = `<strong>System Configuration Error</strong><br><span style="opacity: 0.8">${msg}</span>`;
         if (text) text.style.display = 'none';
-        console.error("EarthPulse System Error:", msg, details);
+        console.error("EarthPulse Error:", msg, details);
       }
     }
 

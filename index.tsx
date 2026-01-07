@@ -11,29 +11,34 @@ const COLORS = {
   OCEAN_SHALLOW: '#1a3275',
   GOLD: '#FFD700',
   BLUE: '#3b82f6',      
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.12)', 
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.18)', 
   GRATICULE: 'rgba(255, 255, 255, 0.02)'
 };
 
 const generateStars = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 2.2 + 1.0, 
-    duration: Math.random() * 2 + 1.5,
-    delay: Math.random() * 5
+    x: Math.random() * 200 - 50, // Wider range for rotation
+    y: Math.random() * 200 - 50, 
+    size: Math.random() * 1.8 + 0.8, 
+    duration: Math.random() * 3 + 2,
+    delay: Math.random() * 10,
+    opacity: Math.random() * 0.7 + 0.3
   }));
 };
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(900), []);
+  const stars = useMemo(() => generateStars(1200), []);
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
+      {/* Dynamic Nebulae */}
       <div className="absolute inset-0">
-        <div className="nebula absolute top-[-5%] right-[-5%] w-[80vw] h-[80vw] bg-blue-900/10 rounded-full animate-pulse" />
+        <div className="absolute top-[-10%] right-[-10%] w-[100vw] h-[100vw] bg-blue-900/15 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] bg-indigo-900/10 rounded-full blur-[100px]" />
       </div>
-      <div className="absolute top-1/2 left-1/2 w-[300vmax] h-[300vmax]" style={{ animation: 'rotate-bg 1500s linear infinite' }}>
+      
+      {/* Rotating Star Field */}
+      <div className="absolute top-1/2 left-1/2 w-[200vw] h-[200vw]" style={{ animation: 'rotate-bg 400s linear infinite' }}>
         {stars.map(s => (
           <div key={s.id} className="star" style={{
             position: 'absolute',
@@ -43,7 +48,8 @@ const SpaceBackground: React.FC = () => {
             height: `${s.size}px`,
             backgroundColor: 'white',
             borderRadius: '50%',
-            boxShadow: '0 0 10px rgba(255, 255, 255, 1)',
+            opacity: s.opacity,
+            boxShadow: s.size > 2 ? `0 0 ${s.size * 2}px rgba(255, 255, 255, 0.8)` : 'none',
             animation: `star-twinkle ${s.duration}s ease-in-out infinite`,
             animationDelay: `${s.delay}s`
           }} />
@@ -86,23 +92,27 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       }
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
-      const radius = Math.min(w * 0.28, h * 0.45);
-      const cx = w * 0.72; 
-      const cy = h * 0.5;
+      
+      // Responsive globe sizing
+      const isMobile = w < 768;
+      const radius = isMobile ? Math.min(w * 0.4, h * 0.3) : Math.min(w * 0.32, h * 0.42);
+      const cx = isMobile ? w * 0.5 : w * 0.75; 
+      const cy = isMobile ? h * 0.72 : h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
-      rotationRef.current[0] += 0.08;
+      rotationRef.current[0] += 0.06;
 
       const projection = d3.geoOrthographic().scale(radius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
       const path = d3.geoPath(projection, ctx);
       
-      // Atmosphere Glow
-      const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 110);
+      // Enhanced Atmosphere Glow
+      const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 140);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
+      glow.addColorStop(0.5, 'rgba(56, 189, 248, 0.05)');
       glow.addColorStop(1, 'transparent');
-      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, radius + 110, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, radius + 140, 0, Math.PI * 2); ctx.fill();
 
-      // Oceans
+      // Oceans with light effect
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_SHALLOW); oceanGrad.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
@@ -119,13 +129,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           
           if (flashStart) {
             const elapsed = now - flashStart;
-            if (elapsed > 1000) {
+            if (elapsed > 1200) {
               activeFlashes.current.delete(d.id);
               ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
             } else {
-              const t = elapsed / 1000;
+              const t = elapsed / 1200;
               ctx.fillStyle = elapsed < 60 ? '#fff' : d3.interpolateRgb(COLORS.GOLD, isIce ? COLORS.ICE : COLORS.LAND)(t);
-              ctx.shadowBlur = 45 * (1 - t); ctx.shadowColor = COLORS.GOLD;
+              ctx.shadowBlur = 50 * (1 - t); ctx.shadowColor = COLORS.GOLD;
             }
           } else {
             ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
@@ -133,8 +143,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           ctx.shadowBlur = 0;
-          ctx.strokeStyle = 'rgba(255,255,255,0.1)'; 
-          ctx.lineWidth = 0.4; 
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)'; 
+          ctx.lineWidth = 0.5; 
           ctx.stroke();
         }
       });
@@ -150,7 +160,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animId); };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none opacity-95" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none opacity-100" />;
 };
 
 const App: React.FC = () => {
@@ -197,34 +207,45 @@ const App: React.FC = () => {
     <div className="relative w-full h-full select-none overflow-hidden bg-black flex">
       <SpaceBackground />
       <Globe lastFlash={flashId} />
-      <div className="absolute left-0 inset-y-0 z-20 w-full md:w-[60%] flex flex-col justify-center px-8 md:px-24 pointer-events-none">
+      
+      {/* UI Overlay */}
+      <div className="absolute left-0 inset-y-0 z-20 w-full md:w-[50%] flex flex-col justify-center px-8 md:px-20 pointer-events-none">
         <div className="flex flex-col items-start gap-0 drop-shadow-2xl">
-          <h1 className="font-black uppercase tracking-[0.4em] text-[10px] md:text-[14px] ml-1 mb-2" style={{ color: COLORS.BLUE }}>Total birth count today</h1>
+          <h1 className="font-bold uppercase tracking-[0.5em] text-[10px] md:text-[12px] opacity-60 mb-2 ml-1" style={{ color: COLORS.BLUE }}>
+            Global births today
+          </h1>
+          
           <div className="relative">
-            <span className="text-[15vw] md:text-[10vw] font-black tabular-nums tracking-tighter leading-none" style={{ color: COLORS.GOLD, textShadow: '0 0 60px rgba(255,215,0,0.5)' }}>
+            <span className="text-[14vw] md:text-[8vw] font-black tabular-nums tracking-tighter leading-[0.9]" style={{ color: COLORS.GOLD, textShadow: '0 0 50px rgba(255,215,0,0.3)' }}>
               {total.toLocaleString('de-DE')}
             </span>
           </div>
-          <div className="w-full max-w-[90vw] md:max-w-[38vw] mt-10 relative">
-             <div className="h-10 w-full relative mb-1">
+
+          <div className="w-full max-w-[85vw] md:max-w-[32vw] mt-12 relative">
+             <div className="h-12 w-full relative mb-1">
                 <div className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center transition-all duration-1000 linear" style={{ left: `${timeState.pct}%` }}>
-                  <div className="bg-white/10 backdrop-blur-3xl border border-white/20 px-3 py-1 rounded-md shadow-2xl">
-                    <span className="text-white font-mono text-[10px] font-black tracking-widest">{timeState.label}</span>
+                  <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-3 py-1 rounded-md shadow-2xl">
+                    <span className="text-white font-mono text-[9px] font-black tracking-widest">{timeState.label}</span>
                   </div>
-                  <div className="w-px h-3 bg-white/50 mt-1" />
+                  <div className="w-px h-3 bg-white/40 mt-1" />
                 </div>
              </div>
-             <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 backdrop-blur-xl">
-                <div className="h-full bg-gradient-to-r from-blue-600 via-amber-400 to-rose-600 rounded-full transition-all duration-1000 linear shadow-[0_0_20px_rgba(255,215,0,0.3)]" style={{ width: `${timeState.pct}%` }} />
+             
+             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 backdrop-blur-xl">
+                <div className="h-full bg-gradient-to-r from-blue-600 via-amber-400 to-rose-600 rounded-full transition-all duration-1000 linear shadow-[0_0_15px_rgba(255,215,0,0.2)]" style={{ width: `${timeState.pct}%` }} />
              </div>
-             <div className="flex justify-between items-start mt-3 px-1">
-                <span className="text-white/20 font-mono text-[8px] uppercase tracking-[0.5em] font-bold">Global Population Cycle</span>
+             
+             <div className="flex justify-between items-start mt-4 px-1">
+                <span className="text-white/30 font-mono text-[7px] uppercase tracking-[0.6em] font-bold">Chronometric Pulse</span>
              </div>
           </div>
         </div>
       </div>
-      <div className="absolute top-12 left-12 md:left-24 z-30 pointer-events-none opacity-30">
-        <p className="font-black text-2xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
+
+      {/* Brand Header */}
+      <div className="absolute top-10 left-10 md:left-20 z-30 pointer-events-none opacity-40">
+        <p className="font-black text-xl md:text-2xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
+        <p className="text-[8px] font-mono tracking-[0.4em] uppercase text-white/50 -mt-1">Real-time Biosphere Analytics</p>
       </div>
     </div>
   );
