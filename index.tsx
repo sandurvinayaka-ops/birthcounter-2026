@@ -6,12 +6,13 @@ import * as d3 from 'd3';
 const BIRTHS_PER_SECOND = 4.35;
 const COLORS = {
   LAND: '#334155',      
-  ICE: '#ffffff',       
-  OCEAN_DEEP: '#01040a',
-  OCEAN_SHALLOW: '#1a3275',
+  ICE: '#f8fafc',       
+  OCEAN_DEEP: '#020617',
+  OCEAN_SHALLOW: '#1e3a8a',
+  OCEAN_BRIGHT: '#3b82f6',
   GOLD: '#FFD700',
   BLUE: '#3b82f6',      
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.22)', 
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.28)', 
   GRATICULE: 'rgba(255, 255, 255, 0.02)',
   PACIFIER_MINT: '#d1fae5',
   PACIFIER_BLUE: '#bfdbfe'
@@ -149,10 +150,9 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const isMobile = w < 768;
-      // Interpreting "top vertically center": Move it to the top half of the screen, horizontally centered.
       const radius = isMobile ? Math.min(w * 0.45, h * 0.28) : Math.min(w * 0.28, h * 0.38);
       const cx = w * 0.5; 
-      const cy = radius + (isMobile ? 20 : 60); // Positioned at the TOP but horizontally centered.
+      const cy = radius + (isMobile ? 10 : 40);
 
       ctx.clearRect(0, 0, w, h);
       rotationRef.current[0] += 0.45;
@@ -165,24 +165,39 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
+      // 1. OUTER ATMOSPHERE GLOW
       const glowRadius = radius + (isMobile ? 80 : 120);
       const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadius);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      glow.addColorStop(0.4, 'rgba(56, 189, 248, 0.1)');
+      glow.addColorStop(0.3, 'rgba(56, 189, 248, 0.12)');
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2); ctx.fill();
 
+      // 2. ENHANCED OCEAN WITH DEPTH GRADIENT & DIRECTIONAL LIGHTING
+      // We shift the gradient center slightly to simulate a "sun" source from the top-left
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
-      oceanGrad.addColorStop(0, COLORS.OCEAN_SHALLOW); oceanGrad.addColorStop(1, COLORS.OCEAN_DEEP);
+      oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
+      oceanGrad.addColorStop(0.3, COLORS.OCEAN_SHALLOW);
+      oceanGrad.addColorStop(0.8, COLORS.OCEAN_DEEP);
+      oceanGrad.addColorStop(1, '#000000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
+      // 3. SPECULAR HIGHLIGHT ON OCEAN (The "Glint")
+      const specGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx - radius * 0.4, cy - radius * 0.4, radius * 0.7);
+      specGrad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+      specGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+
+      // 4. LAND AND ICE CAPS
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
         const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
+        
         if (distance < Math.PI / 2) {
           ctx.beginPath(); 
           path(d);
+          
           const isIce = (d.id === 'ATA' || d.id === 'GRL');
           const flashStart = activeFlashes.current.get(d.id);
           
@@ -197,16 +212,40 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               ctx.shadowBlur = 60 * (1 - t); ctx.shadowColor = COLORS.GOLD;
             }
           } else {
-            ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
+            if (isIce) {
+              // Enhanced Ice Cap Rendering with specular highlights and clear boundaries
+              const iceGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+              iceGrad.addColorStop(0, '#ffffff');
+              iceGrad.addColorStop(0.5, '#f1f5f9');
+              iceGrad.addColorStop(1, '#cbd5e1');
+              ctx.fillStyle = iceGrad;
+            } else {
+              ctx.fillStyle = COLORS.LAND;
+            }
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
+          
           ctx.shadowBlur = 0;
-          ctx.strokeStyle = 'rgba(255,255,255,0.1)'; 
+          ctx.strokeStyle = isIce ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.1)'; 
           ctx.lineWidth = 0.5; 
           ctx.stroke();
         }
       });
+
+      // 5. RIM LIGHTING / HEMISPHERE SHADING
+      // Adds the dramatic "night side" shadow on the bottom right
+      const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.7, cx, cy, radius);
+      rimGrad.addColorStop(0, 'transparent');
+      rimGrad.addColorStop(1, 'rgba(0,0,0,0.7)');
+      ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+
+      // 6. ATMOSPHERE FRINGE (Inner Glow)
+      const fringeGrad = ctx.createRadialGradient(cx, cy, radius * 0.95, cx, cy, radius);
+      fringeGrad.addColorStop(0, 'transparent');
+      fringeGrad.addColorStop(1, 'rgba(56, 189, 248, 0.4)');
+      ctx.fillStyle = fringeGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+
       animId = requestAnimationFrame(render);
     };
 
@@ -267,8 +306,8 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* UI Elements - Adjusted to stay clear of the Globe at the top */}
-      <div className="absolute inset-0 z-20 flex flex-col justify-end pb-20 px-8 md:px-20 pointer-events-none">
+      {/* UI Elements - Vertically Centered on the Left */}
+      <div className="absolute inset-0 z-20 flex flex-col justify-center px-8 md:px-20 pointer-events-none">
         <div className="w-full md:w-[45%] flex flex-col items-start gap-0 drop-shadow-2xl">
           <h1 className="font-bold tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1 uppercase" style={{ color: COLORS.BLUE }}>
             Birth count today
