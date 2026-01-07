@@ -56,27 +56,39 @@
       margin-top: 20px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
-      color: #666;
+      color: #444;
       letter-spacing: 4px;
       text-transform: uppercase;
       animation: pulse-text 2s infinite;
     }
     @keyframes pulse-text {
-      0%, 100% { opacity: 0.5; }
+      0%, 100% { opacity: 0.4; }
       50% { opacity: 1; }
+    }
+    #error-display {
+      display: none;
+      color: #f87171;
+      font-family: monospace;
+      font-size: 12px;
+      margin-top: 30px;
+      max-width: 80%;
+      text-align: center;
+      background: rgba(255,0,0,0.1);
+      padding: 15px;
+      border: 1px solid rgba(255,0,0,0.2);
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
   <div id="loading-screen">
-    <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
     <p class="loading-text">Initializing EarthPulse...</p>
-    <div id="error-display" style="display: none; color: #ef4444; font-family: monospace; font-size: 12px; margin-top: 20px; max-width: 80%; text-align: center;"></div>
+    <div id="error-display"></div>
   </div>
   
   <div id="root"></div>
 
-  <!-- type="text/babel" with data-presets handles TSX and React -->
   <script 
     type="text/babel" 
     data-type="module" 
@@ -85,7 +97,6 @@
   ></script>
   
   <script>
-    // Hide loader when React content appears
     const observer = new MutationObserver(() => {
       const root = document.getElementById('root');
       if (root && root.children.length > 0) {
@@ -97,17 +108,29 @@
         observer.disconnect();
       }
     });
-    observer.observe(document.getElementById('root'), { childList: true });
+    
+    const rootEl = document.getElementById('root');
+    if (rootEl) {
+      observer.observe(rootEl, { childList: true });
+    }
 
-    // Catch compilation or runtime errors to show they're happening
-    window.addEventListener('error', (event) => {
-      const errorDisplay = document.getElementById('error-display');
-      if (errorDisplay) {
-        errorDisplay.style.display = 'block';
-        errorDisplay.innerText = 'Error: ' + event.message;
-        const loadingText = document.querySelector('.loading-text');
-        if (loadingText) loadingText.style.display = 'none';
+    function showError(msg) {
+      const display = document.getElementById('error-display');
+      const text = document.querySelector('.loading-text');
+      if (display) {
+        display.style.display = 'block';
+        display.innerHTML = `<strong>System Error:</strong><br>${msg}`;
+        if (text) text.style.display = 'none';
       }
+    }
+
+    window.addEventListener('error', (e) => {
+      console.error(e);
+      showError(e.message);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error(e);
+      showError(e.reason);
     });
   </script>
 </body>
