@@ -33,9 +33,9 @@ const generateStars = (count: number) => {
 const generatePacifiers = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
-    delay: Math.random() * -20, // Negative delay to start mid-animation
-    duration: Math.random() * 10 + 15, // Slower for better visibility
-    size: Math.random() * 15 + 20, // Larger to be clearly seen
+    delay: Math.random() * -20,
+    duration: Math.random() * 10 + 15,
+    size: Math.random() * 15 + 20,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
     color: Math.random() > 0.5 ? COLORS.PACIFIER_MINT : COLORS.PACIFIER_BLUE
@@ -44,13 +44,9 @@ const generatePacifiers = (count: number) => {
 
 const PacifierIcon: React.FC<{ color: string, size: number }> = ({ color, size }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" style={{ filter: `drop-shadow(0 0 8px ${color})` }}>
-    {/* Handle */}
     <circle cx="50" cy="80" r="15" fill="none" stroke={color} strokeWidth="8" opacity="0.9" />
-    {/* Shield */}
     <rect x="15" y="40" width="70" height="30" rx="15" fill={color} />
-    {/* Nipple */}
     <circle cx="50" cy="30" r="20" fill="white" opacity="0.6" />
-    {/* Detail */}
     <circle cx="50" cy="55" r="6" fill="rgba(0,0,0,0.15)" />
   </svg>
 );
@@ -82,7 +78,6 @@ const SpaceBackground: React.FC = () => {
         <div className="absolute bottom-[-15%] left-[-15%] w-[90vw] h-[90vw] bg-purple-900/10 rounded-full blur-[120px]" />
       </div>
       
-      {/* Background Stars */}
       <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 600s linear infinite' }}>
         {stars.map(s => (
           <div key={s.id} className="star" style={{
@@ -101,7 +96,6 @@ const SpaceBackground: React.FC = () => {
         ))}
       </div>
 
-      {/* Floating Pacifiers */}
       {pacifiers.map(p => (
         <div 
           key={p.id} 
@@ -155,14 +149,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const isMobile = w < 768;
-      // Adjusted radius to ensure globe fits nicely after moving up
-      const radius = isMobile ? Math.min(w * 0.45, h * 0.3) : Math.min(w * 0.3, h * 0.4);
-      
-      // POSITIONED: "Move the earth to top vertically center"
-      // cx 0.5 centers it horizontally. 
-      // cy shifted to 0.4 makes it sit prominently in the upper half of the screen.
+      // Interpreting "top vertically center": Move it to the top half of the screen, horizontally centered.
+      const radius = isMobile ? Math.min(w * 0.45, h * 0.28) : Math.min(w * 0.28, h * 0.38);
       const cx = w * 0.5; 
-      const cy = h * 0.4;
+      const cy = radius + (isMobile ? 20 : 60); // Positioned at the TOP but horizontally centered.
 
       ctx.clearRect(0, 0, w, h);
       rotationRef.current[0] += 0.45;
@@ -273,11 +263,12 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative w-full h-full select-none overflow-hidden bg-black flex">
+    <div className="relative w-full h-full select-none overflow-hidden bg-black flex flex-col">
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      <div className="absolute inset-0 z-20 flex flex-col justify-center px-8 md:px-20 pointer-events-none">
+      {/* UI Elements - Adjusted to stay clear of the Globe at the top */}
+      <div className="absolute inset-0 z-20 flex flex-col justify-end pb-20 px-8 md:px-20 pointer-events-none">
         <div className="w-full md:w-[45%] flex flex-col items-start gap-0 drop-shadow-2xl">
           <h1 className="font-bold tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1 uppercase" style={{ color: COLORS.BLUE }}>
             Birth count today
