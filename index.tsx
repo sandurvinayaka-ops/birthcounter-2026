@@ -15,7 +15,9 @@ const COLORS = {
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.28)', 
   GRATICULE: 'rgba(255, 255, 255, 0.02)',
   PACIFIER_MINT: '#d1fae5',
-  PACIFIER_BLUE: '#bfdbfe'
+  PACIFIER_BLUE: '#bfdbfe',
+  BOTTLE_WHITE: '#ffffff',
+  BOTTLE_BLUE: '#1e40af'
 };
 
 const generateStars = (count: number) => {
@@ -31,20 +33,22 @@ const generateStars = (count: number) => {
   }));
 };
 
-const generatePacifiers = (count: number) => {
+const generateSpaceObjects = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
+    type: Math.random() > 0.4 ? 'PACIFIER' : 'BOTTLE',
     delay: Math.random() * -20,
-    duration: Math.random() * 10 + 15,
-    size: Math.random() * 15 + 20,
+    duration: Math.random() * 15 + 20,
+    size: Math.random() * 20 + 30,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
+    rotation: Math.random() * 360,
     color: Math.random() > 0.5 ? COLORS.PACIFIER_MINT : COLORS.PACIFIER_BLUE
   }));
 };
 
 const PacifierIcon: React.FC<{ color: string, size: number }> = ({ color, size }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" style={{ filter: `drop-shadow(0 0 8px ${color})` }}>
+  <svg width={size} height={size} viewBox="0 0 100 100" style={{ filter: `drop-shadow(0 0 12px ${color})` }}>
     <circle cx="50" cy="80" r="15" fill="none" stroke={color} strokeWidth="8" opacity="0.9" />
     <rect x="15" y="40" width="70" height="30" rx="15" fill={color} />
     <circle cx="50" cy="30" r="20" fill="white" opacity="0.6" />
@@ -52,22 +56,39 @@ const PacifierIcon: React.FC<{ color: string, size: number }> = ({ color, size }
   </svg>
 );
 
+const BottleIcon: React.FC<{ size: number }> = ({ size }) => (
+  <svg width={size} height={size * 1.5} viewBox="0 0 100 150" style={{ filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.3))' }}>
+    {/* Nipple */}
+    <path d="M35 20 Q50 0 65 20 L65 35 Q50 45 35 35 Z" fill="#fef3c7" opacity="0.9" />
+    {/* Cap Ring */}
+    <rect x="25" y="35" width="50" height="15" rx="5" fill="#f8fafc" />
+    <rect x="20" y="50" width="60" height="10" rx="2" fill="#e2e8f0" />
+    {/* Body */}
+    <path d="M25 60 L75 60 Q85 60 85 75 L85 130 Q85 145 70 145 L30 145 Q15 145 15 130 L15 75 Q15 60 25 60" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.4)" strokeWidth="2" />
+    {/* Liquid inside */}
+    <path d="M17 100 L83 100 L83 130 Q83 143 70 143 L30 143 Q17 143 17 130 Z" fill="rgba(255,255,255,0.4)" />
+    {/* Logo area */}
+    <text x="50" y="115" fontSize="8" fontWeight="900" textAnchor="middle" fill="#1e40af" fontFamily="sans-serif">PHILIPS</text>
+    <text x="50" y="130" fontSize="12" fontWeight="900" textAnchor="middle" fill="#1e40af" fontFamily="sans-serif">AVENT</text>
+  </svg>
+);
+
 const SpaceBackground: React.FC = () => {
   const stars = useMemo(() => generateStars(1200), []);
-  const pacifiers = useMemo(() => generatePacifiers(12), []);
+  const spaceObjects = useMemo(() => generateSpaceObjects(15), []);
   
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
       <style>{`
-        @keyframes pacifier-move {
-          0% { transform: translate(-30vw, -30vh) rotate(0deg); opacity: 0; }
-          10% { opacity: 0.8; }
-          90% { opacity: 0.8; }
-          100% { transform: translate(130vw, 130vh) rotate(360deg); opacity: 0; }
+        @keyframes drift-move {
+          0% { transform: translate(-30vw, -30vh) rotate(var(--start-rot)); opacity: 0; }
+          15% { opacity: 0.7; }
+          85% { opacity: 0.7; }
+          100% { transform: translate(130vw, 130vh) rotate(calc(var(--start-rot) + 360deg)); opacity: 0; }
         }
-        .pacifier-comet {
+        .space-object {
           position: absolute;
-          animation: pacifier-move linear infinite;
+          animation: drift-move linear infinite;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -89,7 +110,7 @@ const SpaceBackground: React.FC = () => {
       
       <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 600s linear infinite' }}>
         {stars.map(s => (
-          <div key={s.id} className="star" style={{
+          <div key={s.id} style={{
             position: 'absolute',
             left: `${s.x}%`, 
             top: `${s.y}%`, 
@@ -105,18 +126,23 @@ const SpaceBackground: React.FC = () => {
         ))}
       </div>
 
-      {pacifiers.map(p => (
+      {spaceObjects.map(obj => (
         <div 
-          key={p.id} 
-          className="pacifier-comet"
+          key={obj.id} 
+          className="space-object"
           style={{
-            left: `${p.startX}%`,
-            top: `${p.startY}%`,
-            animationDuration: `${p.duration}s`,
-            animationDelay: `${p.delay}s`,
-          }}
+            left: `${obj.startX}%`,
+            top: `${obj.startY}%`,
+            animationDuration: `${obj.duration}s`,
+            animationDelay: `${obj.delay}s`,
+            '--start-rot': `${obj.rotation}deg`
+          } as any}
         >
-          <PacifierIcon color={p.color} size={p.size} />
+          {obj.type === 'PACIFIER' ? (
+            <PacifierIcon color={obj.color} size={obj.size} />
+          ) : (
+            <BottleIcon size={obj.size * 1.2} />
+          )}
         </div>
       ))}
     </div>
