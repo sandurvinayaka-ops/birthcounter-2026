@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Birth Tracker | Global Pulse</title>
+  <title>Global Birth Pulse | Live Population Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #010105; 
-      color: #f1f5f9;
+      background-color: #000003; 
+      color: #f8fafc;
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -25,34 +25,36 @@
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
       z-index: -1;
-      background: radial-gradient(circle at 70% 30%, #030712 0%, #000000 100%);
+      background: radial-gradient(circle at 80% 50%, #0a0d24 0%, #000000 100%);
     }
 
     .nebula {
       position: absolute;
-      width: 150%; height: 150%;
-      top: -25%; left: -25%;
-      background: radial-gradient(circle at 50% 50%, rgba(30, 58, 138, 0.08) 0%, transparent 60%);
-      filter: blur(80px);
+      width: 160%; height: 160%;
+      top: -30%; left: -30%;
+      background: radial-gradient(circle at 70% 40%, rgba(59, 130, 246, 0.08) 0%, transparent 60%),
+                  radial-gradient(circle at 20% 70%, rgba(147, 51, 234, 0.04) 0%, transparent 50%);
+      filter: blur(120px);
       pointer-events: none;
-      animation: drift 120s linear infinite alternate;
+      animation: drift 140s linear infinite alternate;
     }
 
     @keyframes drift {
-      from { transform: translate(-1%, -1%) rotate(0deg); }
-      to { transform: translate(1%, 1%) rotate(2deg); }
+      from { transform: translate(-3%, -3%) rotate(0deg); }
+      to { transform: translate(3%, 3%) rotate(2deg); }
     }
 
     .star {
       position: absolute;
       border-radius: 50%;
       pointer-events: none;
+      box-shadow: 0 0 10px rgba(255,255,255,0.2);
     }
 
     @keyframes shimmer {
-      0% { opacity: 0.1; transform: scale(0.8); }
-      50% { opacity: 0.9; transform: scale(1.2); }
-      100% { opacity: 0.2; transform: scale(1); }
+      0% { opacity: 0.1; transform: scale(0.6); filter: brightness(1); }
+      50% { opacity: 1; transform: scale(1.2); filter: brightness(1.8); }
+      100% { opacity: 0.3; transform: scale(0.8); filter: brightness(1); }
     }
 
     .star-shine {
@@ -60,62 +62,48 @@
     }
 
     .glass-sidebar {
-      background: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.8) 70%, transparent 100%);
+      background: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.8) 50%, transparent 100%);
     }
 
     .counter-glow {
       color: #fbbf24;
-      font-weight: 900;
-      text-shadow: 0 0 40px rgba(251, 191, 36, 0.4), 0 0 100px rgba(251, 191, 36, 0.1);
-      letter-spacing: -0.05em;
-      line-height: 0.85;
+      font-weight: 800;
+      text-shadow: 0 0 30px rgba(251, 191, 36, 0.4), 0 0 100px rgba(251, 191, 36, 0.15);
+      letter-spacing: -0.06em;
+      line-height: 0.9;
     }
 
     .progress-track {
-      height: 4px;
-      background: rgba(251, 191, 36, 0.08);
-      border-radius: 2px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 100px;
+      width: 100%;
+      position: relative;
     }
 
     .progress-fill {
       height: 100%;
-      background: #fbbf24;
-      box-shadow: 0 0 15px #fbbf24;
+      background: linear-gradient(90deg, #6366f1, #fbbf24);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
       transition: width 1s linear;
-      position: relative;
+      border-radius: 100px;
     }
 
-    .time-pin {
+    .time-label-container {
       position: absolute;
-      top: 100%;
-      padding-top: 20px;
+      bottom: 22px; 
       transform: translateX(-50%);
       transition: left 1s linear;
+      text-align: center;
     }
 
     .time-label {
-      font-size: 0.85rem;
-      color: #fbbf24;
+      font-size: 1.15rem;
+      color: #ffffff;
       font-weight: 700;
-      text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
-      white-space: nowrap;
-    }
-
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      background: #ef4444;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 8px;
-      box-shadow: 0 0 10px #ef4444;
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(0.95); opacity: 0.7; }
-      50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 20px #ef4444; }
-      100% { transform: scale(0.95); opacity: 0.7; }
+      font-family: 'JetBrains+Mono', monospace;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 15px rgba(0,0,0,1);
     }
   </style>
 </head>
@@ -128,24 +116,25 @@
     const BIRTHS_PER_SECOND = 4.35;
     const FLASH_BURST_COLOR = "#FFFFFF"; 
     const FLASH_BLOOM_COLOR = "#fbbf24"; 
-    const LAND_COLOR = "#1a1a20"; 
-    const ROTATION_SPEED = 0.3; 
+    const LAND_COLOR = "#475569"; 
+    const OCEAN_COLOR = "#0f172a"; 
+    const ROTATION_SPEED = 0.22; 
 
     const generateStars = (count) => {
-      const colors = ['#ffffff', '#fffaf0', '#ffd700', '#f1f5f9'];
+      const colors = ['#ffffff', '#e2e8f0', '#fbbf24', '#cbd5e1', '#fecaca', '#bfdbfe'];
       return Array.from({ length: count }).map((_, i) => ({
         id: i,
         top: `${Math.random() * 100}%`,
         left: `${Math.random() * 100}%`,
-        size: Math.random() * 2 + 0.5,
+        size: Math.random() * 2 + 0.5, // Brighter/larger stars
         color: colors[Math.floor(Math.random() * colors.length)],
-        duration: `${Math.random() * 3 + 2}s`,
+        duration: `${Math.random() * 3 + 1.5}s`, // Faster shimmer
         delay: `${Math.random() * -10}s`
       }));
     };
 
     const StarField = () => {
-      const stars = useMemo(() => generateStars(300), []);
+      const stars = useMemo(() => generateStars(350), []); // Higher density
       return (
         <div className="space-background">
           <div className="nebula"></div>
@@ -160,7 +149,8 @@
                 height: `${s.size}px`,
                 backgroundColor: s.color,
                 '--duration': s.duration,
-                animationDelay: s.delay
+                animationDelay: s.delay,
+                boxShadow: `0 0 ${s.size * 2}px ${s.color}`
               }}
             />
           ))}
@@ -171,7 +161,7 @@
     const Globe = ({ lastBirth }) => {
       const canvasRef = useRef(null);
       const [geoData, setGeoData] = useState(null);
-      const rotationRef = useRef([0, -15]); 
+      const rotationRef = useRef([0, -10]); 
       const flashesRef = useRef(new Map());
       const animationRef = useRef();
 
@@ -202,7 +192,9 @@
           const w = canvas.width / dpr;
           const h = canvas.height / dpr;
           const radius = Math.min(w, h) * 0.45;
-          const cx = w * 0.75;
+          
+          // Move Globe to the RIGHT
+          const cx = w * 0.76; 
           const cy = h * 0.5;
 
           const projection = d3.geoOrthographic().scale(radius).translate([cx, cy]).clipAngle(90);
@@ -212,32 +204,41 @@
           rotationRef.current[0] += ROTATION_SPEED;
           projection.rotate(rotationRef.current);
 
-          // Atmosphere Glow
-          const grad = context.createRadialGradient(cx, cy, radius, cx, cy, radius + 100);
-          grad.addColorStop(0, 'rgba(59, 130, 246, 0.08)');
-          grad.addColorStop(1, 'transparent');
-          context.fillStyle = grad;
-          context.beginPath(); context.arc(cx, cy, radius + 100, 0, Math.PI * 2); context.fill();
+          // Premium Atmosphere Glow
+          const bloom = context.createRadialGradient(cx, cy, radius, cx, cy, radius + 150);
+          bloom.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
+          bloom.addColorStop(0.5, 'rgba(59, 130, 246, 0.05)');
+          bloom.addColorStop(1, 'transparent');
+          context.fillStyle = bloom;
+          context.beginPath(); context.arc(cx, cy, radius + 150, 0, Math.PI * 2); context.fill();
 
+          // Sea Base
           context.beginPath(); context.arc(cx, cy, radius, 0, Math.PI * 2);
-          context.fillStyle = '#020617'; context.fill();
+          context.fillStyle = OCEAN_COLOR; context.fill();
+          
+          // Enhanced Ocean Depth
+          const depth = context.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.4, cx, cy, radius);
+          depth.addColorStop(0, '#1e40af');
+          depth.addColorStop(1, OCEAN_COLOR);
+          context.fillStyle = depth;
+          context.fill();
 
           const now = Date.now();
           geoData.features.forEach(f => {
             const centroid = d3.geoCentroid(f);
-            const isVisible = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]) < Math.PI/2;
+            const isVisible = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]) < Math.PI/2.05;
             if (isVisible) {
               context.beginPath(); path(f);
               const flash = flashesRef.current.get(f.id);
               if (flash) {
                 const age = now - flash.start;
-                if (age > 1000) { 
+                if (age > 1200) { 
                   flashesRef.current.delete(f.id); 
                   context.fillStyle = LAND_COLOR; 
                 } else {
-                  const t = age / 1000;
-                  context.fillStyle = age < 50 ? FLASH_BURST_COLOR : d3.interpolateRgb(FLASH_BLOOM_COLOR, LAND_COLOR)(t);
-                  context.shadowBlur = 20 * (1 - t);
+                  const t = age / 1200;
+                  context.fillStyle = age < 60 ? FLASH_BURST_COLOR : d3.interpolateRgb(FLASH_BLOOM_COLOR, LAND_COLOR)(t);
+                  context.shadowBlur = 40 * (1 - t);
                   context.shadowColor = FLASH_BLOOM_COLOR;
                 }
               } else {
@@ -245,10 +246,19 @@
                 context.shadowBlur = 0;
               }
               context.fill();
-              context.strokeStyle = 'rgba(255,255,255,0.02)';
+              context.strokeStyle = 'rgba(255,255,255,0.06)';
+              context.lineWidth = 0.6;
               context.stroke();
             }
           });
+
+          // Glossy Surface Specular
+          const spec = context.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, radius * 0.05, cx, cy, radius);
+          spec.addColorStop(0, 'rgba(255,255,255,0.15)');
+          spec.addColorStop(0.6, 'rgba(0,0,0,0)');
+          spec.addColorStop(1, 'rgba(0,0,0,0.5)');
+          context.fillStyle = spec;
+          context.beginPath(); context.arc(cx, cy, radius, 0, Math.PI * 2); context.fill();
 
           animationRef.current = requestAnimationFrame(render);
         };
@@ -310,32 +320,29 @@
           <StarField />
           <div className="absolute inset-0 z-10"><Globe lastBirth={lastBirth} /></div>
           
+          {/* Main Content Sidebar - LEFT Aligned */}
           <div className="absolute top-0 left-0 bottom-0 w-1/2 flex flex-col justify-center pl-24 z-20 glass-sidebar pointer-events-none">
-            <div className="pointer-events-auto flex flex-col max-w-fit">
+            <div className="pointer-events-auto flex flex-col max-w-fit text-left">
               
-              <div className="mb-6 flex items-center">
-                <span className="pulse-dot"></span>
-                <span className="text-xs font-black tracking-[0.4em] uppercase text-red-500 opacity-90">Live Population Pulse</span>
-              </div>
-
-              <div className="mb-4">
-                <div className="text-[0.75rem] uppercase tracking-[0.5em] text-blue-400 font-bold opacity-80">
+              <div className="mb-4 text-left">
+                <div className="text-[0.65rem] uppercase tracking-[0.5em] text-blue-400 font-bold opacity-70">
                   Births Since Midnight
                 </div>
               </div>
 
-              <div className="mb-14">
-                <div className="text-[12vw] counter-glow mono tabular-nums leading-none">
+              <div className="mb-14 text-left">
+                <div className="text-[8.5vw] counter-glow mono tabular-nums leading-none">
                   {new Intl.NumberFormat('en-US').format(totalToday)}
                 </div>
               </div>
 
-              <div className="w-full">
-                <div className="progress-track relative">
+              {/* Left Aligned Progress Area */}
+              <div className="relative w-full pt-16 max-w-lg">
+                <div className="time-label-container" style={{ left: `${time.pct}%` }}>
+                  <div className="time-label">{time.label}</div>
+                </div>
+                <div className="progress-track">
                   <div className="progress-fill" style={{ width: `${time.pct}%` }}></div>
-                  <div className="time-pin" style={{ left: `${time.pct}%` }}>
-                    <span className="time-label mono">{time.label} UTC</span>
-                  </div>
                 </div>
               </div>
 
