@@ -12,7 +12,9 @@ const COLORS = {
   GOLD: '#FFD700',
   BLUE: '#3b82f6',      
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.22)', 
-  GRATICULE: 'rgba(255, 255, 255, 0.02)'
+  GRATICULE: 'rgba(255, 255, 255, 0.02)',
+  PACIFIER_MINT: '#d1fae5',
+  PACIFIER_BLUE: '#bfdbfe'
 };
 
 const generateStars = (count: number) => {
@@ -28,15 +30,56 @@ const generateStars = (count: number) => {
   }));
 };
 
+const generatePacifiers = (count: number) => {
+  return Array.from({ length: count }).map((_, i) => ({
+    id: i,
+    delay: Math.random() * 20,
+    duration: Math.random() * 15 + 10,
+    size: Math.random() * 10 + 12,
+    startX: Math.random() * 100,
+    startY: Math.random() * 100,
+    angle: Math.random() * 360,
+    color: Math.random() > 0.5 ? COLORS.PACIFIER_MINT : COLORS.PACIFIER_BLUE
+  }));
+};
+
+const PacifierIcon: React.FC<{ color: string, size: number }> = ({ color, size }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" style={{ filter: `drop-shadow(0 0 5px ${color})` }}>
+    {/* Handle */}
+    <circle cx="50" cy="80" r="15" fill="none" stroke={color} strokeWidth="6" opacity="0.8" />
+    {/* Shield */}
+    <rect x="20" y="45" width="60" height="25" rx="12" fill={color} />
+    {/* Nipple */}
+    <path d="M40 45 Q50 10 60 45" fill="white" opacity="0.4" />
+    <circle cx="50" cy="57.5" r="5" fill="rgba(0,0,0,0.1)" />
+  </svg>
+);
+
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(1500), []);
+  const stars = useMemo(() => generateStars(1200), []);
+  const pacifiers = useMemo(() => generatePacifiers(15), []);
+  
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
+      <style>{`
+        @keyframes pacifier-orbit {
+          0% { transform: translate(-100vw, -100vh) rotate(0deg); opacity: 0; }
+          10% { opacity: 0.6; }
+          90% { opacity: 0.6; }
+          100% { transform: translate(200vw, 200vh) rotate(720deg); opacity: 0; }
+        }
+        .pacifier-comet {
+          position: absolute;
+          animation: pacifier-orbit linear infinite;
+        }
+      `}</style>
+      
       <div className="absolute inset-0">
         <div className="absolute top-[-15%] right-[-10%] w-[110vw] h-[110vw] bg-blue-900/20 rounded-full blur-[140px] animate-pulse" />
         <div className="absolute bottom-[-15%] left-[-15%] w-[90vw] h-[90vw] bg-purple-900/10 rounded-full blur-[120px]" />
       </div>
       
+      {/* Background Stars */}
       <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 600s linear infinite' }}>
         {stars.map(s => (
           <div key={s.id} className="star" style={{
@@ -54,6 +97,22 @@ const SpaceBackground: React.FC = () => {
           }} />
         ))}
       </div>
+
+      {/* Floating Pacifier "Comets" */}
+      {pacifiers.map(p => (
+        <div 
+          key={p.id} 
+          className="pacifier-comet"
+          style={{
+            left: `${p.startX}%`,
+            top: `${p.startY}%`,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        >
+          <PacifierIcon color={p.color} size={p.size} />
+        </div>
+      ))}
     </div>
   );
 };
@@ -95,13 +154,12 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const isMobile = w < 768;
       const radius = isMobile ? Math.min(w * 0.4, h * 0.28) : Math.min(w * 0.26, h * 0.35);
       
-      // POSITIONED: Moved Globe center significantly toward the left to reduce gap with numbers
-      // desktop cx set to 0.6 to bring it "next to" the 45% wide text area without overlap.
-      const cx = isMobile ? w * 0.5 : w * 0.6; 
-      const cy = isMobile ? h * 0.72 : h * 0.5;
+      // POSITIONED: Moved Globe left significantly (from 0.6 to 0.54) to be closer to numbers.
+      // Vertical centering remains at h * 0.5.
+      const cx = isMobile ? w * 0.5 : w * 0.54; 
+      const cy = h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
-      // ROTATION: Smooth and brisk speed
       rotationRef.current[0] += 0.45;
 
       const projection = d3.geoOrthographic()
@@ -216,7 +274,7 @@ const App: React.FC = () => {
       
       <div className="absolute inset-0 z-20 flex flex-col justify-center px-8 md:px-20 pointer-events-none">
         <div className="w-full md:w-[45%] flex flex-col items-start gap-0 drop-shadow-2xl">
-          <h1 className="font-bold tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1" style={{ color: COLORS.BLUE }}>
+          <h1 className="font-bold tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1 uppercase" style={{ color: COLORS.BLUE }}>
             Birth count today
           </h1>
           
