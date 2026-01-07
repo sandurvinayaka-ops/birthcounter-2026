@@ -69,7 +69,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
-      .then(data => { geoDataRef.current = data; });
+      .then(data => { geoDataRef.current = data; })
+      .catch(err => console.error("Error loading globe data:", err));
   }, []);
 
   useEffect(() => {
@@ -97,7 +98,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const radius = Math.min(w * 0.28, h * 0.45);
-      // Positioned to the right to leave space for the left-aligned text
       const cx = w * 0.72; 
       const cy = h * 0.5;
 
@@ -242,7 +242,6 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
 
-      {/* Main UI Container: Locked to Vertically Centered and Left side */}
       <div className="absolute left-0 inset-y-0 z-20 w-full md:w-[60%] flex flex-col justify-center px-8 md:px-24 pointer-events-none">
         <div className="flex flex-col items-start gap-0 drop-shadow-2xl">
           <h1 
@@ -262,7 +261,6 @@ const App: React.FC = () => {
           </div>
 
           <div className="w-full max-w-[90vw] md:max-w-[38vw] mt-10 relative">
-             {/* Time Indicator Tag */}
              <div className="h-10 w-full relative mb-1">
                 <div 
                   className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center transition-all duration-1000 linear"
@@ -275,7 +273,6 @@ const App: React.FC = () => {
                 </div>
              </div>
 
-             {/* Animated Progress Bar */}
              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 backdrop-blur-xl">
                 <div 
                   className="h-full bg-gradient-to-r from-blue-600 via-amber-400 to-rose-600 rounded-full transition-all duration-1000 linear shadow-[0_0_20px_rgba(255,215,0,0.3)]"
@@ -284,13 +281,12 @@ const App: React.FC = () => {
              </div>
              
              <div className="flex justify-between items-start mt-3 px-1">
-                <span className="text-white/20 font-mono text-[8px] uppercase tracking-[0.5em] font-bold">Global Rotation Statistics</span>
+                <span className="text-white/20 font-mono text-[8px] uppercase tracking-[0.5em] font-bold">Global Population Cycle</span>
              </div>
           </div>
         </div>
       </div>
 
-      {/* Subtle Brand Logo */}
       <div className="absolute top-12 left-12 md:left-24 z-30 pointer-events-none opacity-30">
         <p className="font-black text-2xl tracking-tighter text-white">
           EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span>
