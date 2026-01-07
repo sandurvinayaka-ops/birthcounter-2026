@@ -36,7 +36,14 @@ const SpaceBackground: React.FC = () => {
       <div className="absolute top-1/2 left-1/2 w-[300vmax] h-[300vmax]" style={{ animation: 'rotate-bg 1500s linear infinite' }}>
         {stars.map(s => (
           <div key={s.id} className="star" style={{
-            left: `${s.x}%`, top: `${s.y}%`, width: `${s.size}px`, height: `${s.size}px`,
+            position: 'absolute',
+            left: `${s.x}%`, 
+            top: `${s.y}%`, 
+            width: `${s.size}px`, 
+            height: `${s.size}px`,
+            backgroundColor: 'white',
+            borderRadius: '50%',
+            boxShadow: '0 0 10px rgba(255, 255, 255, 1)',
             animation: `star-twinkle ${s.duration}s ease-in-out infinite`,
             animationDelay: `${s.delay}s`
           }} />
@@ -105,7 +112,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         const centroid = d3.geoCentroid(d);
         const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
         if (distance < Math.PI / 2) {
-          ctx.beginPath(); path(d);
+          ctx.beginPath(); 
+          path(d);
           const isIce = (d.id === 'ATA' || d.id === 'GRL');
           const flashStart = activeFlashes.current.get(d.id);
           
@@ -123,16 +131,20 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
             ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
             ctx.shadowBlur = 0;
           }
-          ctx.fill(); ctx.shadowBlur = 0;
-          ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.4; ctx.stroke();
+          ctx.fill(); 
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = 'rgba(255,255,255,0.1)'; 
+          ctx.lineWidth = 0.4; 
+          ctx.stroke();
         }
       });
       animId = requestAnimationFrame(render);
     };
 
     const resize = () => {
-      canvas.width = window.innerWidth * dpr; canvas.height = window.innerHeight * dpr;
-      ctx.scale(dpr, dpr);
+      canvas.width = window.innerWidth * dpr; 
+      canvas.height = window.innerHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     window.addEventListener('resize', resize); resize(); render();
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animId); };
@@ -159,18 +171,26 @@ const App: React.FC = () => {
       }
       setTimeState({ label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), pct });
     };
+    
     updateProgress();
     const clockInterval = setInterval(updateProgress, 1000);
+    
+    let spawnTimeoutId: any;
     const spawn = () => {
-      setTimeout(() => {
-        countRef.current += 1; setTotal(countRef.current);
+      spawnTimeoutId = setTimeout(() => {
+        countRef.current += 1; 
+        setTotal(countRef.current);
         const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS', 'VNM', 'TUR', 'IRN', 'THA', 'FRA', 'GBR', 'DEU', 'ITA', 'ZAF', 'COL', 'ESP', 'ARG', 'CAN', 'AUS'];
         setFlashId(countries[Math.floor(Math.random() * countries.length)]);
         spawn();
       }, -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND));
     };
     spawn();
-    return () => clearInterval(clockInterval);
+    
+    return () => {
+      clearInterval(clockInterval);
+      clearTimeout(spawnTimeoutId);
+    };
   }, []);
 
   return (
@@ -212,5 +232,6 @@ const App: React.FC = () => {
 
 const container = document.getElementById('root');
 if (container) {
-  createRoot(container).render(<App />);
+  const root = createRoot(container);
+  root.render(<App />);
 }

@@ -77,6 +77,7 @@
       padding: 15px;
       border: 1px solid rgba(255,0,0,0.2);
       border-radius: 4px;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -89,6 +90,10 @@
   
   <div id="root"></div>
 
+  <!-- 
+    The script must use data-type="module" to correctly resolve the ESM imports from the importmap.
+    Babel transforms the .tsx into standard JS that the browser can execute.
+  -->
   <script 
     type="text/babel" 
     data-type="module" 
@@ -97,6 +102,7 @@
   ></script>
   
   <script>
+    // Monitor the root div for content to hide the loader
     const observer = new MutationObserver(() => {
       const root = document.getElementById('root');
       if (root && root.children.length > 0) {
@@ -114,24 +120,20 @@
       observer.observe(rootEl, { childList: true });
     }
 
-    function showError(msg) {
+    // Enhanced Error Reporting for debugging
+    function showError(msg, details) {
       const display = document.getElementById('error-display');
       const text = document.querySelector('.loading-text');
       if (display) {
         display.style.display = 'block';
-        display.innerHTML = `<strong>System Error:</strong><br>${msg}`;
+        display.innerHTML = `<strong>System Compatibility Error</strong><br><span style="opacity: 0.8">${msg}</span>`;
         if (text) text.style.display = 'none';
+        console.error("EarthPulse System Error:", msg, details);
       }
     }
 
-    window.addEventListener('error', (e) => {
-      console.error(e);
-      showError(e.message);
-    });
-    window.addEventListener('unhandledrejection', (e) => {
-      console.error(e);
-      showError(e.reason);
-    });
+    window.addEventListener('error', (e) => showError(e.message, e.error));
+    window.addEventListener('unhandledrejection', (e) => showError(e.reason?.message || e.reason, e.reason));
   </script>
 </body>
 </html>
