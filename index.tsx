@@ -157,9 +157,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const isMobile = w < 768;
       const radius = isMobile ? Math.min(w * 0.4, h * 0.28) : Math.min(w * 0.26, h * 0.35);
       
-      // POSITIONED: Moved Globe left significantly to be closer to numbers and vertically centered.
-      const cx = isMobile ? w * 0.5 : w * 0.48; 
-      const cy = h * 0.5;
+      // POSITIONED: "Top vertically center" interpretation.
+      // cx shifted to 0.5 for horizontal prominence, cy shifted slightly up (0.48) to feel "top" while remaining "vertically center"-ish.
+      const cx = isMobile ? w * 0.5 : w * 0.5; 
+      const cy = h * 0.48; // Shifted slightly up to avoid cutoffs and satisfy 'top' request.
 
       ctx.clearRect(0, 0, w, h);
       rotationRef.current[0] += 0.45;
@@ -292,7 +293,6 @@ const App: React.FC = () => {
                   <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-2 py-0.5 rounded shadow-xl">
                     <span className="text-white font-mono text-[8px] font-black tracking-widest">{timeState.label}</span>
                   </div>
-                  {/* Line removed here */}
                 </div>
              </div>
              
