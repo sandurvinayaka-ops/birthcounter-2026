@@ -72,6 +72,14 @@ const SpaceBackground: React.FC = () => {
           align-items: center;
           justify-content: center;
         }
+        @keyframes rotate-bg {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes star-twinkle {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.3); }
+        }
       `}</style>
       
       <div className="absolute inset-0">
@@ -165,7 +173,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // 1. OUTER ATMOSPHERE GLOW
       const glowRadius = radius + (isMobile ? 80 : 120);
       const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadius);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
@@ -173,8 +180,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2); ctx.fill();
 
-      // 2. ENHANCED OCEAN WITH DEPTH GRADIENT & DIRECTIONAL LIGHTING
-      // We shift the gradient center slightly to simulate a "sun" source from the top-left
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
       oceanGrad.addColorStop(0.3, COLORS.OCEAN_SHALLOW);
@@ -182,13 +187,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       oceanGrad.addColorStop(1, '#000000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // 3. SPECULAR HIGHLIGHT ON OCEAN (The "Glint")
       const specGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx - radius * 0.4, cy - radius * 0.4, radius * 0.7);
       specGrad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
       specGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // 4. LAND AND ICE CAPS
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
@@ -213,7 +216,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
             }
           } else {
             if (isIce) {
-              // Enhanced Ice Cap Rendering with specular highlights and clear boundaries
               const iceGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
               iceGrad.addColorStop(0, '#ffffff');
               iceGrad.addColorStop(0.5, '#f1f5f9');
@@ -233,14 +235,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         }
       });
 
-      // 5. RIM LIGHTING / HEMISPHERE SHADING
-      // Adds the dramatic "night side" shadow on the bottom right
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.7, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
       rimGrad.addColorStop(1, 'rgba(0,0,0,0.7)');
       ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // 6. ATMOSPHERE FRINGE (Inner Glow)
       const fringeGrad = ctx.createRadialGradient(cx, cy, radius * 0.95, cx, cy, radius);
       fringeGrad.addColorStop(0, 'transparent');
       fringeGrad.addColorStop(1, 'rgba(56, 189, 248, 0.4)');
@@ -306,7 +305,6 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* UI Elements - Vertically Centered on the Left */}
       <div className="absolute inset-0 z-20 flex flex-col justify-center px-8 md:px-20 pointer-events-none">
         <div className="w-full md:w-[45%] flex flex-col items-start gap-0 drop-shadow-2xl">
           <h1 className="font-bold tracking-[0.6em] text-[10px] md:text-[11px] opacity-70 mb-2 ml-1 uppercase" style={{ color: COLORS.BLUE }}>
