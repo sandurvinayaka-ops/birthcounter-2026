@@ -97,7 +97,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const radius = Math.min(w * 0.25, h * 0.42);
-      // cx: 0.65 (Moved Right to balance the left-aligned text), cy: 0.5 (Vertically Centered)
       const cx = w * 0.65; 
       const cy = h * 0.5;
 
@@ -242,11 +241,11 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
 
-      {/* Main UI Container: Vertically Centered on the Left side */}
-      <div className="absolute left-0 inset-y-0 z-20 w-[100%] md:w-[60%] flex flex-col justify-center px-12 md:px-20 pointer-events-none">
+      {/* Main UI Container: Locked to Vertically Centered and Left side */}
+      <div className="absolute left-0 inset-y-0 z-20 w-full md:w-[60%] flex flex-col justify-center px-12 md:px-24 pointer-events-none">
         <div className="flex flex-col gap-0 drop-shadow-2xl">
           <h1 
-            className="font-black uppercase tracking-[0.5em] text-[10px] md:text-[12px] ml-2 mb-1"
+            className="font-black uppercase tracking-[0.5em] text-[10px] md:text-[14px] ml-2 mb-1"
             style={{ color: COLORS.BLUE }}
           >
             Total birth count today
@@ -254,14 +253,14 @@ const App: React.FC = () => {
           
           <div className="relative">
             <span 
-              className={`text-[10vw] md:text-[8vw] font-black tabular-nums tracking-tighter leading-none`}
+              className={`text-[12vw] md:text-[8vw] font-black tabular-nums tracking-tighter leading-none`}
               style={{ color: COLORS.GOLD, textShadow: '0 0 50px rgba(255,215,0,0.4)' }}
             >
               {total.toLocaleString('de-DE')}
             </span>
           </div>
 
-          <div className="w-full max-w-[80vw] md:max-w-[32vw] mt-6 relative">
+          <div className="w-full max-w-[80vw] md:max-w-[35vw] mt-8 relative">
              {/* Time Tag */}
              <div className="h-8 w-full relative mb-1">
                 <div 
@@ -284,14 +283,14 @@ const App: React.FC = () => {
              </div>
              
              <div className="flex justify-between items-start mt-2 px-1">
-                <span className="text-white/20 font-mono text-[7px] uppercase tracking-[0.4em]">Global Rotation</span>
+                <span className="text-white/20 font-mono text-[7px] uppercase tracking-[0.4em]">Global Rotation Cycle</span>
              </div>
           </div>
         </div>
       </div>
 
       {/* Brand Watermark */}
-      <div className="absolute top-10 left-12 md:left-20 z-30 pointer-events-none opacity-50">
+      <div className="absolute top-10 left-12 md:left-24 z-30 pointer-events-none opacity-40">
         <p className="font-black text-xl tracking-tighter text-white">
           EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span>
         </p>
