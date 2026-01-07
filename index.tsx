@@ -96,10 +96,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // Radius and center refined for visibility. 
-      // cx shifted to 0.65 (from 0.75) to move Earth left roughly by 2cm on standard screens.
-      const radius = Math.min(w * 0.22, h * 0.38);
-      const cx = w * 0.65; 
+      // radius adjusted for "full visibility"
+      const radius = Math.min(w * 0.24, h * 0.42);
+      // cx moved left to 0.58 from 0.65 to shift the Earth left as requested
+      const cx = w * 0.58; 
       const cy = h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
@@ -243,11 +243,11 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
 
-      {/* Main UI Container strictly to the left */}
-      <div className="absolute left-0 inset-y-0 z-20 w-[50%] flex flex-col justify-center px-12 md:px-20 pointer-events-none">
+      {/* Main UI Container shifted left slightly more to accommodate globe move */}
+      <div className="absolute left-0 inset-y-0 z-20 w-[45%] flex flex-col justify-center px-10 md:px-16 pointer-events-none">
         <div className="flex flex-col gap-0 drop-shadow-2xl">
           <h1 
-            className="font-black uppercase tracking-[0.5em] text-[12px] md:text-[14px] ml-2"
+            className="font-black uppercase tracking-[0.5em] text-[10px] md:text-[12px] ml-2"
             style={{ color: COLORS.BLUE }}
           >
             Total birth count today
@@ -255,7 +255,7 @@ const App: React.FC = () => {
           
           <div className="relative">
             <span 
-              className={`text-[9vw] font-black tabular-nums tracking-tighter leading-none`}
+              className={`text-[8vw] font-black tabular-nums tracking-tighter leading-none`}
               style={{ color: COLORS.GOLD, textShadow: '0 0 50px rgba(255,215,0,0.4)' }}
             >
               {total.toLocaleString('de-DE')}
@@ -263,7 +263,7 @@ const App: React.FC = () => {
           </div>
 
           {/* Progress Section: Width matched to counter footprint */}
-          <div className="w-full max-w-[35vw] mt-4 relative">
+          <div className="w-full max-w-[32vw] mt-4 relative">
              {/* Time Tag */}
              <div className="h-8 w-full relative mb-1">
                 <div 
@@ -271,14 +271,14 @@ const App: React.FC = () => {
                   style={{ left: `${timeState.pct}%` }}
                 >
                   <div className="bg-white/10 backdrop-blur-3xl border border-white/20 px-2 py-0.5 rounded shadow-2xl">
-                    <span className="text-white font-mono text-[10px] font-black tracking-wider">{timeState.label}</span>
+                    <span className="text-white font-mono text-[9px] font-black tracking-wider">{timeState.label}</span>
                   </div>
                   <div className="w-px h-2 bg-white/40 mt-0.5" />
                 </div>
              </div>
 
-             {/* Progress Bar Container: Sleek height h-2 */}
-             <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 backdrop-blur-md">
+             {/* Progress Bar Container */}
+             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 backdrop-blur-md">
                 <div 
                   className="h-full bg-gradient-to-r from-blue-600 via-amber-400 to-rose-600 rounded-full transition-all duration-1000 linear shadow-[0_0_15px_rgba(255,215,0,0.2)]"
                   style={{ width: `${timeState.pct}%` }}
@@ -286,15 +286,15 @@ const App: React.FC = () => {
              </div>
              
              <div className="flex justify-between items-start mt-2 px-1">
-                <span className="text-white/20 font-mono text-[8px] uppercase tracking-[0.4em]">Global Rotation</span>
+                <span className="text-white/20 font-mono text-[7px] uppercase tracking-[0.4em]">Global Rotation</span>
              </div>
           </div>
         </div>
       </div>
 
       {/* Brand Watermark */}
-      <div className="absolute top-10 left-12 md:left-20 z-30 pointer-events-none opacity-50">
-        <p className="font-black text-xl tracking-tighter text-white">
+      <div className="absolute top-8 left-10 md:left-16 z-30 pointer-events-none opacity-50">
+        <p className="font-black text-lg tracking-tighter text-white">
           EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span>
         </p>
       </div>
