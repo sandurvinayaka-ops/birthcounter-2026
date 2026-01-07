@@ -22,23 +22,23 @@ const generateStars = (count: number) => {
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
-    size: Math.random() * 2.5 + 0.8,
+    size: Math.random() * 2.5 + 1.0, // Brighter and slightly larger
     duration: Math.random() * 2 + 1,
     delay: Math.random() * 5
   }));
 };
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(850), []);
+  const stars = useMemo(() => generateStars(900), []);
   
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
       <div className="absolute inset-0">
-        <div className="nebula absolute top-[-5%] right-[-5%] w-[70vw] h-[70vw] bg-blue-900/10 rounded-full animate-pulse" />
+        <div className="nebula absolute top-[-5%] right-[-5%] w-[80vw] h-[80vw] bg-blue-900/15 rounded-full animate-pulse" />
       </div>
       <div 
         className="absolute top-1/2 left-1/2 w-[300vmax] h-[300vmax]"
-        style={{ animation: 'rotate-bg 1000s linear infinite' }}
+        style={{ animation: 'rotate-bg 1200s linear infinite' }}
       >
         {stars.map(s => (
           <div 
@@ -95,9 +95,9 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // Keep globe fully visible on the right, clear of the left-side text
-      const radius = Math.min(w, h) * 0.4;
-      const cx = w * 0.75; 
+      // Move globe towards numerics: shifted left to 0.62 and scaled for visibility
+      const radius = Math.min(w, h) * 0.38;
+      const cx = w * 0.62; 
       const cy = h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
@@ -112,13 +112,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const path = d3.geoPath(projection, ctx);
       const graticule = d3.geoGraticule();
 
-      // Glow
-      const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 120);
+      // Atmospheric Glow
+      const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 110);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(cx, cy, radius + 120, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius + 110, 0, Math.PI * 2);
       ctx.fill();
 
       // Ocean
@@ -137,7 +137,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       ctx.lineWidth = 0.5;
       ctx.stroke();
 
-      // Countries
+      // Features
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
@@ -193,13 +193,12 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none opacity-90" />;
 };
 
 const App: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const [flashId, setFlashId] = useState<string | null>(null);
-  const [pulse, setPulse] = useState(false);
   const [timeState, setTimeState] = useState({ label: "00:00", pct: 0 });
   const countRef = useRef(0);
 
@@ -229,8 +228,6 @@ const App: React.FC = () => {
       setTimeout(() => {
         countRef.current += 1;
         setTotal(countRef.current);
-        setPulse(true);
-        setTimeout(() => setPulse(false), 150);
         
         const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS', 'VNM', 'TUR', 'IRN', 'THA'];
         setFlashId(countries[Math.floor(Math.random() * countries.length)]);
@@ -248,54 +245,54 @@ const App: React.FC = () => {
       <Globe lastFlash={flashId} />
 
       {/* Main UI: Massive Counter on Left */}
-      <div className="absolute left-0 inset-y-0 z-20 w-[55%] flex flex-col justify-center px-16 pointer-events-none">
-        <div className="flex flex-col gap-0">
-          <h1 className="text-white/40 font-bold uppercase tracking-[0.5em] text-[12px] ml-2">
+      <div className="absolute left-0 inset-y-0 z-20 w-[60%] flex flex-col justify-center px-20 pointer-events-none">
+        <div className="flex flex-col gap-0 drop-shadow-2xl">
+          <h1 className="text-white/50 font-bold uppercase tracking-[0.5em] text-[12px] ml-2">
             Total Birth count
           </h1>
           
           <div className="relative">
             <span 
-              className={`text-[8vw] font-black tabular-nums tracking-tighter drop-shadow-[0_0_50px_rgba(255,215,0,0.3)] transition-all duration-200`}
-              style={{ color: COLORS.GOLD }}
+              className={`text-[8vw] font-black tabular-nums tracking-tighter transition-colors duration-200`}
+              style={{ color: COLORS.GOLD, textShadow: '0 0 30px rgba(255,215,0,0.3)' }}
             >
               {total.toLocaleString('de-DE')}
             </span>
           </div>
 
-          {/* Progress Section: Size matches numeric scale, positioned close beneath */}
-          <div className="w-full max-w-[42vw] mt-2 relative">
-             {/* Progress Label follows the point */}
+          {/* Progress Section: Width matches counter visual size (approx 48vw) */}
+          <div className="w-full max-w-[48vw] mt-1 relative">
+             {/* Time Tag following progress */}
              <div className="h-10 w-full relative mb-1">
                 <div 
                   className="absolute bottom-0 -translate-x-1/2 flex flex-col items-center transition-all duration-1000 linear"
                   style={{ left: `${timeState.pct}%` }}
                 >
-                  <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-2.5 py-1 rounded-md shadow-2xl">
+                  <div className="bg-white/10 backdrop-blur-2xl border border-white/20 px-3 py-1 rounded-md shadow-2xl">
                     <span className="text-white font-mono text-xs font-black">{timeState.label}</span>
                   </div>
                   <div className="w-px h-3 bg-white/40 mt-1" />
                 </div>
              </div>
 
-             {/* Progress Bar: Thickened to match visual weight of huge text */}
-             <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 backdrop-blur-sm">
+             {/* Progress Bar: Scaled to match visual weight */}
+             <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 backdrop-blur-md">
                 <div 
-                  className="h-full bg-gradient-to-r from-blue-600 via-amber-400 to-rose-600 rounded-full transition-all duration-1000 linear shadow-[0_0_20px_rgba(255,215,0,0.2)]"
+                  className="h-full bg-gradient-to-r from-blue-600 via-amber-400 to-rose-600 rounded-full transition-all duration-1000 linear shadow-[0_0_20px_rgba(255,215,0,0.3)]"
                   style={{ width: `${timeState.pct}%` }}
                 />
              </div>
              
              <div className="flex justify-between items-start mt-2 px-1">
                 <span className="text-white/20 font-mono text-[9px] uppercase tracking-[0.3em]">Day Rotation</span>
-                <span className="text-white/20 font-mono text-[9px] uppercase tracking-[0.3em]">{Math.round(timeState.pct)}%</span>
+                <span className="text-white/30 font-mono text-[10px] font-bold tracking-widest">{Math.round(timeState.pct)}%</span>
              </div>
           </div>
         </div>
       </div>
 
       {/* Brand Overlay */}
-      <div className="absolute top-10 left-16 z-30 pointer-events-none opacity-40">
+      <div className="absolute top-10 left-20 z-30 pointer-events-none opacity-50">
         <p className="font-black text-xl tracking-tighter text-white">
           EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span>
         </p>
