@@ -33,44 +33,56 @@ const generateStars = (count: number) => {
 const generatePacifiers = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
-    delay: Math.random() * 20,
-    duration: Math.random() * 15 + 10,
-    size: Math.random() * 10 + 12,
+    delay: Math.random() * -20, // Negative delay to start mid-animation
+    duration: Math.random() * 10 + 15, // Slower for better visibility
+    size: Math.random() * 15 + 20, // Larger to be clearly seen
     startX: Math.random() * 100,
     startY: Math.random() * 100,
-    angle: Math.random() * 360,
     color: Math.random() > 0.5 ? COLORS.PACIFIER_MINT : COLORS.PACIFIER_BLUE
   }));
 };
 
 const PacifierIcon: React.FC<{ color: string, size: number }> = ({ color, size }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" style={{ filter: `drop-shadow(0 0 5px ${color})` }}>
+  <svg width={size} height={size} viewBox="0 0 100 100" style={{ filter: `drop-shadow(0 0 8px ${color})` }}>
     {/* Handle */}
-    <circle cx="50" cy="80" r="15" fill="none" stroke={color} strokeWidth="6" opacity="0.8" />
+    <circle cx="50" cy="80" r="15" fill="none" stroke={color} strokeWidth="8" opacity="0.9" />
     {/* Shield */}
-    <rect x="20" y="45" width="60" height="25" rx="12" fill={color} />
+    <rect x="15" y="40" width="70" height="30" rx="15" fill={color} />
     {/* Nipple */}
-    <path d="M40 45 Q50 10 60 45" fill="white" opacity="0.4" />
-    <circle cx="50" cy="57.5" r="5" fill="rgba(0,0,0,0.1)" />
+    <path d="M40 40 Q50 0 60 40" fill="white" opacity="0.6" />
+    {/* Detail */}
+    <circle cx="50" cy="55" r="6" fill="rgba(0,0,0,0.15)" />
   </svg>
 );
 
 const SpaceBackground: React.FC = () => {
   const stars = useMemo(() => generateStars(1200), []);
-  const pacifiers = useMemo(() => generatePacifiers(15), []);
+  const pacifiers = useMemo(() => generatePacifiers(12), []);
   
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
       <style>{`
-        @keyframes pacifier-orbit {
-          0% { transform: translate(-100vw, -100vh) rotate(0deg); opacity: 0; }
-          10% { opacity: 0.6; }
-          90% { opacity: 0.6; }
-          100% { transform: translate(200vw, 200vh) rotate(720deg); opacity: 0; }
+        @keyframes pacifier-move {
+          0% { transform: translate(-30vw, -30vh) rotate(0deg); opacity: 0; }
+          10% { opacity: 0.8; }
+          90% { opacity: 0.8; }
+          100% { transform: translate(130vw, 130vh) rotate(360deg); opacity: 0; }
         }
         .pacifier-comet {
           position: absolute;
-          animation: pacifier-orbit linear infinite;
+          animation: pacifier-move linear infinite;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .comet-tail {
+          position: absolute;
+          width: 100px;
+          height: 2px;
+          right: 50%;
+          background: linear-gradient(to left, white, transparent);
+          transform: rotate(45deg);
+          opacity: 0.3;
         }
       `}</style>
       
@@ -110,6 +122,7 @@ const SpaceBackground: React.FC = () => {
             animationDelay: `${p.delay}s`,
           }}
         >
+          <div className="comet-tail" style={{ background: `linear-gradient(to left, ${p.color}, transparent)` }} />
           <PacifierIcon color={p.color} size={p.size} />
         </div>
       ))}
@@ -154,10 +167,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const isMobile = w < 768;
       const radius = isMobile ? Math.min(w * 0.4, h * 0.28) : Math.min(w * 0.26, h * 0.35);
       
-      // POSITIONED: Moved Globe left significantly (from 0.6 to 0.54) to be closer to numbers.
-      // Vertical centering remains at h * 0.5.
-      const cx = isMobile ? w * 0.5 : w * 0.54; 
-      const cy = h * 0.5;
+      // POSITIONED: Moved Globe left significantly (from 0.54 to 0.48) to be closer to numbers.
+      // cx 0.48 on desktop keeps it next to the 45% wide text container.
+      const cx = isMobile ? w * 0.5 : w * 0.48; 
+      const cy = h * 0.5; // Vertically centered
 
       ctx.clearRect(0, 0, w, h);
       rotationRef.current[0] += 0.45;
