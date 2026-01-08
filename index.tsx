@@ -29,17 +29,17 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   opacity: 0.2 + Math.random() * 0.5,
 }));
 
-const PACIFIER_COUNT = 6; 
+const PACIFIER_COUNT = 15; 
 const PACIFIERS = Array.from({ length: PACIFIER_COUNT }).map((_, i) => ({
   id: i,
   startX: Math.random() * 100,
   startY: Math.random() * 100,
-  size: 15 + Math.random() * 15, 
-  duration: 30 + Math.random() * 40, 
-  driftX: (Math.random() - 0.5) * 30,
-  driftY: (Math.random() - 0.5) * 30,
+  size: 10 + Math.random() * 15, 
+  duration: 5 + Math.random() * 10, 
+  driftX: (Math.random() - 0.5) * 150, 
+  driftY: (Math.random() - 0.5) * 150,
   rotation: Math.random() * 360,
-  rotationSpeed: (Math.random() - 0.5) * 300, 
+  rotationSpeed: (Math.random() - 0.5) * 800, 
 }));
 
 const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
@@ -48,8 +48,8 @@ const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
     height={size} 
     viewBox="0 0 100 100" 
     style={{ 
-      filter: `drop-shadow(0 0 5px ${color})`,
-      opacity: 0.25
+      filter: `drop-shadow(0 0 15px ${color}) blur(0.5px)`,
+      opacity: 0.5 
     }}
   >
     <defs>
@@ -75,8 +75,8 @@ const SpaceBackground: React.FC = () => {
         }
         @keyframes cometPath {
           0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
-          15% { opacity: 0.4; }
-          85% { opacity: 0.4; }
+          10% { opacity: 0.6; }
+          90% { opacity: 0.6; }
           100% { transform: translate(var(--driftX), var(--driftY)) rotate(var(--rotFull)); opacity: 0; }
         }
         .star {
@@ -191,11 +191,9 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // Radius slightly reduced for TV spacing
       const radius = h * 0.20; 
-      // Adjusted center to be further left to avoid overlap with textual elements
-      const cx = w * 0.50; 
-      // Moved the globe up by ~2cm (shifting cy from 0.5 to 0.4)
+      // MOVED GLOBE LEFT: cx shifted from 0.50 to 0.32 to be next to the progress bar
+      const cx = w * 0.32; 
       const cy = h * 0.40;
 
       ctx.clearRect(0, 0, w, h);
@@ -338,7 +336,7 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Branding - Matching image: M(white) &(blue) CC(white) with width-matched blue bar */}
+      {/* Branding */}
       <div className="absolute top-12 left-12 md:top-16 md:left-20 z-30 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-5xl md:text-7xl leading-none">
@@ -350,8 +348,8 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content: Left-Pinned Wall Content - Scale reduced for TV fitting */}
-      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[35%]">
+      {/* Main Content: Left-Pinned Wall Content - MOVED 2 STEPS DOWN (added translate-y-16) */}
+      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[35%] transform translate-y-16">
         
         <div className="flex flex-col items-start gap-3">
           <div className="flex flex-col gap-0.5 max-w-full">
@@ -400,7 +398,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Cinematic Vignettes for large screen focus */}
+      {/* Cinematic Vignettes */}
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none"></div>
     </div>
