@@ -23,23 +23,23 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
-  size: Math.random() * 2.5 + 1,
+  size: Math.random() * 2 + 0.8,
   delay: `${Math.random() * 5}s`,
   duration: `${2 + Math.random() * 4}s`,
   opacity: 0.3 + Math.random() * 0.7,
 }));
 
-const PACIFIER_COUNT = 16;
+const PACIFIER_COUNT = 12; 
 const PACIFIERS = Array.from({ length: PACIFIER_COUNT }).map((_, i) => ({
   id: i,
   startX: Math.random() * 100,
   startY: Math.random() * 100,
-  size: 30 + Math.random() * 40, 
-  duration: 12 + Math.random() * 18, 
-  driftX: (Math.random() - 0.5) * 80,
-  driftY: (Math.random() - 0.5) * 80,
+  size: 20 + Math.random() * 30, 
+  duration: 15 + Math.random() * 20, 
+  driftX: (Math.random() - 0.5) * 60,
+  driftY: (Math.random() - 0.5) * 60,
   rotation: Math.random() * 360,
-  rotationSpeed: (Math.random() - 0.5) * 1200, 
+  rotationSpeed: (Math.random() - 0.5) * 800, 
 }));
 
 const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
@@ -48,8 +48,8 @@ const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
     height={size} 
     viewBox="0 0 100 100" 
     style={{ 
-      filter: `drop-shadow(0 0 15px ${color})`,
-      opacity: 0.6
+      filter: `drop-shadow(0 0 10px ${color})`,
+      opacity: 0.5
     }}
   >
     <defs>
@@ -128,7 +128,7 @@ const SpaceBackground: React.FC = () => {
         </div>
       ))}
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_50%,rgba(8,26,61,0.3)_0%,transparent_70%)]"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(8,26,61,0.3)_0%,transparent_70%)]"></div>
     </div>
   );
 };
@@ -192,9 +192,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      const radius = h * 0.42; 
-      const cx = w * 0.65;
-      const cy = h * 0.45;
+      // Enlarged radius to fit the screen better
+      const radius = h * 0.52; 
+      const cx = w * 0.55; // Slightly offset to the right to leave space for left text but more central
+      const cy = h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
       
@@ -216,11 +217,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 150);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 200);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.1)');
+      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.08)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 150, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 200, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -260,8 +261,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.02, 0.2 - edgeFade * 0.15)})`; 
-          ctx.lineWidth = 0.8; 
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.02, 0.15 - edgeFade * 0.12)})`; 
+          ctx.lineWidth = 0.5; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
@@ -337,68 +338,60 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Overlays Optimized for 45" TV */}
-      <div className="absolute inset-0 z-20 flex flex-col justify-between p-16 md:p-20 pointer-events-none">
-        
-        {/* Top Header Branding Only - Updated colors as per request */}
-        <div className="flex justify-between items-start w-full">
-          <div className="flex flex-col">
-            <span className="text-4xl md:text-6xl font-black tracking-tighter drop-shadow-[0_0_15px_rgba(56,189,248,0.4)]">
-              <span className="text-white">M</span>
-              <span className="text-sky-500">&</span>
-              <span className="text-white">CC</span>
-            </span>
-            <div className="w-10 h-1 bg-sky-500 mt-2 rounded-full opacity-60"></div>
-          </div>
+      {/* Top Left Branding */}
+      <div className="absolute top-10 left-10 md:top-16 md:left-16 z-30 pointer-events-none">
+        <div className="flex flex-col">
+          <span className="text-2xl md:text-4xl font-black tracking-tighter drop-shadow-md">
+            <span className="text-white">M</span>
+            <span className="text-sky-500">&</span>
+            <span className="text-white">CC</span>
+          </span>
+          <div className="w-8 h-0.5 bg-sky-500 mt-1 rounded-full opacity-50"></div>
         </div>
+      </div>
 
-        {/* Bottom Data Section */}
-        <div className="w-full flex flex-col items-start gap-6">
-          
-          <div className="flex flex-col gap-1 max-w-full">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
-              <span className="text-sky-400 font-bold uppercase tracking-[0.4em] text-lg md:text-xl opacity-90">Total Births Today</span>
+      {/* Main Content: Vertically Centered Left */}
+      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center p-20 md:p-32 pointer-events-none w-full max-w-[50%]">
+        
+        <div className="flex flex-col items-start gap-4">
+          <div className="flex flex-col gap-0.5 max-w-full">
+            <div className="flex items-center gap-2 mb-0.5">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.7)]"></div>
+              <span className="text-sky-400 font-bold uppercase tracking-[0.4em] text-xs md:text-sm opacity-90">Total Births Today</span>
             </div>
             
             <div className="flex items-baseline">
               <span 
-                className="text-[10vw] font-black leading-none drop-shadow-[0_0_80px_rgba(251,191,36,0.3)] transition-all duration-300" 
-                style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD, textShadow: `0 0 40px ${COLORS.GOLD}18` }}
+                className="text-[8vw] font-black leading-none drop-shadow-[0_0_60px_rgba(251,191,36,0.25)] transition-all duration-300" 
+                style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD, textShadow: `0 0 30px ${COLORS.GOLD}12` }}
               >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
               </span>
             </div>
           </div>
 
-          {/* 50% Width Progress Bar Section */}
-          <div className="w-1/2 max-w-[600px] mt-2 relative">
-            <div className="flex justify-between items-end mb-2 px-1">
-              <span className="text-sky-400 font-bold uppercase tracking-widest text-base opacity-80">Daily Cycle Progress</span>
-              <span className="text-white/40 font-mono text-lg">{Math.floor(timeState.pct)}%</span>
+          {/* Progress Bar & Time */}
+          <div className="w-full max-w-[400px] mt-6 relative">
+            <div className="flex justify-between items-end mb-1.5 px-0.5">
+              <span className="text-sky-400 font-bold uppercase tracking-widest text-[10px] opacity-60">Cycle Progress</span>
+              <span className="text-white/40 font-mono text-sm">{Math.floor(timeState.pct)}%</span>
             </div>
             
-            <div className="h-5 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
+            <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
               <div 
                 className="h-full bg-gradient-to-r from-sky-700 via-sky-500 to-amber-500 transition-all duration-1000 ease-linear"
-                style={{ width: `${timeState.pct}%`, boxShadow: '0 0 20px rgba(56, 189, 248, 0.4)' }}
+                style={{ width: `${timeState.pct}%`, boxShadow: '0 0 10px rgba(56, 189, 248, 0.3)' }}
               />
-              <div className="absolute inset-0 flex justify-between px-1 pointer-events-none opacity-10">
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="w-px h-full bg-white"></div>
-                ))}
-              </div>
             </div>
             
-            {/* Dynamic Time below progress indicator */}
+            {/* Minimalist Time floating under progress pointer */}
             <div 
-              className="absolute top-full mt-3 flex flex-col items-center transition-all duration-1000 ease-linear"
+              className="absolute top-full mt-1.5 flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="w-px h-8 bg-sky-500/50"></div>
-              <div className="bg-sky-500/5 backdrop-blur-2xl border border-sky-500/20 px-5 py-3 rounded-xl mt-1 flex flex-col items-center min-w-[140px]">
-                <span className="text-sky-200/40 uppercase font-bold text-[9px] tracking-widest mb-1">Current Time</span>
-                <span className="text-white font-mono text-2xl md:text-3xl font-black tracking-tight whitespace-nowrap tabular-nums">
+              <div className="w-px h-4 bg-sky-500/40"></div>
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 px-3 py-1.5 rounded-md mt-0.5 flex items-center shadow-xl">
+                <span className="text-white font-mono text-lg md:text-xl font-bold tracking-tight whitespace-nowrap tabular-nums">
                   {timeState.label}
                 </span>
               </div>
@@ -407,9 +400,9 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Aesthetic Overlays */}
+      {/* Overlays */}
       <div className="absolute inset-0 pointer-events-none z-50 mix-blend-overlay opacity-10" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/carbon-fibre.png")' }}></div>
-      <div className="absolute inset-0 pointer-events-none z-50 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.5)_100%)]"></div>
+      <div className="absolute inset-0 pointer-events-none z-50 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]"></div>
       
       {/* Cinematic Vignettes */}
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/80 to-transparent z-10 pointer-events-none"></div>
