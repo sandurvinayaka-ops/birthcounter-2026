@@ -4,8 +4,8 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.025; // Increased further for more dynamic energy
-const FRICTION = 0.98; // Lower friction for longer, smoother inertia trails
+const AUTO_ROTATION_SPEED = 0.045; // Increased speed "one level" from 0.025
+const FRICTION = 0.975; // Refined friction for longer, buttery-smooth coasting
 const COLORS = {
   LAND: '#3d4a5e',      
   ICE: '#ffffff',       
@@ -205,11 +205,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       .on('drag', (event) => {
         const dx = event.dx / dpr;
         const dy = event.dy / dpr;
-        // High-responsiveness drag
-        rotationRef.current[0] += dx * 0.45;
-        rotationRef.current[1] -= dy * 0.45;
-        // Tracking velocity for elegant inertia transitions
-        velocityRef.current = [dx * 0.6, dy * 0.6];
+        // Direct rotation manipulation for responsive tactile feel
+        rotationRef.current[0] += dx * 0.4;
+        rotationRef.current[1] -= dy * 0.4;
+        // Seed inertia velocity based on drag delta
+        velocityRef.current = [dx * 0.4, dy * 0.4];
       })
       .on('end', () => { 
         isDraggingRef.current = false; 
@@ -225,7 +225,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       }
       
       let deltaTime = time - lastTimeRef.current;
-      if (deltaTime > 100) deltaTime = 16.7; // Precision cap for tab switching
+      // Precision normalization to eliminate jitter from variable frame-rates
+      if (deltaTime > 64) deltaTime = 16.67; 
       lastTimeRef.current = time;
       
       const w = canvas.width / dpr;
@@ -241,21 +242,24 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       ctx.clearRect(0, 0, w, h);
       
-      // Advanced rotation with inertia hand-off and increased auto-speed
+      // Ultra-smooth frame-independent physics integration
       if (!isDraggingRef.current) {
-        // Apply inertia velocity
-        rotationRef.current[0] += velocityRef.current[0];
-        rotationRef.current[1] += velocityRef.current[1];
+        const timeStep = deltaTime / 16.67; // Normalize to 60fps
         
-        // Decay inertia velocity towards zero
-        velocityRef.current[0] *= FRICTION;
-        velocityRef.current[1] *= FRICTION;
+        // Coasting with friction (normalized by time)
+        rotationRef.current[0] += velocityRef.current[0] * timeStep;
+        rotationRef.current[1] += velocityRef.current[1] * timeStep;
         
-        // Steady-state auto-rotation (increased level)
+        const frictionFactor = Math.pow(FRICTION, timeStep);
+        velocityRef.current[0] *= frictionFactor;
+        velocityRef.current[1] *= frictionFactor;
+        
+        // Base cinematic auto-rotation
         rotationRef.current[0] += AUTO_ROTATION_SPEED * deltaTime;
         
-        // Smoothly realign to horizontal axis over time (snapping phi back to -15)
-        rotationRef.current[1] += (-15 - rotationRef.current[1]) * 0.012;
+        // Subtle drift back to default cinematic tilt (-15 degrees)
+        const snapFactor = 1 - Math.pow(0.98, timeStep);
+        rotationRef.current[1] += (-15 - rotationRef.current[1]) * snapFactor;
       }
 
       const projection = d3.geoOrthographic()
@@ -266,7 +270,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // 1. Atmosphere Glow
+      // 1. Atmosphere Lighting (Atmospheric Scattering Simulation)
       const glowRadiusOuter = radius + (isMobile ? 60 : 110);
       const glowRadiusInner = radius + (isMobile ? 20 : 40);
       
@@ -281,7 +285,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       glowInner.addColorStop(1, 'transparent');
       ctx.fillStyle = glowInner; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusInner, 0, Math.PI * 2); ctx.fill();
 
-      // 2. Base Ocean
+      // 2. Multi-layered Ocean Gradient
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
       oceanGrad.addColorStop(0.5, COLORS.OCEAN_SHALLOW);
@@ -289,7 +293,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       oceanGrad.addColorStop(1, '#000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // 3. Render Landmasses
+      // 3. Render Landmasses with Dynamic Highlighting
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
@@ -318,13 +322,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          ctx.strokeStyle = 'rgba(255,255,255,0.2)'; 
-          ctx.lineWidth = 0.6; 
+          ctx.strokeStyle = 'rgba(255,255,255,0.15)'; 
+          ctx.lineWidth = 0.5; 
           ctx.stroke();
         }
       });
 
-      // 4. Rim Lighting & Specular FX
+      // 4. Lighting FX (Specular reflection & Rim shading)
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
       rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
@@ -332,8 +336,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       const specGrad = ctx.createRadialGradient(cx - radius * 0.5, cy - radius * 0.5, radius * 0.05, cx - radius * 0.5, cy - radius * 0.5, radius * 0.9);
-      specGrad.addColorStop(0, 'rgba(255,255,255,0.15)');
-      specGrad.addColorStop(0.4, 'rgba(255,255,255,0.04)');
+      specGrad.addColorStop(0, 'rgba(255,255,255,0.18)');
+      specGrad.addColorStop(0.4, 'rgba(255,255,255,0.05)');
       specGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
