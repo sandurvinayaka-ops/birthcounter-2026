@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EarthPulse | Live Global Birth Tracker</title>
+  <title>M&CC | Live Global Birth Tracker</title>
   
   <!-- UI Frameworks -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -87,7 +87,7 @@
 <body>
   <div id="loading-screen">
     <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-    <p class="loading-text">Synchronizing EarthPulse...</p>
+    <p class="loading-text">Synchronizing M&CC...</p>
     <div id="error-display"></div>
   </div>
   
@@ -125,7 +125,7 @@
         display.style.display = 'block';
         display.innerHTML = `<strong>System Configuration Error</strong><br><span style="opacity: 0.8">${msg}</span>`;
         if (text) text.style.display = 'none';
-        console.error("EarthPulse Error:", msg, details);
+        console.error("M&CC Error:", msg, details);
       }
     }
 
