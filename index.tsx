@@ -192,9 +192,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      const radius = h * 0.48; 
-      const cx = w * 0.62;
-      const cy = h * 0.48;
+      // Adjusted for 40" TV: Central but slightly balanced for the left-hand text
+      const radius = h * 0.45; 
+      const cx = w * 0.6;
+      const cy = h * 0.45;
 
       ctx.clearRect(0, 0, w, h);
       
@@ -342,57 +343,49 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Cinematic Overlays Optimized for 45" TV */}
-      <div className="absolute inset-0 z-20 flex flex-col justify-between p-16 md:p-24 pointer-events-none">
+      {/* Overlays Optimized for 40" TV with Safe Margins */}
+      <div className="absolute inset-0 z-20 flex flex-col justify-between p-20 md:p-32 pointer-events-none">
         
-        {/* Top Header Section */}
+        {/* Top Header Section (Branding Only) */}
         <div className="flex justify-between items-start w-full">
           <div className="flex flex-col">
-            <span className="text-6xl md:text-8xl font-black tracking-tighter drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]">
+            <span className="text-7xl md:text-9xl font-black tracking-tighter drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]">
               <span className="text-sky-500">M&C</span>
               <span className="text-white">C</span>
             </span>
-          </div>
-          
-          <div className="flex flex-col items-end">
-            <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-10 py-6 rounded-2xl shadow-2xl flex flex-col items-end">
-               <span className="text-sky-300 font-bold uppercase tracking-widest text-lg mb-1">Live Server Time</span>
-               <span className="text-white font-mono text-5xl md:text-6xl font-black tracking-tighter tabular-nums">
-                {timeState.label}
-               </span>
-            </div>
+            <div className="w-16 h-1.5 bg-sky-500 mt-2 rounded-full"></div>
           </div>
         </div>
 
         {/* Center/Bottom Data Section */}
-        <div className="w-full flex flex-col items-start gap-8">
+        <div className="w-full flex flex-col items-start gap-12">
           
           <div className="flex flex-col gap-2 max-w-full">
-            <div className="flex items-center gap-4 mb-2">
-              <div className="w-4 h-4 rounded-full bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,1)]"></div>
-              <span className="text-sky-400 font-bold uppercase tracking-[0.5em] text-2xl md:text-3xl drop-shadow-lg">Total Births Today</span>
+            <div className="flex items-center gap-6 mb-2">
+              <div className="w-6 h-6 rounded-full bg-red-500 animate-pulse shadow-[0_0_20px_rgba(239,68,68,1)]"></div>
+              <span className="text-sky-400 font-bold uppercase tracking-[0.5em] text-3xl md:text-4xl drop-shadow-lg">Total Births Today</span>
             </div>
             
             <div className="flex items-baseline gap-6">
               <span 
-                className="text-[14vw] font-black leading-none drop-shadow-[0_0_100px_rgba(251,191,36,0.4)] transition-all duration-300" 
-                style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD, textShadow: `0 0 50px ${COLORS.GOLD}33` }}
+                className="text-[15vw] font-black leading-none drop-shadow-[0_0_120px_rgba(251,191,36,0.4)] transition-all duration-300" 
+                style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD, textShadow: `0 0 60px ${COLORS.GOLD}33` }}
               >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
               </span>
             </div>
           </div>
 
-          {/* Reduced Width TV-Style Progress Bar (50%) */}
-          <div className="w-1/2 max-w-[600px] mt-8 relative">
+          {/* 50% Width Progress Bar */}
+          <div className="w-1/2 max-w-[800px] mt-4 relative">
             <div className="flex justify-between items-end mb-4 px-2">
-              <span className="text-sky-400 font-bold uppercase tracking-widest text-lg">Daily Cycle</span>
-              <span className="text-white/60 font-mono text-xl">{Math.floor(timeState.pct)}%</span>
+              <span className="text-sky-400 font-bold uppercase tracking-widest text-xl">Daily Cycle</span>
+              <span className="text-white/60 font-mono text-2xl">{Math.floor(timeState.pct)}%</span>
             </div>
             
-            <div className="h-6 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
+            <div className="h-8 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
               <div 
-                className="h-full bg-gradient-to-r from-sky-600 via-sky-400 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_30px_rgba(56,189,248,0.6)]"
+                className="h-full bg-gradient-to-r from-sky-600 via-sky-400 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_40px_rgba(56,189,248,0.7)]"
                 style={{ width: `${timeState.pct}%` }}
               />
               {/* Grid markers */}
@@ -403,14 +396,15 @@ const App: React.FC = () => {
               </div>
             </div>
             
-            {/* Dynamic Time Display below current progress */}
+            {/* Dynamic Time Display precisely below the current progress indicator */}
             <div 
               className="absolute top-full mt-4 flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="w-px h-10 bg-sky-400 shadow-[0_0_15px_rgba(56,189,248,1)]"></div>
-              <div className="bg-sky-500/10 backdrop-blur-xl border border-sky-500/30 px-6 py-3 rounded-xl shadow-2xl mt-2">
-                <span className="text-sky-400 font-mono text-3xl md:text-4xl font-black tracking-tight whitespace-nowrap drop-shadow-lg">
+              <div className="w-px h-12 bg-sky-400 shadow-[0_0_20px_rgba(56,189,248,1)]"></div>
+              <div className="bg-sky-500/10 backdrop-blur-3xl border border-sky-500/40 px-8 py-4 rounded-2xl shadow-2xl mt-3 flex flex-col items-center min-w-[200px]">
+                <span className="text-sky-200/60 uppercase font-bold text-xs tracking-widest mb-1">Current Time</span>
+                <span className="text-white font-mono text-5xl md:text-6xl font-black tracking-tight whitespace-nowrap drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] tabular-nums">
                   {timeState.label}
                 </span>
               </div>
@@ -421,11 +415,11 @@ const App: React.FC = () => {
 
       {/* High-Resolution Aesthetic Overlays */}
       <div className="absolute inset-0 pointer-events-none z-50 mix-blend-overlay opacity-15" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/carbon-fibre.png")' }}></div>
-      <div className="absolute inset-0 pointer-events-none z-50 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.5)_100%)]"></div>
+      <div className="absolute inset-0 pointer-events-none z-50 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)]"></div>
       
-      {/* Dashboard Frames */}
-      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/80 to-transparent z-10 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none"></div>
+      {/* Cinematic Vignettes */}
+      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };
