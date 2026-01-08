@@ -5,14 +5,14 @@ import * as d3 from 'd3';
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
 const COLORS = {
-  LAND: '#334155',      
-  ICE: '#f8fafc',       
-  OCEAN_DEEP: '#020617',
-  OCEAN_SHALLOW: '#1e3a8a',
-  OCEAN_BRIGHT: '#3b82f6',
+  LAND: '#3d4a5e',      
+  ICE: '#ffffff',       
+  OCEAN_DEEP: '#010409',
+  OCEAN_SHALLOW: '#0e2a63',
+  OCEAN_BRIGHT: '#1d4ed8',
   GOLD: '#FFD700',
-  BLUE: '#3b82f6',      
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.22)', 
+  BLUE: '#60a5fa',      
+  ATMOSPHERE_INNER: 'rgba(96, 165, 250, 0.35)', 
   PACIFIER_MINT: '#d1fae5',
   PACIFIER_BLUE: '#bfdbfe',
   BOTTLE_GLASS: 'rgba(255, 255, 255, 0.2)',
@@ -20,16 +20,20 @@ const COLORS = {
 };
 
 const generateStars = (count: number) => {
-  return Array.from({ length: count }).map((_, i) => ({
-    id: i,
-    x: Math.random() * 260 - 80, 
-    y: Math.random() * 260 - 80, 
-    size: Math.random() * 2.2 + 0.5, 
-    duration: Math.random() * 4 + 2,
-    delay: Math.random() * 10,
-    opacity: Math.random() * 0.7 + 0.2,
-    glow: Math.random() > 0.85 
-  }));
+  return Array.from({ length: count }).map((_, i) => {
+    const isSupernova = Math.random() > 0.98;
+    return {
+      id: i,
+      x: Math.random() * 260 - 80, 
+      y: Math.random() * 260 - 80, 
+      size: isSupernova ? Math.random() * 3 + 1.5 : Math.random() * 1.8 + 0.4, 
+      duration: Math.random() * 2 + 1, 
+      delay: Math.random() * 10,
+      opacity: Math.random() * 0.9 + 0.1,
+      glow: Math.random() > 0.6,
+      color: isSupernova ? '#bae6fd' : '#fff'
+    };
+  });
 };
 
 const generateSpaceObjects = (count: number) => {
@@ -37,7 +41,7 @@ const generateSpaceObjects = (count: number) => {
     id: i,
     type: Math.random() > 0.35 ? 'PACIFIER' : 'BOTTLE',
     delay: Math.random() * -30,
-    duration: Math.random() * 20 + 25,
+    duration: Math.random() * 25 + 30,
     size: Math.random() * 12 + 20,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
@@ -80,11 +84,11 @@ const BottleIcon: React.FC<{ size?: number; className?: string; style?: React.CS
 );
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(1000), []);
-  const spaceObjects = useMemo(() => generateSpaceObjects(10), []);
+  const stars = useMemo(() => generateStars(1200), []);
+  const spaceObjects = useMemo(() => generateSpaceObjects(12), []);
   
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-black">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000105]">
       <style>{`
         @keyframes drift-move {
           0% { transform: translate(-30vw, -30vh) rotate(var(--start-rot)); opacity: 0; }
@@ -101,21 +105,21 @@ const SpaceBackground: React.FC = () => {
           to { transform: translate(-50%, -50%) rotate(360deg); }
         }
         @keyframes star-twinkle {
-          0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 0.9; transform: scale(1.2); }
+          0%, 100% { opacity: 0.5; transform: scale(1); filter: brightness(1); }
+          50% { opacity: 1; transform: scale(1.4); filter: brightness(1.8) drop-shadow(0 0 2px white); }
         }
       `}</style>
       
-      <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 800s linear infinite' }}>
+      <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 900s linear infinite' }}>
         {stars.map(s => (
           <div key={s.id} style={{
             position: 'absolute',
             left: `${s.x}%`, top: `${s.y}%`, 
             width: `${s.size}px`, height: `${s.size}px`,
-            backgroundColor: '#fff',
+            backgroundColor: s.color,
             borderRadius: '50%',
             opacity: s.opacity,
-            boxShadow: s.glow ? `0 0 ${s.size * 4}px rgba(255, 255, 255, 0.8)` : 'none',
+            boxShadow: s.glow ? `0 0 ${s.size * 8}px ${s.color}` : 'none',
             animation: `star-twinkle ${s.duration}s ease-in-out infinite`,
             animationDelay: `${s.delay}s`
           }} />
@@ -182,14 +186,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       
       const radius = isMobile 
         ? Math.min(w * 0.44, h * 0.28) 
-        : Math.min(w * 0.32, h * 0.42);
+        : Math.min(w * 0.35, h * 0.45);
       
-      // SHIFT GLOBE TO THE RIGHT ON DESKTOP
-      const cx = isMobile ? w * 0.5 : w * 0.65; 
+      const cx = isMobile ? w * 0.5 : w * 0.75; 
       const cy = isMobile ? h * 0.44 : h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
-      rotationRef.current[0] += 0.4;
+      rotationRef.current[0] += 0.3;
 
       const projection = d3.geoOrthographic()
         .scale(radius)
@@ -199,19 +202,27 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // Atmosphere
-      const glowRadius = radius + (isMobile ? 50 : 80);
+      // Stronger Atmosphere Glow
+      const glowRadius = radius + (isMobile ? 60 : 100);
       const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadius);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
+      glow.addColorStop(0.3, 'rgba(96, 165, 250, 0.15)');
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2); ctx.fill();
 
-      // Ocean
-      const oceanGrad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
+      // Sharp Ocean with Rim Light
+      const oceanGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
       oceanGrad.addColorStop(0.4, COLORS.OCEAN_SHALLOW);
-      oceanGrad.addColorStop(1, COLORS.OCEAN_DEEP);
+      oceanGrad.addColorStop(0.8, COLORS.OCEAN_DEEP);
+      oceanGrad.addColorStop(1, '#000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+
+      // Specular Highlight
+      const specGrad = ctx.createRadialGradient(cx - radius * 0.5, cy - radius * 0.5, radius * 0.1, cx - radius * 0.5, cy - radius * 0.5, radius * 0.8);
+      specGrad.addColorStop(0, 'rgba(255,255,255,0.08)');
+      specGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
@@ -240,14 +251,14 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
-          ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 0.4; ctx.stroke();
         }
       });
 
-      // Shadow
-      const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
+      // Ambient Shadowing
+      const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
-      rimGrad.addColorStop(1, 'rgba(0,0,0,0.65)');
+      rimGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
       ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       animId = requestAnimationFrame(render);
@@ -305,38 +316,38 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const formattedTotal = total.toLocaleString('en-US').replace(/,/g, '.');
+
   return (
     <div className="relative w-full h-full select-none overflow-hidden bg-black flex flex-col font-sans">
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* UI Overlay */}
       <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 md:px-24 pointer-events-none">
         <div className="w-fit flex flex-col items-center md:items-start gap-0">
-          <h1 className="font-black tracking-[0.1em] md:tracking-[0.2em] text-[24px] md:text-[38px] opacity-100 mb-4 uppercase leading-[0.95] text-center md:text-left" style={{ color: COLORS.BLUE }}>
+          <h1 className="font-black tracking-[0.1em] md:tracking-[0.2em] text-[26px] md:text-[42px] opacity-100 mb-4 uppercase leading-[0.95] text-center md:text-left" style={{ color: COLORS.BLUE }}>
             Global Births<br />Today
           </h1>
           
           <div className="relative flex flex-row items-baseline justify-center md:justify-start text-center md:text-left mb-4">
             <span 
-              className="text-[18vw] md:text-[11vw] font-black tabular-nums tracking-[-0.03em] leading-none" 
+              className="text-[18vw] md:text-[11vw] font-black tabular-nums leading-none block" 
               style={{ 
                 color: COLORS.GOLD, 
-                textShadow: '0 0 40px rgba(255,215,0,0.3)',
-                fontFamily: "'Anton', sans-serif"
+                textShadow: '0 0 60px rgba(255,215,0,0.4)',
+                fontFamily: "'Anton', sans-serif",
+                letterSpacing: '0.08em'
               }}
             >
-              {total.toLocaleString('en-US').replace(/,/g, '.')}
+              {formattedTotal}
             </span>
           </div>
 
-          {/* Progress Bar UI - Width matches the numbers container above */}
           <div className="w-full relative flex flex-col gap-0.5">
-             {/* Single Color Progress Bar */}
-             <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+             <div className="h-3.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 relative">
                 <div className="absolute inset-0 opacity-10" style={{ backgroundColor: COLORS.GOLD }} />
                 <div 
-                  className="h-full rounded-full transition-all duration-1000 ease-linear relative z-10 shadow-[0_0_20px_rgba(255,215,0,0.5)]" 
+                  className="h-full rounded-full transition-all duration-1000 ease-linear relative z-10 shadow-[0_0_25px_rgba(255,215,0,0.6)]" 
                   style={{ 
                     width: `${timeState.pct}%`,
                     backgroundColor: COLORS.GOLD 
@@ -344,8 +355,7 @@ const App: React.FC = () => {
                 />
              </div>
 
-             {/* HH:MM Tooltip Below Bar */}
-             <div className="h-12 w-full relative">
+             <div className="h-14 w-full relative">
                 <div 
                   className="absolute top-1 flex flex-col items-center transition-all duration-1000 ease-linear" 
                   style={{ 
@@ -353,9 +363,9 @@ const App: React.FC = () => {
                     transform: 'translateX(-50%)' 
                   }}
                 >
-                  <div className="w-px h-3 bg-white/20"></div>
-                  <div className="bg-[#111827] border border-white/10 px-4 py-2 rounded-xl shadow-2xl flex items-center justify-center min-w-[85px]">
-                    <span className="text-white font-mono text-[14px] md:text-[16px] font-bold tracking-tight">{timeState.label}</span>
+                  <div className="w-px h-4 bg-white/30"></div>
+                  <div className="bg-[#0f172a] border border-white/20 px-4 py-2 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] flex items-center justify-center min-w-[95px]">
+                    <span className="text-white font-mono text-[14px] md:text-[18px] font-bold tracking-tight">{timeState.label}</span>
                   </div>
                 </div>
              </div>
@@ -363,9 +373,9 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute top-8 left-8 md:top-12 md:left-24 z-30 pointer-events-none opacity-80">
+      <div className="absolute top-8 left-8 md:top-12 md:left-24 z-30 pointer-events-none opacity-90">
         <div className="flex items-center gap-2">
-          <p className="font-black text-base md:text-2xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
+          <p className="font-black text-lg md:text-3xl tracking-tighter text-white">EARTH<span style={{ color: COLORS.GOLD }}>PULSE</span></p>
         </div>
       </div>
     </div>
