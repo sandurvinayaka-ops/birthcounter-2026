@@ -63,18 +63,11 @@ const BottleIcon: React.FC<{ size?: number; className?: string; style?: React.CS
     className={className} 
     style={{ ...style, filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.2))' }}
   >
-    {/* Nipple/Top Cap (Clear/White) */}
     <path d="M30 35 Q50 0 70 35 L75 55 L25 55 Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
     <path d="M45 10 Q50 0 55 10 L55 20 Q50 25 45 20 Z" fill="rgba(255,255,255,0.4)" />
-    
-    {/* White Ring */}
     <rect x="20" y="55" width="60" height="15" rx="4" fill="#ffffff" />
     <rect x="18" y="68" width="64" height="4" rx="1" fill="#e2e8f0" />
-
-    {/* Clear Body */}
     <path d="M22 72 L78 72 Q88 72 88 85 L88 135 Q88 148 72 148 L28 148 Q12 148 12 135 L12 85 Q12 72 22 72" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.25)" strokeWidth="2" />
-    
-    {/* Green Dinosaur Logo */}
     <g transform="translate(35, 95) scale(0.6)">
        <path d="M10 40 Q20 40 25 30 L35 30 Q45 30 45 45 L45 55 Q45 65 35 65 L15 65 Q5 65 5 55 L5 45 Q5 40 10 40" fill="#84cc16" />
        <circle cx="15" cy="48" r="3" fill="white" />
@@ -82,8 +75,6 @@ const BottleIcon: React.FC<{ size?: number; className?: string; style?: React.CS
        <path d="M45 45 Q55 35 60 45" fill="none" stroke="#84cc16" strokeWidth="4" />
        <path d="M20 65 L18 75 M30 65 L32 75" stroke="#84cc16" strokeWidth="3" />
     </g>
-    
-    {/* Liquid inside */}
     <path d="M14 110 L86 110 L86 135 Q86 146 72 146 L28 146 Q14 146 14 135 Z" fill="rgba(255,255,255,0.3)" />
   </svg>
 );
@@ -191,9 +182,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       
       const radius = isMobile 
         ? Math.min(w * 0.44, h * 0.28) 
-        : Math.min(w * 0.29, h * 0.38);
+        : Math.min(w * 0.32, h * 0.42);
       
-      const cx = w * 0.5; 
+      // SHIFT GLOBE TO THE RIGHT ON DESKTOP
+      const cx = isMobile ? w * 0.5 : w * 0.65; 
       const cy = isMobile ? h * 0.44 : h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
@@ -320,26 +312,31 @@ const App: React.FC = () => {
       
       {/* UI Overlay */}
       <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 md:px-24 pointer-events-none">
-        <div className="w-full md:w-[45%] flex flex-col items-center md:items-start gap-0">
-          <h1 className="font-bold tracking-[0.4em] md:tracking-[0.8em] text-[10px] md:text-[11px] opacity-70 mb-2 uppercase" style={{ color: COLORS.BLUE }}>
-            Global Births Today
+        <div className="w-fit flex flex-col items-center md:items-start gap-0">
+          <h1 className="font-black tracking-[0.1em] md:tracking-[0.2em] text-[24px] md:text-[38px] opacity-100 mb-4 uppercase leading-[0.95] text-center md:text-left" style={{ color: COLORS.BLUE }}>
+            Global Births<br />Today
           </h1>
           
           <div className="relative flex flex-row items-baseline justify-center md:justify-start text-center md:text-left mb-4">
-            <span className="text-[15vw] md:text-[7.5vw] font-black tabular-nums tracking-tighter leading-none" style={{ color: COLORS.GOLD, textShadow: '0 0 50px rgba(255,215,0,0.2)' }}>
-              {total.toLocaleString('en-US')}
+            <span 
+              className="text-[18vw] md:text-[11vw] font-black tabular-nums tracking-[-0.03em] leading-none" 
+              style={{ 
+                color: COLORS.GOLD, 
+                textShadow: '0 0 40px rgba(255,215,0,0.3)',
+                fontFamily: "'Anton', sans-serif"
+              }}
+            >
+              {total.toLocaleString('en-US').replace(/,/g, '.')}
             </span>
           </div>
 
-          {/* Progress Bar UI - Single Color & Below Numerics */}
-          <div className="w-full max-w-[85vw] md:max-w-[30vw] relative flex flex-col gap-0.5">
+          {/* Progress Bar UI - Width matches the numbers container above */}
+          <div className="w-full relative flex flex-col gap-0.5">
              {/* Single Color Progress Bar */}
-             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
-                {/* Base Track */}
+             <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
                 <div className="absolute inset-0 opacity-10" style={{ backgroundColor: COLORS.GOLD }} />
-                {/* Active Progress - Single Solid Color */}
                 <div 
-                  className="h-full rounded-full transition-all duration-1000 ease-linear relative z-10 shadow-[0_0_15px_rgba(255,215,0,0.4)]" 
+                  className="h-full rounded-full transition-all duration-1000 ease-linear relative z-10 shadow-[0_0_20px_rgba(255,215,0,0.5)]" 
                   style={{ 
                     width: `${timeState.pct}%`,
                     backgroundColor: COLORS.GOLD 
@@ -356,11 +353,9 @@ const App: React.FC = () => {
                     transform: 'translateX(-50%)' 
                   }}
                 >
-                  {/* Stem pointing UP */}
-                  <div className="w-px h-2.5 bg-white/20"></div>
-                  {/* Tooltip Box */}
-                  <div className="bg-[#111827] border border-white/5 px-3 py-2 rounded-xl shadow-2xl flex items-center justify-center min-w-[75px]">
-                    <span className="text-white font-mono text-[12px] md:text-[14px] font-bold tracking-tight">{timeState.label}</span>
+                  <div className="w-px h-3 bg-white/20"></div>
+                  <div className="bg-[#111827] border border-white/10 px-4 py-2 rounded-xl shadow-2xl flex items-center justify-center min-w-[85px]">
+                    <span className="text-white font-mono text-[14px] md:text-[16px] font-bold tracking-tight">{timeState.label}</span>
                   </div>
                 </div>
              </div>
