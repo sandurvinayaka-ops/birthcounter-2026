@@ -4,22 +4,21 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.05; // Slightly reduced for a more serene, high-end cinematic pace
-const FRICTION = 0.997; // Increased for even more silky, long-lasting momentum
-const PRECESSION_SPEED = 0.0002; // Slower, more subtle frequency for organic wobble
+const AUTO_ROTATION_SPEED = 0.05; 
+const FRICTION = 0.997; 
+const PRECESSION_SPEED = 0.0002; 
 const COLORS = {
-  LAND: '#3d4a5e',      
-  ICE: '#ffffff',       
+  LAND: '#2a3b52',      // Deeper, more premium slate
+  LAND_LIT: '#4a628a',  // Brighter side for depth
+  ICE: '#eef2ff',       // Slightly tinted ice
   OCEAN_DEEP: '#010409',
   OCEAN_SHALLOW: '#0e2a63',
   OCEAN_BRIGHT: '#1d4ed8',
   GOLD: '#FFD700',
   BLUE: '#60a5fa',      
-  ATMOSPHERE_INNER: 'rgba(96, 165, 250, 0.45)', 
+  ATMOSPHERE_INNER: 'rgba(96, 165, 250, 0.4)', 
   PACIFIER_MINT: '#d1fae5',
   PACIFIER_BLUE: '#bfdbfe',
-  BOTTLE_GLASS: 'rgba(255, 255, 255, 0.2)',
-  BOTTLE_LOGO: '#1e40af'
 };
 
 const generateStars = (count: number) => {
@@ -171,7 +170,7 @@ const SpaceBackground: React.FC = () => {
 const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoDataRef = useRef<any>(null);
-  const rotationRef = useRef<[number, number, number]>([0, -15, 0]); // [lambda, phi, gamma]
+  const rotationRef = useRef<[number, number, number]>([0, -15, 0]); 
   const velocityRef = useRef<[number, number]>([0, 0]);
   const isDraggingRef = useRef(false);
   const lastTimeRef = useRef<number>(performance.now());
@@ -207,10 +206,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       .on('drag', (event) => {
         const dx = (event.dx / dpr);
         const dy = (event.dy / dpr);
-        // Direct manipulation for tactile control
         rotationRef.current[0] += dx * 0.42;
         rotationRef.current[1] -= dy * 0.42;
-        // Seed velocity for natural inertia
         velocityRef.current = [dx * 0.5, dy * 0.5];
       })
       .on('end', () => { 
@@ -229,7 +226,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const rawDt = time - lastTimeRef.current;
       lastTimeRef.current = time;
       
-      // Precision delta-time smoothing using a low-pass filter to eliminate jitter
       const clampedDt = Math.min(Math.max(rawDt, 1), 60);
       smoothedDtRef.current = smoothedDtRef.current * 0.85 + clampedDt * 0.15;
       const dt = smoothedDtRef.current;
@@ -247,27 +243,16 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       ctx.clearRect(0, 0, w, h);
       
-      // PHYSICS UPDATE: Sub-pixel precision integration
       if (!isDraggingRef.current) {
         const timeFactor = dt / 16.67;
-
-        // 1. Accumulate auto-rotation at a statelier pace
         rotationRef.current[0] += AUTO_ROTATION_SPEED * dt;
-
-        // 2. Gentle organic axial wobble (Precession)
         const wobble = Math.sin(time * PRECESSION_SPEED) * 1.8;
         const targetPhi = -15 + wobble;
-
-        // 3. Apply inertia from drag with extreme cinematic decay
         rotationRef.current[0] += velocityRef.current[0] * timeFactor;
         rotationRef.current[1] += velocityRef.current[1] * timeFactor;
-
-        // Velocity damping
         const decay = Math.pow(FRICTION, timeFactor);
         velocityRef.current[0] *= decay;
         velocityRef.current[1] *= decay;
-        
-        // 4. Elastic return to viewing baseline
         const snapFactor = 1 - Math.pow(0.992, timeFactor);
         rotationRef.current[1] += (targetPhi - rotationRef.current[1]) * snapFactor;
       }
@@ -316,6 +301,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           const isIce = (d.id === 'ATA' || d.id === 'GRL');
           const flashStart = activeFlashes.current.get(d.id);
           
+          // Enhanced Land Appearance: Topographic Gradient Shading
+          // Using proximity to horizon to tint land towards atmosphere color
+          const atmosphericWeight = Math.max(0, (distance - (Math.PI / 2.5)) * 1.5);
+          
           if (flashStart) {
             const elapsed = now - flashStart;
             if (elapsed > 1500) {
@@ -323,18 +312,38 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
             } else {
               const t = elapsed / 1500;
-              ctx.fillStyle = elapsed < 50 ? '#fff' : d3.interpolateRgb(COLORS.GOLD, isIce ? COLORS.ICE : COLORS.LAND)(t);
-              ctx.shadowBlur = (isMobile ? 35 : 70) * (1 - t); ctx.shadowColor = COLORS.GOLD;
+              // High intensity flash start
+              const flashColor = elapsed < 80 ? '#ffffff' : d3.interpolateRgb(COLORS.GOLD, isIce ? COLORS.ICE : COLORS.LAND)(t);
+              ctx.fillStyle = flashColor;
+              
+              // Exponential decay for the glow
+              const glowIntensity = Math.exp(-t * 4);
+              ctx.shadowBlur = (isMobile ? 50 : 100) * glowIntensity; 
+              ctx.shadowColor = COLORS.GOLD;
             }
           } else {
-            ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
+            // Create a dynamic land gradient based on current globe rotation
+            const landGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+            const baseLandColor = isIce ? COLORS.ICE : COLORS.LAND;
+            const litLandColor = isIce ? '#fff' : COLORS.LAND_LIT;
+            
+            // Subtle shading factor based on distance from center of viewport
+            const shadingFactor = Math.max(0, 1 - distance / (Math.PI / 1.6));
+            const finalColor = d3.interpolateRgb(litLandColor, baseLandColor)(shadingFactor);
+            
+            // Atmospheric horizon tint
+            ctx.fillStyle = d3.interpolateRgb(finalColor, COLORS.OCEAN_SHALLOW)(atmosphericWeight);
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
           
-          ctx.strokeStyle = 'rgba(255,255,255,0.06)'; 
-          ctx.lineWidth = 0.5; 
+          // Enhanced Borders
+          ctx.strokeStyle = `rgba(255,255,255, ${0.1 - atmosphericWeight * 0.08})`; 
+          ctx.lineWidth = 0.65; 
           ctx.stroke();
+
+          // Reset shadows for next feature
+          ctx.shadowBlur = 0;
         }
       });
 
