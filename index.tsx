@@ -4,8 +4,9 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.045; // Increased speed "one level" from 0.025
-const FRICTION = 0.975; // Refined friction for longer, buttery-smooth coasting
+const AUTO_ROTATION_SPEED = 0.085; // Visually enhanced speed for more dynamic energy
+const FRICTION = 0.988; // Refined for ultra-long, silky-smooth coasting
+const PRECESSION_SPEED = 0.0005; // Speed of the subtle vertical "wobble"
 const COLORS = {
   LAND: '#3d4a5e',      
   ICE: '#ffffff',       
@@ -203,13 +204,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         velocityRef.current = [0, 0];
       })
       .on('drag', (event) => {
-        const dx = event.dx / dpr;
-        const dy = event.dy / dpr;
-        // Direct rotation manipulation for responsive tactile feel
+        const dx = (event.dx / dpr);
+        const dy = (event.dy / dpr);
+        // Direct manipulation for tactile control
         rotationRef.current[0] += dx * 0.4;
         rotationRef.current[1] -= dy * 0.4;
-        // Seed inertia velocity based on drag delta
-        velocityRef.current = [dx * 0.4, dy * 0.4];
+        // Velocity seeding for high-quality inertia
+        velocityRef.current = [dx * 0.45, dy * 0.45];
       })
       .on('end', () => { 
         isDraggingRef.current = false; 
@@ -225,7 +226,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       }
       
       let deltaTime = time - lastTimeRef.current;
-      // Precision normalization to eliminate jitter from variable frame-rates
+      // Precision normalization to eliminate micro-jitter
       if (deltaTime > 64) deltaTime = 16.67; 
       lastTimeRef.current = time;
       
@@ -242,24 +243,29 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       ctx.clearRect(0, 0, w, h);
       
-      // Ultra-smooth frame-independent physics integration
+      // PHYSICS UPDATE: Sub-pixel precision rotation logic
       if (!isDraggingRef.current) {
-        const timeStep = deltaTime / 16.67; // Normalize to 60fps
-        
-        // Coasting with friction (normalized by time)
-        rotationRef.current[0] += velocityRef.current[0] * timeStep;
-        rotationRef.current[1] += velocityRef.current[1] * timeStep;
-        
-        const frictionFactor = Math.pow(FRICTION, timeStep);
-        velocityRef.current[0] *= frictionFactor;
-        velocityRef.current[1] *= frictionFactor;
-        
-        // Base cinematic auto-rotation
+        const timeFactor = deltaTime / 16.67; 
+
+        // 1. Accumulate auto-rotation
         rotationRef.current[0] += AUTO_ROTATION_SPEED * deltaTime;
+
+        // 2. Subtle axial tilt oscillation (Precession) for organic feel
+        const wobble = Math.sin(time * PRECESSION_SPEED) * 2;
+        const targetPhi = -15 + wobble;
+
+        // 3. Apply decaying drag inertia
+        rotationRef.current[0] += velocityRef.current[0] * timeFactor;
+        rotationRef.current[1] += velocityRef.current[1] * timeFactor;
+
+        // Velocity damping
+        const decay = Math.pow(FRICTION, timeFactor);
+        velocityRef.current[0] *= decay;
+        velocityRef.current[1] *= decay;
         
-        // Subtle drift back to default cinematic tilt (-15 degrees)
-        const snapFactor = 1 - Math.pow(0.98, timeStep);
-        rotationRef.current[1] += (-15 - rotationRef.current[1]) * snapFactor;
+        // 4. Smooth snap-back to dynamic baseline
+        const snapFactor = 1 - Math.pow(0.988, timeFactor);
+        rotationRef.current[1] += (targetPhi - rotationRef.current[1]) * snapFactor;
       }
 
       const projection = d3.geoOrthographic()
@@ -270,22 +276,22 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // 1. Atmosphere Lighting (Atmospheric Scattering Simulation)
+      // Atmosphere Glow Layer
       const glowRadiusOuter = radius + (isMobile ? 60 : 110);
       const glowRadiusInner = radius + (isMobile ? 20 : 40);
       
       const glowOuter = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadiusOuter);
       glowOuter.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      glowOuter.addColorStop(0.5, 'rgba(96, 165, 250, 0.1)');
+      glowOuter.addColorStop(0.5, 'rgba(96, 165, 250, 0.08)');
       glowOuter.addColorStop(1, 'transparent');
       ctx.fillStyle = glowOuter; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusOuter, 0, Math.PI * 2); ctx.fill();
 
       const glowInner = ctx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, glowRadiusInner);
-      glowInner.addColorStop(0, 'rgba(96, 165, 250, 0.3)');
+      glowInner.addColorStop(0, 'rgba(96, 165, 250, 0.25)');
       glowInner.addColorStop(1, 'transparent');
       ctx.fillStyle = glowInner; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusInner, 0, Math.PI * 2); ctx.fill();
 
-      // 2. Multi-layered Ocean Gradient
+      // Deep Space Ocean Gradient
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
       oceanGrad.addColorStop(0.5, COLORS.OCEAN_SHALLOW);
@@ -293,7 +299,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       oceanGrad.addColorStop(1, '#000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // 3. Render Landmasses with Dynamic Highlighting
+      // Landmass Rendering
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
@@ -322,13 +328,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          ctx.strokeStyle = 'rgba(255,255,255,0.15)'; 
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)'; 
           ctx.lineWidth = 0.5; 
           ctx.stroke();
         }
       });
 
-      // 4. Lighting FX (Specular reflection & Rim shading)
+      // Shading & Lighting Effects
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
       rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
@@ -411,7 +417,7 @@ const App: React.FC = () => {
       <Globe lastFlash={flashId} />
       
       <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 md:px-24 pointer-events-none">
-        <div className="w-full max-w-[90vw] md:max-w-[450px] flex flex-col items-center md:items-start gap-0">
+        <div className="w-full max-w-[90vw] md:max-w-[650px] flex flex-col items-center md:items-start gap-0">
           <h1 className="font-black tracking-[0.1em] md:tracking-[0.2em] text-[26px] md:text-[42px] opacity-100 mb-4 uppercase leading-[0.95] text-center md:text-left" style={{ color: COLORS.BLUE }}>
             Global Births<br />Today
           </h1>
