@@ -4,74 +4,26 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-// Optimized for TV: A dynamic but steady cruise speed
 const AUTO_ROTATION_SPEED = 0.45; 
 const FRICTION = 0.985; 
-const PRECESSION_SPEED = 0.00008; 
-const MEDITERRANEAN_LATITUDE = -38; // Adjusted for better global visibility on wide screens
+const MEDITERRANEAN_LATITUDE = -38; 
 const COLORS = {
-  LAND: '#2c3e50',      // Slightly lighter slate for better visibility
-  LAND_LIT: '#5d6d7e',  
-  ICE: '#ffffff',       // Pure white for ice
+  LAND: '#3e5c76',      // Brightened for better visibility
+  LAND_LIT: '#748cab',  // Enhanced highlight shade
+  ICE: '#f8f9fa',       
   OCEAN_DEEP: '#01040a',
-  OCEAN_SHALLOW: '#081a3d',
+  OCEAN_SHALLOW: '#0a1d47',
   OCEAN_BRIGHT: '#1e40af',
-  GOLD: '#fbbf24',      // Golden color for the counter
+  GOLD: '#fbbf24',      
   BLUE: '#38bdf8',      
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.6)', 
-};
-
-const generateStars = (count: number) => {
-  const starColors = ['#ffffff', '#bae6fd', '#fef9c3', '#fef3c7', '#e0f2fe'];
-  return Array.from({ length: count }).map((_, i) => {
-    const isSupernova = Math.random() > 0.98; 
-    return {
-      id: i,
-      x: Math.random() * 260 - 80, 
-      y: Math.random() * 260 - 80, 
-      size: isSupernova ? Math.random() * 3.5 + 1.5 : Math.random() * 1.5 + 0.2, 
-      duration: Math.random() * 3 + 1, 
-      delay: Math.random() * 10,
-      opacity: Math.random() * 0.7 + 0.3,
-      glow: Math.random() > 0.5,
-      color: starColors[Math.floor(Math.random() * starColors.length)],
-      type: isSupernova ? 'cross' : 'circle'
-    };
-  });
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)', 
 };
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(2500), []); 
-  
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000105]">
-      <style>{`
-        @keyframes rotate-bg {
-          from { transform: translate(-50%, -50%) rotate(0deg); }
-          to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        @keyframes star-twinkle {
-          0%, 100% { opacity: 0.2; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1.2); }
-        }
-      `}</style>
-      
-      <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 1800s linear infinite' }}>
-        {stars.map(s => (
-          <div key={s.id} style={{
-            position: 'absolute',
-            left: `${s.x}%`, top: `${s.y}%`, 
-            width: `${s.size}px`, height: `${s.size}px`,
-            backgroundColor: s.color,
-            borderRadius: s.type === 'circle' ? '50%' : '0%',
-            opacity: s.opacity,
-            boxShadow: s.glow ? `0 0 ${s.size * 5}px ${s.color}` : 'none',
-            animation: `star-twinkle ${s.duration}s ease-in-out infinite`,
-            animationDelay: `${s.delay}s`,
-            clipPath: s.type === 'cross' ? 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' : 'none'
-          }} />
-        ))}
-      </div>
+      {/* Cinematic dark void with very subtle gradient for depth */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_50%,rgba(8,26,61,0.25)_0%,transparent_70%)]"></div>
     </div>
   );
 };
@@ -135,10 +87,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      const isLarge = w > 1200;
-      const radius = isLarge ? h * 0.45 : h * 0.38;
+      const isLarge = w > 1024;
+      // Shift globe slightly more to the left (cx 0.65 vs previous 0.75) for better visibility
+      const radius = isLarge ? h * 0.46 : h * 0.4;
       const cx = isLarge ? w * 0.65 : w * 0.5;
-      const cy = h * 0.5;
+      const cy = isLarge ? h * 0.5 : h * 0.4;
 
       ctx.clearRect(0, 0, w, h);
       
@@ -160,11 +113,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 160);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 150);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.2)');
+      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.15)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 160, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 150, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -193,7 +146,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               const t = elapsed / 1800;
               const flashCol = d3.interpolateRgb('#ffffff', isIce ? COLORS.ICE : COLORS.LAND)(t);
               ctx.fillStyle = flashCol;
-              ctx.shadowBlur = 60 * (1 - t); 
+              ctx.shadowBlur = 40 * (1 - t); 
               ctx.shadowColor = COLORS.GOLD;
             }
           } else {
@@ -203,8 +156,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
-          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.01, 0.12 - edgeFade * 0.1)})`; 
-          ctx.lineWidth = 0.5; 
+          
+          // Improved border visibility
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.02, 0.2 - edgeFade * 0.15)})`; 
+          ctx.lineWidth = 0.6; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
@@ -286,37 +241,37 @@ const App: React.FC = () => {
       <Globe lastFlash={flashId} />
       
       {/* Broadcast UI Overlays */}
-      <div className="absolute inset-0 z-20 flex flex-col justify-end p-12 md:p-24 pointer-events-none">
-        <div className="w-full max-w-[1200px] flex flex-col items-start gap-4">
+      <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 md:p-16 lg:p-24 pointer-events-none">
+        <div className="w-full flex flex-col items-start gap-4">
           
           {/* Main Title Block */}
-          <div className="flex flex-col gap-0 mb-4">
-            <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-lg md:text-2xl ml-2">Total Births Today</span>
+          <div className="flex flex-col gap-0 mb-4 max-w-full">
+            <span className="text-sky-400 font-bold uppercase tracking-[0.4em] text-lg md:text-2xl ml-1 drop-shadow-lg">Total Births Today</span>
             <div className="flex items-baseline gap-4">
-              <span className="text-[14vw] md:text-[10vw] font-black leading-none drop-shadow-[0_0_50px_rgba(251,191,36,0.25)]" style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD }}>
+              <span className="text-[12vw] md:text-[8vw] font-black leading-tight drop-shadow-[0_0_80px_rgba(251,191,36,0.3)]" style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD }}>
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
               </span>
             </div>
           </div>
 
           {/* Timeline & Stats */}
-          <div className="w-full max-w-[600px] mt-12 relative h-16">
+          <div className="w-full max-w-[320px] md:max-w-[420px] mt-12 relative h-16">
             {/* Time Marker that follows progress */}
             <div 
               className="absolute -top-12 flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-lg shadow-2xl">
-                <span className="text-white font-mono text-xl md:text-2xl font-bold tracking-tighter whitespace-nowrap">
+              <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-lg shadow-2xl">
+                <span className="text-white font-mono text-lg md:text-xl font-black tracking-tight whitespace-nowrap drop-shadow-lg">
                   {timeState.label}
                 </span>
               </div>
-              <div className="w-px h-4 bg-sky-400/60 mt-1 shadow-[0_0_8px_rgba(56,189,248,0.8)]"></div>
+              <div className="w-px h-4 bg-sky-400/80 mt-1 shadow-[0_0_12px_rgba(56,189,248,1)]"></div>
             </div>
             
-            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/5">
+            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/10">
               <div 
-                className="h-full bg-gradient-to-r from-sky-500 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(56,189,248,0.5)]"
+                className="h-full bg-gradient-to-r from-sky-500 via-sky-400 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(56,189,248,0.5)]"
                 style={{ width: `${timeState.pct}%` }}
               />
             </div>
@@ -325,17 +280,18 @@ const App: React.FC = () => {
       </div>
 
       {/* Branding Logo */}
-      <div className="absolute top-12 left-12 z-30 pointer-events-none">
+      <div className="absolute top-8 left-8 md:top-12 md:left-12 z-30 pointer-events-none">
         <div className="flex flex-col">
-          <span className="text-5xl font-black tracking-tighter drop-shadow-lg">
+          <span className="text-4xl md:text-6xl font-black tracking-tighter drop-shadow-2xl">
             <span className="text-sky-500">M&C</span>
             <span className="text-white">C</span>
           </span>
         </div>
       </div>
 
-      {/* Bottom Subtle Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-sky-500/20 to-transparent z-40"></div>
+      {/* Aesthetic Film Grain / Vignette */}
+      <div className="absolute inset-0 pointer-events-none z-50 mix-blend-overlay opacity-10" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/carbon-fibre.png")' }}></div>
+      <div className="absolute inset-0 pointer-events-none z-50 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]"></div>
     </div>
   );
 };
