@@ -8,13 +8,12 @@ const AUTO_ROTATION_SPEED = 0.45;
 const FRICTION = 0.985; 
 const MEDITERRANEAN_LATITUDE = -38; 
 const COLORS = {
-  LAND: '#3e5c76',      // Brightened for better visibility
-  LAND_LIT: '#748cab',  // Enhanced highlight shade
-  ICE: '#f8f9fa',       
+  LAND: '#3e5c76',      // Base land color
+  LAND_LIT: '#748cab',  // Highlight shade for land
   OCEAN_DEEP: '#01040a',
   OCEAN_SHALLOW: '#0a1d47',
   OCEAN_BRIGHT: '#1e40af',
-  GOLD: '#fbbf24',      
+  GOLD: '#fbbf24',      // Flash color
   BLUE: '#38bdf8',      
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)', 
 };
@@ -88,7 +87,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const isLarge = w > 1024;
-      // Shift globe slightly more to the left (cx 0.65 vs previous 0.75) for better visibility
+      // Globe positioning: shifted slightly left (cx 0.65)
       const radius = isLarge ? h * 0.46 : h * 0.4;
       const cx = isLarge ? w * 0.65 : w * 0.5;
       const cy = isLarge ? h * 0.5 : h * 0.4;
@@ -133,31 +132,32 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         if (distance < Math.PI / 1.5) { 
           ctx.beginPath(); 
           path(d);
-          const isIce = (d.id === 'ATA' || d.id === 'GRL');
           const flashStart = activeFlashes.current.get(d.id);
           const edgeFade = Math.pow(Math.max(0, (distance - (Math.PI / 3.2)) * 3.5), 1.5);
           
+          const shading = 1 - Math.pow(distance / (Math.PI / 1.6), 1.2);
+          const landBase = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
+
           if (flashStart) {
             const elapsed = now - flashStart;
             if (elapsed > 1800) {
               activeFlashes.current.delete(d.id);
-              ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
+              ctx.fillStyle = landBase;
             } else {
               const t = elapsed / 1800;
-              const flashCol = d3.interpolateRgb('#ffffff', isIce ? COLORS.ICE : COLORS.LAND)(t);
+              // Flash goes from Gold back to landBase
+              const flashCol = d3.interpolateRgb(COLORS.GOLD, landBase)(t);
               ctx.fillStyle = flashCol;
               ctx.shadowBlur = 40 * (1 - t); 
               ctx.shadowColor = COLORS.GOLD;
             }
           } else {
-            const shading = 1 - Math.pow(distance / (Math.PI / 1.6), 1.2);
-            const landBase = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
-            ctx.fillStyle = d3.interpolateRgb(isIce ? COLORS.ICE : landBase, COLORS.OCEAN_DEEP)(edgeFade);
+            ctx.fillStyle = d3.interpolateRgb(landBase, COLORS.OCEAN_DEEP)(edgeFade);
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
           
-          // Improved border visibility
+          // Border visibility
           ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.02, 0.2 - edgeFade * 0.15)})`; 
           ctx.lineWidth = 0.6; 
           ctx.stroke();
@@ -242,10 +242,10 @@ const App: React.FC = () => {
       
       {/* Broadcast UI Overlays */}
       <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 md:p-16 lg:p-24 pointer-events-none">
-        <div className="w-full flex flex-col items-start gap-4">
+        <div className="w-full flex flex-col items-start gap-2">
           
           {/* Main Title Block */}
-          <div className="flex flex-col gap-0 mb-4 max-w-full">
+          <div className="flex flex-col gap-0 mb-1 max-w-full">
             <span className="text-sky-400 font-bold uppercase tracking-[0.4em] text-lg md:text-2xl ml-1 drop-shadow-lg">Total Births Today</span>
             <div className="flex items-baseline gap-4">
               <span className="text-[12vw] md:text-[8vw] font-black leading-tight drop-shadow-[0_0_80px_rgba(251,191,36,0.3)]" style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD }}>
@@ -254,26 +254,27 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Timeline & Stats */}
-          <div className="w-full max-w-[320px] md:max-w-[420px] mt-12 relative h-16">
-            {/* Time Marker that follows progress */}
-            <div 
-              className="absolute -top-12 flex flex-col items-center transition-all duration-1000 ease-linear"
-              style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
-            >
-              <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-lg shadow-2xl">
-                <span className="text-white font-mono text-lg md:text-xl font-black tracking-tight whitespace-nowrap drop-shadow-lg">
-                  {timeState.label}
-                </span>
-              </div>
-              <div className="w-px h-4 bg-sky-400/80 mt-1 shadow-[0_0_12px_rgba(56,189,248,1)]"></div>
-            </div>
-            
+          {/* Timeline & Stats - Moved time below progress bar */}
+          <div className="w-full max-w-[320px] md:max-w-[420px] mt-4 relative">
+            {/* Progress bar */}
             <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/10">
               <div 
                 className="h-full bg-gradient-to-r from-sky-500 via-sky-400 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(56,189,248,0.5)]"
                 style={{ width: `${timeState.pct}%` }}
               />
+            </div>
+
+            {/* Time Marker positioned below bar */}
+            <div 
+              className="mt-2 flex flex-col items-center transition-all duration-1000 ease-linear"
+              style={{ marginLeft: `${timeState.pct}%`, transform: 'translateX(-50%)', width: 'fit-content' }}
+            >
+              <div className="w-px h-4 bg-sky-400/80 mb-1 shadow-[0_0_12px_rgba(56,189,248,1)]"></div>
+              <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-lg shadow-2xl">
+                <span className="text-white font-mono text-lg md:text-xl font-black tracking-tight whitespace-nowrap drop-shadow-lg">
+                  {timeState.label}
+                </span>
+              </div>
             </div>
           </div>
         </div>
