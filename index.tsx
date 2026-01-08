@@ -4,7 +4,8 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const ROTATION_SPEED = 0.012; // Decreased for a smoother, slower cinematic drift
+const AUTO_ROTATION_SPEED = 0.006; // Constant base crawl speed (deg/ms)
+const FRICTION = 0.95; // Drag inertia decay
 const COLORS = {
   LAND: '#3d4a5e',      
   ICE: '#ffffff',       
@@ -43,10 +44,10 @@ const generateStars = (count: number) => {
 const generateSpaceObjects = (count: number) => {
   return Array.from({ length: count }).map((_, i) => ({
     id: i,
-    type: Math.random() > 0.35 ? 'PACIFIER' : 'BOTTLE',
+    type: Math.random() > 0.5 ? 'PACIFIER' : 'BOTTLE',
     delay: Math.random() * -30,
     duration: Math.random() * 30 + 35,
-    size: Math.random() * 12 + 20,
+    size: Math.random() * 12 + 25,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
     rotation: Math.random() * 360,
@@ -89,7 +90,7 @@ const BottleIcon: React.FC<{ size?: number; className?: string; style?: React.CS
 
 const SpaceBackground: React.FC = () => {
   const stars = useMemo(() => generateStars(3500), []); 
-  const spaceObjects = useMemo(() => generateSpaceObjects(8), []);
+  const spaceObjects = useMemo(() => generateSpaceObjects(12), []);
   
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000105]">
@@ -169,7 +170,9 @@ const SpaceBackground: React.FC = () => {
 const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoDataRef = useRef<any>(null);
-  const rotationRef = useRef<[number, number]>([0, -15]);
+  const rotationRef = useRef<[number, number, number]>([0, -15, 0]); // [lambda, phi, gamma]
+  const velocityRef = useRef<[number, number]>([0, 0]);
+  const isDraggingRef = useRef(false);
   const lastTimeRef = useRef<number>(performance.now());
   const activeFlashes = useRef<Map<string, number>>(new Map());
 
@@ -187,17 +190,34 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
     let animId: number;
 
-    const render = () => {
+    const drag = d3.drag<HTMLCanvasElement, unknown>()
+      .on('start', () => { isDraggingRef.current = true; canvas.style.cursor = 'grabbing'; })
+      .on('drag', (event) => {
+        const dx = event.dx / dpr;
+        const dy = event.dy / dpr;
+        velocityRef.current = [dx * 0.5, dy * 0.5];
+        rotationRef.current[0] += dx * 0.5;
+        rotationRef.current[1] -= dy * 0.5;
+      })
+      .on('end', () => { isDraggingRef.current = false; canvas.style.cursor = 'grab'; });
+
+    d3.select(canvas).call(drag);
+
+    const render = (time: number) => {
       if (!geoDataRef.current) {
         animId = requestAnimationFrame(render);
         return;
       }
+      
+      const deltaTime = time - lastTimeRef.current;
+      lastTimeRef.current = time;
+      
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       const isMobile = w < 768;
@@ -211,20 +231,29 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       ctx.clearRect(0, 0, w, h);
       
-      // Calculate smooth rotation based on time elapsed
-      const currentTime = performance.now();
-      const deltaTime = currentTime - lastTimeRef.current;
-      lastTimeRef.current = currentTime;
-      rotationRef.current[0] += ROTATION_SPEED * deltaTime;
+      // Rotation logic with inertia
+      if (!isDraggingRef.current) {
+        // Friction applied to velocity
+        velocityRef.current[0] *= FRICTION;
+        velocityRef.current[1] *= FRICTION;
+        
+        // Combine velocity inertia and constant base speed
+        rotationRef.current[0] += (AUTO_ROTATION_SPEED * deltaTime) + velocityRef.current[0];
+        rotationRef.current[1] += velocityRef.current[1];
+        
+        // Gently snap vertical tilt back to -15 if it drifts too far
+        rotationRef.current[1] += (-15 - rotationRef.current[1]) * 0.02;
+      }
 
       const projection = d3.geoOrthographic()
         .scale(radius)
         .translate([cx, cy])
-        .rotate(rotationRef.current)
+        .rotate([rotationRef.current[0], rotationRef.current[1], rotationRef.current[2]])
         .clipAngle(90);
         
       const path = d3.geoPath(projection, ctx);
       
+      // 1. Atmosphere Glow
       const glowRadiusOuter = radius + (isMobile ? 60 : 110);
       const glowRadiusInner = radius + (isMobile ? 20 : 40);
       
@@ -239,6 +268,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       glowInner.addColorStop(1, 'transparent');
       ctx.fillStyle = glowInner; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusInner, 0, Math.PI * 2); ctx.fill();
 
+      // 2. Base Ocean
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
       oceanGrad.addColorStop(0.5, COLORS.OCEAN_SHALLOW);
@@ -246,18 +276,14 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       oceanGrad.addColorStop(1, '#000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      const specGrad = ctx.createRadialGradient(cx - radius * 0.5, cy - radius * 0.5, radius * 0.05, cx - radius * 0.5, cy - radius * 0.5, radius * 0.9);
-      specGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
-      specGrad.addColorStop(0.4, 'rgba(255,255,255,0.03)');
-      specGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
-
+      // 3. Render Landmasses
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
+        // Simple back-face culling to improve performance
         const centroid = d3.geoCentroid(d);
         const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
         
-        if (distance < Math.PI / 2) {
+        if (distance < Math.PI / 1.5) { // Slightly wider angle than 90 to ensure smooth edge drawing
           ctx.beginPath(); 
           path(d);
           
@@ -286,17 +312,18 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         }
       });
 
+      // 4. Specular & Rim Lighting (Fixed position relative to viewer)
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
       rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
       rimGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
       ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, -Math.PI/2, Math.PI/2, true);
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      const specGrad = ctx.createRadialGradient(cx - radius * 0.5, cy - radius * 0.5, radius * 0.05, cx - radius * 0.5, cy - radius * 0.5, radius * 0.9);
+      specGrad.addColorStop(0, 'rgba(255,255,255,0.15)');
+      specGrad.addColorStop(0.4, 'rgba(255,255,255,0.04)');
+      specGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       animId = requestAnimationFrame(render);
     };
@@ -306,11 +333,18 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       canvas.height = window.innerHeight * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    window.addEventListener('resize', resize); resize(); render();
+    window.addEventListener('resize', resize); resize(); 
+    animId = requestAnimationFrame(render);
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animId); };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-none" />;
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="absolute inset-0 z-10 pointer-events-auto" 
+      style={{ cursor: 'grab' }}
+    />
+  );
 };
 
 const App: React.FC = () => {
@@ -361,14 +395,14 @@ const App: React.FC = () => {
       <Globe lastFlash={flashId} />
       
       <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 md:px-24 pointer-events-none">
-        <div className="w-fit flex flex-col items-center md:items-start gap-0">
+        <div className="w-full max-w-[90vw] md:max-w-[450px] flex flex-col items-center md:items-start gap-0">
           <h1 className="font-black tracking-[0.1em] md:tracking-[0.2em] text-[26px] md:text-[42px] opacity-100 mb-4 uppercase leading-[0.95] text-center md:text-left" style={{ color: COLORS.BLUE }}>
             Global Births<br />Today
           </h1>
           
           <div className="relative flex flex-row items-baseline justify-center md:justify-start text-center md:text-left mb-4">
             <span 
-              className="text-[16vw] md:text-[9vw] font-black tabular-nums leading-none block" 
+              className="text-[16vw] md:text-[8.5vw] font-black tabular-nums leading-none block" 
               style={{ 
                 color: COLORS.GOLD, 
                 textShadow: '0 0 60px rgba(255,215,0,0.5)',
@@ -380,11 +414,11 @@ const App: React.FC = () => {
             </span>
           </div>
 
-          <div className="w-full relative flex flex-col gap-0.5">
-             <div className="h-3.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 relative">
+          <div className="w-full relative flex flex-col gap-0.5 mt-2">
+             <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 relative">
                 <div className="absolute inset-0 opacity-10" style={{ backgroundColor: COLORS.GOLD }} />
                 <div 
-                  className="h-full rounded-full transition-all duration-1000 ease-linear relative z-10 shadow-[0_0_25px_rgba(255,215,0,0.6)]" 
+                  className="h-full rounded-full transition-all duration-1000 ease-linear relative z-10 shadow-[0_0_25px_rgba(255,215,0,0.8)]" 
                   style={{ 
                     width: `${timeState.pct}%`,
                     backgroundColor: COLORS.GOLD 
@@ -400,7 +434,7 @@ const App: React.FC = () => {
                     transform: 'translateX(-50%)' 
                   }}
                 >
-                  <div className="w-px h-4 bg-white/30"></div>
+                  <div className="w-px h-4 bg-white/40"></div>
                   <div className="bg-[#0f172a] border border-white/20 px-4 py-2 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.7)] flex items-center justify-center min-w-[95px]">
                     <span className="text-white font-mono text-[14px] md:text-[18px] font-bold tracking-tight">{timeState.label}</span>
                   </div>
