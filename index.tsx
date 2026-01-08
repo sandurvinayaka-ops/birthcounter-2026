@@ -135,7 +135,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // TV Optimized Scaling: Hero globe on the right side
       const isLarge = w > 1200;
       const radius = isLarge ? h * 0.45 : h * 0.38;
       const cx = isLarge ? w * 0.65 : w * 0.5;
@@ -144,16 +143,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       ctx.clearRect(0, 0, w, h);
       
       if (!isDraggingRef.current) {
-        // Smooth return to cruise speed
         velocityRef.current[0] += (AUTO_ROTATION_SPEED - velocityRef.current[0]) * 0.03 * timeFactor;
-        
-        // Dynamic Cinematic Drift (Slow Wave)
         const wave = Math.sin(time * 0.0003) * 3;
         const targetPhi = MEDITERRANEAN_LATITUDE + wave;
-        
         rotationRef.current[0] += velocityRef.current[0] * timeFactor;
         rotationRef.current[1] += (targetPhi - rotationRef.current[1]) * 0.01 * timeFactor;
-        
         velocityRef.current[0] *= Math.pow(FRICTION, timeFactor);
         velocityRef.current[1] *= Math.pow(FRICTION, timeFactor);
       }
@@ -166,14 +160,12 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // Dramatic Atmospheric Bloom (Enhanced Visibility)
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 160);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.2)');
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 160, 0, Math.PI * 2); ctx.fill();
 
-      // Deep Ocean Base
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.5, COLORS.OCEAN_SHALLOW);
@@ -188,7 +180,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         if (distance < Math.PI / 1.5) { 
           ctx.beginPath(); 
           path(d);
-          
           const isIce = (d.id === 'ATA' || d.id === 'GRL');
           const flashStart = activeFlashes.current.get(d.id);
           const edgeFade = Math.pow(Math.max(0, (distance - (Math.PI / 3.2)) * 3.5), 1.5);
@@ -206,14 +197,12 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               ctx.shadowColor = COLORS.GOLD;
             }
           } else {
-            // Enhanced Land Visibility
             const shading = 1 - Math.pow(distance / (Math.PI / 1.6), 1.2);
             const landBase = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
             ctx.fillStyle = d3.interpolateRgb(isIce ? COLORS.ICE : landBase, COLORS.OCEAN_DEEP)(edgeFade);
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
-          
           ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.01, 0.12 - edgeFade * 0.1)})`; 
           ctx.lineWidth = 0.5; 
           ctx.stroke();
@@ -221,7 +210,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         }
       });
 
-      // Cinematic Rim Lighting
       const rim = ctx.createRadialGradient(cx, cy, radius * 0.85, cx, cy, radius);
       rim.addColorStop(0, 'transparent');
       rim.addColorStop(1, 'rgba(0,0,0,0.6)');
@@ -302,8 +290,8 @@ const App: React.FC = () => {
         <div className="w-full max-w-[1200px] flex flex-col items-start gap-4">
           
           {/* Main Title Block */}
-          <div className="flex flex-col gap-0">
-            <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-sm md:text-lg ml-2">Total Births Today</span>
+          <div className="flex flex-col gap-0 mb-4">
+            <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-lg md:text-2xl ml-2">Total Births Today</span>
             <div className="flex items-baseline gap-4">
               <span className="text-[14vw] md:text-[10vw] font-black leading-none drop-shadow-[0_0_50px_rgba(251,191,36,0.25)]" style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD }}>
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
@@ -312,19 +300,21 @@ const App: React.FC = () => {
           </div>
 
           {/* Timeline & Stats */}
-          <div className="w-full max-w-[500px] mt-8">
-            <div className="flex justify-between items-end mb-3">
-              <div className="flex flex-col">
-                <span className="text-white/30 uppercase font-bold text-[10px] tracking-widest">Local System Time</span>
-                <span className="text-white font-mono text-2xl tracking-tighter">{timeState.label}</span>
+          <div className="w-full max-w-[600px] mt-12 relative h-16">
+            {/* Time Marker that follows progress */}
+            <div 
+              className="absolute -top-12 flex flex-col items-center transition-all duration-1000 ease-linear"
+              style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
+            >
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-lg shadow-2xl">
+                <span className="text-white font-mono text-xl md:text-2xl font-bold tracking-tighter whitespace-nowrap">
+                  {timeState.label}
+                </span>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-white/30 uppercase font-bold text-[10px] tracking-widest">Cycle Progress</span>
-                <span className="text-white font-mono text-xl">{timeState.pct.toFixed(2)}%</span>
-              </div>
+              <div className="w-px h-4 bg-sky-400/60 mt-1 shadow-[0_0_8px_rgba(56,189,248,0.8)]"></div>
             </div>
             
-            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/5">
+            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/5">
               <div 
                 className="h-full bg-gradient-to-r from-sky-500 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(56,189,248,0.5)]"
                 style={{ width: `${timeState.pct}%` }}
@@ -334,10 +324,10 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Branding Logo: Updated colors, removed underline and text below */}
+      {/* Branding Logo */}
       <div className="absolute top-12 left-12 z-30 pointer-events-none">
         <div className="flex flex-col">
-          <span className="text-4xl font-black tracking-tighter">
+          <span className="text-5xl font-black tracking-tighter drop-shadow-lg">
             <span className="text-sky-500">M&C</span>
             <span className="text-white">C</span>
           </span>
