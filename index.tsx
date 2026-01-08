@@ -8,14 +8,15 @@ const AUTO_ROTATION_SPEED = 0.35;
 const FRICTION = 0.98; 
 const MEDITERRANEAN_LATITUDE = -38; 
 const COLORS = {
-  LAND: '#3e5c76',      
-  LAND_LIT: '#748cab',  
+  // Brightened land colors for better visibility on TV
+  LAND: '#5a8fb3',      
+  LAND_LIT: '#9ec4db',  
   OCEAN_DEEP: '#01040a',
   OCEAN_SHALLOW: '#0a1d47',
   OCEAN_BRIGHT: '#1e40af',
   GOLD: '#fbbf24',      
   BLUE: '#38bdf8',      
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)', 
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.2)', 
 };
 
 const STAR_COUNT = 350; 
@@ -43,26 +44,68 @@ const PACIFIERS = Array.from({ length: PACIFIER_COUNT }).map((_, i) => ({
 }));
 
 const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 100 100" 
-    style={{ 
-      filter: `drop-shadow(0 0 15px ${color}) blur(0.5px)`,
-      opacity: 0.5 
-    }}
-  >
-    <defs>
-      <linearGradient id="pacifierGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="white" />
-        <stop offset="50%" stopColor={color} />
-        <stop offset="100%" stopColor={color} stopOpacity="0.8" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="8" />
-    <rect x="10" y="38" width="80" height="20" rx="10" fill="url(#pacifierGrad)" />
-    <path fill="url(#pacifierGrad)" d="M35 58 C 35 58, 30 92, 50 92 C 70 92, 65 58, 65 58 Z" />
-  </svg>
+  <div style={{ position: 'relative', width: size, height: size }}>
+    {/* Outer Atmosphere Glow */}
+    <div style={{
+      position: 'absolute',
+      inset: '-10px',
+      background: `radial-gradient(circle, ${color}44 0%, transparent 70%)`,
+      borderRadius: '50%',
+      filter: 'blur(5px)',
+      animation: 'pacifierPulse 3s ease-in-out infinite'
+    }} />
+    
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      style={{ 
+        filter: `drop-shadow(0 0 10px ${color}) drop-shadow(0 0 2px white)`,
+        opacity: 0.8
+      }}
+    >
+      <defs>
+        <linearGradient id="pacifierGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="white" />
+          <stop offset="50%" stopColor={color} />
+          <stop offset="100%" stopColor={color} stopOpacity="0.8" />
+        </linearGradient>
+        <linearGradient id="shineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="transparent" />
+          <stop offset="50%" stopColor="rgba(255,255,255,0.8)" />
+          <stop offset="100%" stopColor="transparent" />
+        </linearGradient>
+        <clipPath id="pacifierClip">
+          <circle cx="50" cy="22" r="16" />
+          <rect x="10" y="38" width="80" height="20" rx="10" />
+          <path d="M35 58 C 35 58, 30 92, 50 92 C 70 92, 65 58, 65 58 Z" />
+        </clipPath>
+      </defs>
+      
+      {/* Base Body */}
+      <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="8" />
+      <rect x="10" y="38" width="80" height="20" rx="10" fill="url(#pacifierGrad)" />
+      <path fill="url(#pacifierGrad)" d="M35 58 C 35 58, 30 92, 50 92 C 70 92, 65 58, 65 58 Z" />
+      
+      {/* Shine Layer */}
+      <g clipPath="url(#pacifierClip)">
+        <rect width="200" height="200" fill="url(#shineGrad)" opacity="0.6">
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            from="-150 0"
+            to="150 0"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+        </rect>
+      </g>
+
+      {/* Specular highlights for "shine" */}
+      <path d="M45 15 A 8 8 0 0 1 55 15" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+      <circle cx="50" cy="80" r="4" fill="white" opacity="0.4" />
+    </svg>
+  </div>
 );
 
 const SpaceBackground: React.FC = () => {
@@ -75,9 +118,13 @@ const SpaceBackground: React.FC = () => {
         }
         @keyframes cometPath {
           0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
-          10% { opacity: 0.6; }
-          90% { opacity: 0.6; }
+          10% { opacity: 0.8; }
+          90% { opacity: 0.8; }
           100% { transform: translate(var(--driftX), var(--driftY)) rotate(var(--rotFull)); opacity: 0; }
+        }
+        @keyframes pacifierPulse {
+          0%, 100% { transform: scale(1); opacity: 0.3; }
+          50% { transform: scale(1.4); opacity: 0.6; }
         }
         .star {
           position: absolute;
@@ -191,10 +238,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      const radius = h * 0.20; 
-      // MOVED GLOBE LEFT: cx shifted from 0.50 to 0.32 to be next to the progress bar
-      const cx = w * 0.32; 
-      const cy = h * 0.40;
+      const radius = h * 0.25; 
+      // MOVED LEFT: cx shifted from 0.58 to 0.54
+      const cx = w * 0.54; 
+      const cy = h * 0.50; // Vertically centered
 
       ctx.clearRect(0, 0, w, h);
       
@@ -215,11 +262,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 100);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 45);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.02)');
+      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.01)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 100, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 45, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -238,7 +285,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           const flashStart = activeFlashes.current.get(d.id);
           const edgeFade = Math.pow(Math.max(0, (distance - (Math.PI / 3.2)) * 4), 1.5);
           
-          const shading = 1 - Math.pow(distance / (Math.PI / 1.7), 1.3);
+          const shading = 1 - Math.pow(distance / (Math.PI / 1.7), 1.1); 
           const landBase = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
 
           if (flashStart) {
@@ -250,7 +297,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               const t = elapsed / 1800;
               const flashCol = d3.interpolateRgb(COLORS.GOLD, landBase)(t);
               ctx.fillStyle = flashCol;
-              ctx.shadowBlur = 35 * (1 - t); 
+              ctx.shadowBlur = 15 * (1 - t); 
               ctx.shadowColor = COLORS.GOLD;
             }
           } else {
@@ -259,8 +306,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.01, 0.08 - edgeFade * 0.05)})`; 
-          ctx.lineWidth = 0.3; 
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.04, 0.15 - edgeFade * 0.1)})`; 
+          ctx.lineWidth = 0.5; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
@@ -337,25 +384,26 @@ const App: React.FC = () => {
       <Globe lastFlash={flashId} />
       
       {/* Branding */}
-      <div className="absolute top-12 left-12 md:top-16 md:left-20 z-30 pointer-events-none">
+      <div className="absolute top-8 left-10 md:top-12 md:left-16 z-30 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
-          <div className="flex items-baseline font-black tracking-tighter text-5xl md:text-7xl leading-none">
+          <div className="flex items-baseline font-black tracking-tighter text-2xl md:text-4xl leading-none">
             <span className="text-white">M</span>
             <span className="text-sky-500">&</span>
             <span className="text-white">CC</span>
           </div>
-          <div className="w-full h-[4px] md:h-[6px] bg-sky-500 mt-2"></div>
+          <div className="w-full h-[2px] md:h-[3px] bg-sky-500 mt-1.5"></div>
         </div>
       </div>
 
-      {/* Main Content: Left-Pinned Wall Content - MOVED 2 STEPS DOWN (added translate-y-16) */}
+      {/* Main Content: Left-Pinned Wall Content */}
       <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[35%] transform translate-y-16">
         
         <div className="flex flex-col items-start gap-3">
           <div className="flex flex-col gap-0.5 max-w-full">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-              <span className="text-sky-400 font-bold uppercase tracking-[0.5em] text-[10px] md:text-sm opacity-60">Live Birth Counter Today</span>
+              {/* DELETED 'LIVE' FROM TEXT */}
+              <span className="text-sky-400 font-bold uppercase tracking-[0.5em] text-[10px] md:text-sm opacity-60">Birth Counter Today</span>
             </div>
             
             <div className="flex items-baseline">
