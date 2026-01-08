@@ -191,10 +191,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // Radius reduced by 50% from 0.46h
+      // Radius maintained at 23% of height
       const radius = h * 0.23; 
-      // Repositioned to balance the smaller globe on the right side
-      const cx = w * 0.68; 
+      // Shifted globe center left by ~3cm (approx 0.08w further left from previous 0.68w)
+      const cx = w * 0.60; 
       const cy = h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
@@ -351,7 +351,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Main Content: Left-Pinned Wall Content */}
-      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-10 md:pl-12 pointer-events-none w-full max-w-[42%]">
+      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-10 md:pl-12 pointer-events-none w-full max-w-[38%]">
         
         <div className="flex flex-col items-start gap-4">
           <div className="flex flex-col gap-0.5 max-w-full">
@@ -384,14 +384,14 @@ const App: React.FC = () => {
               />
             </div>
             
-            {/* Minimalist Time floating under the progress line */}
+            {/* Reduced Time Text size by 50% for better spatial design */}
             <div 
               className="absolute top-full mt-2 flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="w-px h-6 bg-sky-500/20"></div>
-              <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-6 py-3 rounded-lg mt-0.5 flex items-center shadow-2xl">
-                <span className="text-white font-mono text-2xl md:text-4xl font-black tracking-tight whitespace-nowrap tabular-nums">
+              <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-4 py-2 rounded-lg mt-0.5 flex items-center shadow-2xl">
+                <span className="text-white font-mono text-lg md:text-2xl font-black tracking-tight whitespace-nowrap tabular-nums">
                   {timeState.label}
                 </span>
               </div>
