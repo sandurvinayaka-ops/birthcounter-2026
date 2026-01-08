@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.35; // Slightly slower for more cinematic feel on large TVs
+const AUTO_ROTATION_SPEED = 0.35; 
 const FRICTION = 0.98; 
 const MEDITERRANEAN_LATITUDE = -38; 
 const COLORS = {
@@ -191,16 +191,15 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // Radius maintained at 23% of height
-      const radius = h * 0.23; 
-      // Shifted globe center left by ~3cm (approx 0.08w further left from previous 0.68w)
-      const cx = w * 0.60; 
+      // Radius slightly reduced for TV spacing
+      const radius = h * 0.20; 
+      // Adjusted center to be further left to avoid overlap with textual elements
+      const cx = w * 0.50; 
       const cy = h * 0.5;
 
       ctx.clearRect(0, 0, w, h);
       
       if (!isDraggingRef.current) {
-        // Stabilized auto-rotation for TV smoothness
         velocityRef.current[0] += (AUTO_ROTATION_SPEED - velocityRef.current[0]) * 0.05 * timeFactor;
         const targetPhi = MEDITERRANEAN_LATITUDE;
         rotationRef.current[0] += velocityRef.current[0] * timeFactor;
@@ -217,11 +216,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 120);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 100);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.03)');
+      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.02)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 120, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 100, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -293,7 +292,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 const App: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const [flashId, setFlashId] = useState<string | null>(null);
-  const [timeState, setTimeState] = useState({ label: "00:00:00", pct: 0 });
+  const [timeState, setTimeState] = useState({ label: "00:00", pct: 0 });
   const countRef = useRef(0);
 
   useEffect(() => {
@@ -307,7 +306,7 @@ const App: React.FC = () => {
         setTotal(countRef.current);
       }
       setTimeState({ 
-        label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }), 
+        label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), 
         pct 
       });
     };
@@ -338,60 +337,60 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Top Left Branding */}
-      <div className="absolute top-12 left-10 md:top-16 md:left-12 z-30 pointer-events-none">
-        <div className="flex flex-col">
-          <span className="text-2xl md:text-5xl font-black tracking-tighter drop-shadow-lg">
+      {/* Branding - Exactly matching image: M(white) &(blue) CC(white) with underline bar */}
+      <div className="absolute top-12 left-12 md:top-16 md:left-20 z-30 pointer-events-none">
+        <div className="flex flex-col items-start">
+          <div className="flex items-baseline font-black tracking-tighter text-5xl md:text-7xl leading-none">
             <span className="text-white">M</span>
             <span className="text-sky-500">&</span>
             <span className="text-white">CC</span>
-          </span>
-          <div className="w-10 h-0.5 bg-sky-500 mt-1.5 rounded-full opacity-60"></div>
+          </div>
+          <div className="w-[120px] md:w-[160px] h-[4px] md:h-[6px] bg-sky-500 mt-2"></div>
         </div>
       </div>
 
-      {/* Main Content: Left-Pinned Wall Content */}
-      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-10 md:pl-12 pointer-events-none w-full max-w-[38%]">
+      {/* Main Content: Left-Pinned Wall Content - Scale reduced for TV fitting */}
+      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[35%]">
         
-        <div className="flex flex-col items-start gap-4">
+        <div className="flex flex-col items-start gap-3">
           <div className="flex flex-col gap-0.5 max-w-full">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
-              <span className="text-sky-400 font-bold uppercase tracking-[0.5em] text-xs md:text-base opacity-80">Live Birth Counter Today</span>
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+              <span className="text-sky-400 font-bold uppercase tracking-[0.5em] text-[10px] md:text-sm opacity-60">Live Birth Counter Today</span>
             </div>
             
             <div className="flex items-baseline">
               <span 
-                className="text-[7.5vw] font-black leading-none drop-shadow-[0_0_40px_rgba(251,191,36,0.1)] transition-all duration-300" 
-                style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD, textShadow: `0 0 15px ${COLORS.GOLD}05` }}
+                className="text-[5.5vw] font-black leading-none transition-all duration-300" 
+                style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD, textShadow: `0 0 20px ${COLORS.GOLD}15` }}
               >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
               </span>
             </div>
           </div>
 
-          {/* Progress Bar & Time - Anchored for large screen visibility */}
-          <div className="w-full max-w-[420px] mt-10 relative">
+          {/* Progress Bar & Time */}
+          <div className="w-full max-w-[340px] mt-8 relative">
             <div className="flex justify-between items-end mb-2 px-0.5">
-              <span className="text-sky-400 font-bold uppercase tracking-widest text-[11px] opacity-50">Day Progress Cycle</span>
-              <span className="text-white/30 font-mono text-sm">{Math.floor(timeState.pct)}%</span>
+              <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] opacity-40">Day Progress Cycle</span>
+              <span className="text-white/20 font-mono text-[10px]">{Math.floor(timeState.pct)}%</span>
             </div>
             
-            <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
+            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
               <div 
-                className="h-full bg-gradient-to-r from-sky-700 via-sky-500 to-amber-500 transition-all duration-1000 ease-linear"
-                style={{ width: `${timeState.pct}%`, boxShadow: '0 0 12px rgba(56, 189, 248, 0.2)' }}
+                className="h-full bg-gradient-to-r from-sky-800 via-sky-600 to-amber-600 transition-all duration-1000 ease-linear"
+                style={{ width: `${timeState.pct}%`, boxShadow: '0 0 8px rgba(56, 189, 248, 0.1)' }}
               />
             </div>
             
-            {/* Reduced Time Text size by 50% for better spatial design */}
+            {/* Time Indicator Line and Box */}
             <div 
               className="absolute top-full mt-2 flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="w-px h-6 bg-sky-500/20"></div>
-              <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-4 py-2 rounded-lg mt-0.5 flex items-center shadow-2xl">
-                <span className="text-white font-mono text-lg md:text-2xl font-black tracking-tight whitespace-nowrap tabular-nums">
+              <div className="w-px h-5 bg-sky-500/10"></div>
+              <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-3 py-1.5 rounded-md mt-0.5 flex items-center shadow-2xl">
+                <span className="text-white font-mono text-sm md:text-xl font-bold tracking-tight whitespace-nowrap tabular-nums opacity-90">
                   {timeState.label}
                 </span>
               </div>
@@ -400,9 +399,9 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Cinematic Vignettes */}
-      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/95 to-transparent z-10 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-full h-60 bg-gradient-to-t from-black/95 to-transparent z-10 pointer-events-none"></div>
+      {/* Cinematic Vignettes for large screen focus */}
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };
