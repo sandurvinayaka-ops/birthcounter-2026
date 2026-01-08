@@ -4,8 +4,8 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.006; // Constant base crawl speed (deg/ms)
-const FRICTION = 0.95; // Drag inertia decay
+const AUTO_ROTATION_SPEED = 0.012; // Increased from 0.006 to 0.012 (1 level more)
+const FRICTION = 0.96; // Slightly higher friction for more controlled inertia
 const COLORS = {
   LAND: '#3d4a5e',      
   ICE: '#ffffff',       
@@ -197,15 +197,24 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
     let animId: number;
 
     const drag = d3.drag<HTMLCanvasElement, unknown>()
-      .on('start', () => { isDraggingRef.current = true; canvas.style.cursor = 'grabbing'; })
+      .on('start', () => { 
+        isDraggingRef.current = true; 
+        canvas.style.cursor = 'grabbing'; 
+        velocityRef.current = [0, 0];
+      })
       .on('drag', (event) => {
         const dx = event.dx / dpr;
         const dy = event.dy / dpr;
+        // Immediate response
+        rotationRef.current[0] += dx * 0.4;
+        rotationRef.current[1] -= dy * 0.4;
+        // Tracking velocity for inertia
         velocityRef.current = [dx * 0.5, dy * 0.5];
-        rotationRef.current[0] += dx * 0.5;
-        rotationRef.current[1] -= dy * 0.5;
       })
-      .on('end', () => { isDraggingRef.current = false; canvas.style.cursor = 'grab'; });
+      .on('end', () => { 
+        isDraggingRef.current = false; 
+        canvas.style.cursor = 'grab'; 
+      });
 
     d3.select(canvas).call(drag);
 
@@ -215,7 +224,9 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         return;
       }
       
-      const deltaTime = time - lastTimeRef.current;
+      // Calculate delta time and cap it to prevent jumps
+      let deltaTime = time - lastTimeRef.current;
+      if (deltaTime > 100) deltaTime = 16.7; // Cap delta if frame took too long (e.g. background tab)
       lastTimeRef.current = time;
       
       const w = canvas.width / dpr;
@@ -231,18 +242,20 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       ctx.clearRect(0, 0, w, h);
       
-      // Rotation logic with inertia
+      // Ultra-smooth rotation logic with enhanced auto-speed and inertia
       if (!isDraggingRef.current) {
-        // Friction applied to velocity
+        // Inherit drag velocity then decay
+        rotationRef.current[0] += velocityRef.current[0];
+        rotationRef.current[1] += velocityRef.current[1];
+        
         velocityRef.current[0] *= FRICTION;
         velocityRef.current[1] *= FRICTION;
         
-        // Combine velocity inertia and constant base speed
-        rotationRef.current[0] += (AUTO_ROTATION_SPEED * deltaTime) + velocityRef.current[0];
-        rotationRef.current[1] += velocityRef.current[1];
+        // Base auto-rotation
+        rotationRef.current[0] += AUTO_ROTATION_SPEED * deltaTime;
         
-        // Gently snap vertical tilt back to -15 if it drifts too far
-        rotationRef.current[1] += (-15 - rotationRef.current[1]) * 0.02;
+        // Gently snap vertical tilt back to cinematic default (-15)
+        rotationRef.current[1] += (-15 - rotationRef.current[1]) * 0.015;
       }
 
       const projection = d3.geoOrthographic()
@@ -279,11 +292,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       // 3. Render Landmasses
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
-        // Simple back-face culling to improve performance
         const centroid = d3.geoCentroid(d);
         const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
         
-        if (distance < Math.PI / 1.5) { // Slightly wider angle than 90 to ensure smooth edge drawing
+        if (distance < Math.PI / 1.5) { 
           ctx.beginPath(); 
           path(d);
           
@@ -312,7 +324,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         }
       });
 
-      // 4. Specular & Rim Lighting (Fixed position relative to viewer)
+      // 4. Lighting FX
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
       rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
