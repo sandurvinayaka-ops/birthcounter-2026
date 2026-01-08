@@ -195,7 +195,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const radius = h * 0.20; 
       // Adjusted center to be further left to avoid overlap with textual elements
       const cx = w * 0.50; 
-      const cy = h * 0.5;
+      // Moved the globe up by ~2cm (shifting cy from 0.5 to 0.4)
+      const cy = h * 0.40;
 
       ctx.clearRect(0, 0, w, h);
       
@@ -337,15 +338,15 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Branding - Exactly matching image: M(white) &(blue) CC(white) with underline bar */}
+      {/* Branding - Matching image: M(white) &(blue) CC(white) with width-matched blue bar */}
       <div className="absolute top-12 left-12 md:top-16 md:left-20 z-30 pointer-events-none">
-        <div className="flex flex-col items-start">
+        <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-5xl md:text-7xl leading-none">
             <span className="text-white">M</span>
             <span className="text-sky-500">&</span>
             <span className="text-white">CC</span>
           </div>
-          <div className="w-[120px] md:w-[160px] h-[4px] md:h-[6px] bg-sky-500 mt-2"></div>
+          <div className="w-full h-[4px] md:h-[6px] bg-sky-500 mt-2"></div>
         </div>
       </div>
 
