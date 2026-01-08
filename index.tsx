@@ -4,9 +4,9 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.11; // Increased speed for a more dynamic and engaging visual presence
-const FRICTION = 0.992; // Refined for ultra-silky, long-lasting momentum
-const PRECESSION_SPEED = 0.0004; // Frequency of the organic vertical wobble
+const AUTO_ROTATION_SPEED = 0.05; // Slightly reduced for a more serene, high-end cinematic pace
+const FRICTION = 0.997; // Increased for even more silky, long-lasting momentum
+const PRECESSION_SPEED = 0.0002; // Slower, more subtle frequency for organic wobble
 const COLORS = {
   LAND: '#3d4a5e',      
   ICE: '#ffffff',       
@@ -176,6 +176,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
   const isDraggingRef = useRef(false);
   const lastTimeRef = useRef<number>(performance.now());
   const activeFlashes = useRef<Map<string, number>>(new Map());
+  const smoothedDtRef = useRef<number>(16.67);
 
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
@@ -206,11 +207,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       .on('drag', (event) => {
         const dx = (event.dx / dpr);
         const dy = (event.dy / dpr);
-        // Direct manipulation with high response and stabilized scaling
+        // Direct manipulation for tactile control
         rotationRef.current[0] += dx * 0.42;
         rotationRef.current[1] -= dy * 0.42;
-        // Seed velocity for persistent, natural-feeling inertia
-        velocityRef.current = [dx * 0.48, dy * 0.48];
+        // Seed velocity for natural inertia
+        velocityRef.current = [dx * 0.5, dy * 0.5];
       })
       .on('end', () => { 
         isDraggingRef.current = false; 
@@ -225,10 +226,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         return;
       }
       
-      let deltaTime = time - lastTimeRef.current;
-      // Stricter normalization to prevent frame jumps on high-end or lagging screens
-      if (deltaTime > 60 || deltaTime < 1) deltaTime = 16.67; 
+      const rawDt = time - lastTimeRef.current;
       lastTimeRef.current = time;
+      
+      // Precision delta-time smoothing using a low-pass filter to eliminate jitter
+      const clampedDt = Math.min(Math.max(rawDt, 1), 60);
+      smoothedDtRef.current = smoothedDtRef.current * 0.85 + clampedDt * 0.15;
+      const dt = smoothedDtRef.current;
       
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
@@ -243,29 +247,29 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       ctx.clearRect(0, 0, w, h);
       
-      // PHYSICS UPDATE: Improved time-independent physics integration
+      // PHYSICS UPDATE: Sub-pixel precision integration
       if (!isDraggingRef.current) {
-        const timeFactor = deltaTime / 16.67; // Normalized baseline at 60fps
+        const timeFactor = dt / 16.67;
 
-        // 1. Smoothly integrate auto-rotation (degrees per ms * ms)
-        rotationRef.current[0] += AUTO_ROTATION_SPEED * deltaTime;
+        // 1. Accumulate auto-rotation at a statelier pace
+        rotationRef.current[0] += AUTO_ROTATION_SPEED * dt;
 
-        // 2. Dynamic axial baseline with organic oscillation (Wobble)
+        // 2. Gentle organic axial wobble (Precession)
         const wobble = Math.sin(time * PRECESSION_SPEED) * 1.8;
-        const baselinePhi = -15 + wobble;
+        const targetPhi = -15 + wobble;
 
-        // 3. Apply inertia from velocity with buttery decay
+        // 3. Apply inertia from drag with extreme cinematic decay
         rotationRef.current[0] += velocityRef.current[0] * timeFactor;
         rotationRef.current[1] += velocityRef.current[1] * timeFactor;
 
-        // Friction: Decay velocity based on normalized time-steps
+        // Velocity damping
         const decay = Math.pow(FRICTION, timeFactor);
         velocityRef.current[0] *= decay;
         velocityRef.current[1] *= decay;
         
-        // 4. Elastic return to baseline orientation
-        const elasticity = 1 - Math.pow(0.985, timeFactor);
-        rotationRef.current[1] += (baselinePhi - rotationRef.current[1]) * elasticity;
+        // 4. Elastic return to viewing baseline
+        const snapFactor = 1 - Math.pow(0.992, timeFactor);
+        rotationRef.current[1] += (targetPhi - rotationRef.current[1]) * snapFactor;
       }
 
       const projection = d3.geoOrthographic()
@@ -276,18 +280,18 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // Atmosphere Rendering
+      // Atmosphere Glow
       const glowRadiusOuter = radius + (isMobile ? 60 : 110);
       const glowRadiusInner = radius + (isMobile ? 20 : 40);
       
       const glowOuter = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadiusOuter);
       glowOuter.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      glowOuter.addColorStop(0.5, 'rgba(96, 165, 250, 0.06)');
+      glowOuter.addColorStop(0.5, 'rgba(96, 165, 250, 0.04)');
       glowOuter.addColorStop(1, 'transparent');
       ctx.fillStyle = glowOuter; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusOuter, 0, Math.PI * 2); ctx.fill();
 
       const glowInner = ctx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, glowRadiusInner);
-      glowInner.addColorStop(0, 'rgba(96, 165, 250, 0.22)');
+      glowInner.addColorStop(0, 'rgba(96, 165, 250, 0.18)');
       glowInner.addColorStop(1, 'transparent');
       ctx.fillStyle = glowInner; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusInner, 0, Math.PI * 2); ctx.fill();
 
@@ -299,7 +303,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       oceanGrad.addColorStop(1, '#000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // Landmass Geometry Rendering
+      // Landmass Rendering
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
@@ -328,16 +332,16 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          ctx.strokeStyle = 'rgba(255,255,255,0.11)'; 
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)'; 
           ctx.lineWidth = 0.5; 
           ctx.stroke();
         }
       });
 
-      // Lighting & Specular Maps
+      // Lighting Overlays
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
-      rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.65)');
+      rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
       rimGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
       ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
