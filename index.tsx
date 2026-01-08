@@ -20,18 +20,19 @@ const COLORS = {
 };
 
 const generateStars = (count: number) => {
+  const starColors = ['#ffffff', '#bae6fd', '#fef9c3', '#fef3c7', '#e0f2fe'];
   return Array.from({ length: count }).map((_, i) => {
-    const isSupernova = Math.random() > 0.98;
+    const isSupernova = Math.random() > 0.97;
     return {
       id: i,
       x: Math.random() * 260 - 80, 
       y: Math.random() * 260 - 80, 
-      size: isSupernova ? Math.random() * 3 + 1.5 : Math.random() * 1.8 + 0.4, 
-      duration: Math.random() * 2 + 1, 
+      size: isSupernova ? Math.random() * 3.5 + 2.0 : Math.random() * 2.0 + 0.4, 
+      duration: Math.random() * 1.5 + 0.8, // Faster, more lively twinkle
       delay: Math.random() * 10,
-      opacity: Math.random() * 0.9 + 0.1,
-      glow: Math.random() > 0.6,
-      color: isSupernova ? '#bae6fd' : '#fff'
+      opacity: Math.random() * 0.9 + 0.3,
+      glow: Math.random() > 0.5,
+      color: starColors[Math.floor(Math.random() * starColors.length)]
     };
   });
 };
@@ -84,7 +85,7 @@ const BottleIcon: React.FC<{ size?: number; className?: string; style?: React.CS
 );
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(1200), []);
+  const stars = useMemo(() => generateStars(1400), []); // Increased star count
   const spaceObjects = useMemo(() => generateSpaceObjects(12), []);
   
   return (
@@ -105,8 +106,16 @@ const SpaceBackground: React.FC = () => {
           to { transform: translate(-50%, -50%) rotate(360deg); }
         }
         @keyframes star-twinkle {
-          0%, 100% { opacity: 0.5; transform: scale(1); filter: brightness(1); }
-          50% { opacity: 1; transform: scale(1.4); filter: brightness(1.8) drop-shadow(0 0 2px white); }
+          0%, 100% { 
+            opacity: 0.3; 
+            transform: scale(0.8); 
+            filter: brightness(0.8) blur(0px); 
+          }
+          50% { 
+            opacity: 1; 
+            transform: scale(1.5); 
+            filter: brightness(2.5) blur(1px); 
+          }
         }
       `}</style>
       
@@ -119,7 +128,7 @@ const SpaceBackground: React.FC = () => {
             backgroundColor: s.color,
             borderRadius: '50%',
             opacity: s.opacity,
-            boxShadow: s.glow ? `0 0 ${s.size * 8}px ${s.color}` : 'none',
+            boxShadow: s.glow ? `0 0 ${s.size * 5}px ${s.color}, 0 0 ${s.size * 12}px ${s.color}66` : 'none',
             animation: `star-twinkle ${s.duration}s ease-in-out infinite`,
             animationDelay: `${s.delay}s`
           }} />
@@ -184,7 +193,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       const isMobile = w < 768;
       
-      // REDUCED GLOBE SIZE BY 1 "SIZE" (approx 15% reduction)
       const radius = isMobile 
         ? Math.min(w * 0.38, h * 0.24) 
         : Math.min(w * 0.30, h * 0.40);
