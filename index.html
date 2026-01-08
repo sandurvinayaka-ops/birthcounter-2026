@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>M&CC | Live Global Birth Tracker</title>
   
   <!-- UI Frameworks -->
@@ -11,6 +11,9 @@
   
   <!-- Babel for Browser-side TSX Compilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Polyfill for importmap support in older Safari versions -->
+  <script async src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 
   <script type="importmap">
 {
@@ -36,7 +39,9 @@
       overflow: hidden;
       width: 100vw;
       height: 100vh;
+      height: 100dvh; /* Better for mobile Safari */
       overscroll-behavior-y: contain;
+      -webkit-font-smoothing: antialiased;
     }
     #root {
       width: 100%;
@@ -101,6 +106,7 @@
   ></script>
   
   <script>
+    // Detection to hide loader when React finishes mounting
     const observer = new MutationObserver(() => {
       const root = document.getElementById('root');
       if (root && root.children.length > 0) {
@@ -129,7 +135,11 @@
       }
     }
 
-    window.addEventListener('error', (e) => showError(e.message, e.error));
+    window.addEventListener('error', (e) => {
+      // Filter out benign resize errors that some mobile browsers throw
+      if (e.message.includes('ResizeObserver')) return;
+      showError(e.message, e.error);
+    });
     window.addEventListener('unhandledrejection', (e) => showError(e.reason?.message || e.reason, e.reason));
   </script>
 </body>
