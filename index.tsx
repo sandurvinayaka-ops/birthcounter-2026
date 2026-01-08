@@ -184,9 +184,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       const isMobile = w < 768;
       
+      // REDUCED GLOBE SIZE BY 1 "SIZE" (approx 15% reduction)
       const radius = isMobile 
-        ? Math.min(w * 0.44, h * 0.28) 
-        : Math.min(w * 0.35, h * 0.45);
+        ? Math.min(w * 0.38, h * 0.24) 
+        : Math.min(w * 0.30, h * 0.40);
       
       const cx = isMobile ? w * 0.5 : w * 0.75; 
       const cy = isMobile ? h * 0.44 : h * 0.5;
@@ -202,15 +203,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // Stronger Atmosphere Glow
-      const glowRadius = radius + (isMobile ? 60 : 100);
+      const glowRadius = radius + (isMobile ? 50 : 85);
       const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadius);
       glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       glow.addColorStop(0.3, 'rgba(96, 165, 250, 0.15)');
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2); ctx.fill();
 
-      // Sharp Ocean with Rim Light
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
       oceanGrad.addColorStop(0.4, COLORS.OCEAN_SHALLOW);
@@ -218,7 +217,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       oceanGrad.addColorStop(1, '#000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // Specular Highlight
       const specGrad = ctx.createRadialGradient(cx - radius * 0.5, cy - radius * 0.5, radius * 0.1, cx - radius * 0.5, cy - radius * 0.5, radius * 0.8);
       specGrad.addColorStop(0, 'rgba(255,255,255,0.08)');
       specGrad.addColorStop(1, 'transparent');
@@ -255,7 +253,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         }
       });
 
-      // Ambient Shadowing
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
       rimGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
@@ -331,7 +328,7 @@ const App: React.FC = () => {
           
           <div className="relative flex flex-row items-baseline justify-center md:justify-start text-center md:text-left mb-4">
             <span 
-              className="text-[18vw] md:text-[11vw] font-black tabular-nums leading-none block" 
+              className="text-[16vw] md:text-[9vw] font-black tabular-nums leading-none block" 
               style={{ 
                 color: COLORS.GOLD, 
                 textShadow: '0 0 60px rgba(255,215,0,0.4)',
