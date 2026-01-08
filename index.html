@@ -39,7 +39,7 @@
       overflow: hidden;
       width: 100vw;
       height: 100vh;
-      height: 100dvh; /* Better for mobile Safari */
+      height: 100dvh; /* Dynamic Viewport Height for Mobile Safari */
       overscroll-behavior-y: contain;
       -webkit-font-smoothing: antialiased;
     }
@@ -106,7 +106,6 @@
   ></script>
   
   <script>
-    // Detection to hide loader when React finishes mounting
     const observer = new MutationObserver(() => {
       const root = document.getElementById('root');
       if (root && root.children.length > 0) {
@@ -131,12 +130,10 @@
         display.style.display = 'block';
         display.innerHTML = `<strong>System Configuration Error</strong><br><span style="opacity: 0.8">${msg}</span>`;
         if (text) text.style.display = 'none';
-        console.error("M&CC Error:", msg, details);
       }
     }
 
     window.addEventListener('error', (e) => {
-      // Filter out benign resize errors that some mobile browsers throw
       if (e.message.includes('ResizeObserver')) return;
       showError(e.message, e.error);
     });

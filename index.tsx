@@ -4,19 +4,22 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.05; 
-const FRICTION = 0.997; 
-const PRECESSION_SPEED = 0.0002; 
+// Increased speed to 0.55 for a very dynamic, smooth rotation
+const AUTO_ROTATION_SPEED = 0.55; 
+// Refined friction for better momentum feel
+const FRICTION = 0.98; 
+const PRECESSION_SPEED = 0.0001; 
+const MEDITERRANEAN_LATITUDE = -35; // Centered roughly on the Mediterranean Sea (35°N)
 const COLORS = {
-  LAND: '#2a3b52',      // Deeper, more premium slate
-  LAND_LIT: '#4a628a',  // Brighter side for depth
-  ICE: '#eef2ff',       // Slightly tinted ice
+  LAND: '#2c3e50',      
+  LAND_LIT: '#5d6d7e',  
+  ICE: '#f8fafc',       
   OCEAN_DEEP: '#010409',
   OCEAN_SHALLOW: '#0e2a63',
-  OCEAN_BRIGHT: '#1d4ed8',
+  OCEAN_BRIGHT: '#1e40af',
   GOLD: '#FFD700',
   BLUE: '#60a5fa',      
-  ATMOSPHERE_INNER: 'rgba(96, 165, 250, 0.4)', 
+  ATMOSPHERE_INNER: 'rgba(59, 130, 246, 0.4)', 
   PACIFIER_MINT: '#d1fae5',
   PACIFIER_BLUE: '#bfdbfe',
 };
@@ -170,12 +173,11 @@ const SpaceBackground: React.FC = () => {
 const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoDataRef = useRef<any>(null);
-  const rotationRef = useRef<[number, number, number]>([0, -15, 0]); 
-  const velocityRef = useRef<[number, number]>([0, 0]);
+  const rotationRef = useRef<[number, number, number]>([0, MEDITERRANEAN_LATITUDE, 0]); 
+  const velocityRef = useRef<[number, number]>([AUTO_ROTATION_SPEED, 0]); 
   const isDraggingRef = useRef(false);
   const lastTimeRef = useRef<number>(performance.now());
   const activeFlashes = useRef<Map<string, number>>(new Map());
-  const smoothedDtRef = useRef<number>(16.67);
 
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
@@ -223,12 +225,9 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         return;
       }
       
-      const rawDt = time - lastTimeRef.current;
+      const dt = Math.min(time - lastTimeRef.current, 60);
       lastTimeRef.current = time;
-      
-      const clampedDt = Math.min(Math.max(rawDt, 1), 60);
-      smoothedDtRef.current = smoothedDtRef.current * 0.85 + clampedDt * 0.15;
-      const dt = smoothedDtRef.current;
+      const timeFactor = dt / 16.67;
       
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
@@ -243,18 +242,24 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       ctx.clearRect(0, 0, w, h);
       
+      // ROTATION PHYSICS
       if (!isDraggingRef.current) {
-        const timeFactor = dt / 16.67;
-        rotationRef.current[0] += AUTO_ROTATION_SPEED * dt;
-        const wobble = Math.sin(time * PRECESSION_SPEED) * 1.8;
-        const targetPhi = -15 + wobble;
+        // Return to auto-rotation speed smoothly with momentum
+        velocityRef.current[0] += (AUTO_ROTATION_SPEED - velocityRef.current[0]) * 0.04 * timeFactor;
+        
+        // Wobble logic around the Mediterranean baseline
+        const wobble = Math.sin(time * PRECESSION_SPEED) * 1.5;
+        const targetPhi = MEDITERRANEAN_LATITUDE + wobble;
+        
         rotationRef.current[0] += velocityRef.current[0] * timeFactor;
         rotationRef.current[1] += velocityRef.current[1] * timeFactor;
-        const decay = Math.pow(FRICTION, timeFactor);
-        velocityRef.current[0] *= decay;
-        velocityRef.current[1] *= decay;
-        const snapFactor = 1 - Math.pow(0.992, timeFactor);
-        rotationRef.current[1] += (targetPhi - rotationRef.current[1]) * snapFactor;
+        
+        // Apply damping for smooth manual-to-auto transition
+        velocityRef.current[0] *= Math.pow(FRICTION, timeFactor);
+        velocityRef.current[1] *= Math.pow(FRICTION, timeFactor);
+        
+        // Drift back to standard vertical angle (now centered on Mediterranean)
+        rotationRef.current[1] += (targetPhi - rotationRef.current[1]) * 0.02 * timeFactor;
       }
 
       const projection = d3.geoOrthographic()
@@ -266,26 +271,17 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const path = d3.geoPath(projection, ctx);
       
       // Atmosphere Glow
-      const glowRadiusOuter = radius + (isMobile ? 60 : 110);
-      const glowRadiusInner = radius + (isMobile ? 20 : 40);
-      
-      const glowOuter = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadiusOuter);
+      const glowOuter = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + (isMobile ? 80 : 150));
       glowOuter.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      glowOuter.addColorStop(0.5, 'rgba(96, 165, 250, 0.04)');
+      glowOuter.addColorStop(0.6, 'rgba(59, 130, 246, 0.02)');
       glowOuter.addColorStop(1, 'transparent');
-      ctx.fillStyle = glowOuter; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusOuter, 0, Math.PI * 2); ctx.fill();
-
-      const glowInner = ctx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, glowRadiusInner);
-      glowInner.addColorStop(0, 'rgba(96, 165, 250, 0.18)');
-      glowInner.addColorStop(1, 'transparent');
-      ctx.fillStyle = glowInner; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusInner, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = glowOuter; ctx.beginPath(); ctx.arc(cx, cy, radius + (isMobile ? 80 : 150), 0, Math.PI * 2); ctx.fill();
 
       // Deep Ocean Shader
-      const oceanGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx, cy, radius);
+      const oceanGrad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
-      oceanGrad.addColorStop(0.5, COLORS.OCEAN_SHALLOW);
-      oceanGrad.addColorStop(0.9, COLORS.OCEAN_DEEP);
-      oceanGrad.addColorStop(1, '#000');
+      oceanGrad.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
+      oceanGrad.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       // Landmass Rendering
@@ -300,10 +296,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           
           const isIce = (d.id === 'ATA' || d.id === 'GRL');
           const flashStart = activeFlashes.current.get(d.id);
-          
-          // Enhanced Land Appearance: Topographic Gradient Shading
-          // Using proximity to horizon to tint land towards atmosphere color
-          const atmosphericWeight = Math.max(0, (distance - (Math.PI / 2.5)) * 1.5);
+          const atmosphericWeight = Math.pow(Math.max(0, (distance - (Math.PI / 3.0)) * 2.8), 1.3);
           
           if (flashStart) {
             const elapsed = now - flashStart;
@@ -312,53 +305,39 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
             } else {
               const t = elapsed / 1500;
-              // High intensity flash start
-              const flashColor = elapsed < 80 ? '#ffffff' : d3.interpolateRgb(COLORS.GOLD, isIce ? COLORS.ICE : COLORS.LAND)(t);
+              const flashColor = elapsed < 60 ? '#ffffff' : d3.interpolateRgb(COLORS.GOLD, isIce ? COLORS.ICE : COLORS.LAND)(t);
               ctx.fillStyle = flashColor;
-              
-              // Exponential decay for the glow
-              const glowIntensity = Math.exp(-t * 4);
-              ctx.shadowBlur = (isMobile ? 50 : 100) * glowIntensity; 
+              const glowIntensity = Math.exp(-t * 3.8);
+              ctx.shadowBlur = (isMobile ? 40 : 90) * glowIntensity; 
               ctx.shadowColor = COLORS.GOLD;
             }
           } else {
-            // Create a dynamic land gradient based on current globe rotation
-            const landGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-            const baseLandColor = isIce ? COLORS.ICE : COLORS.LAND;
-            const litLandColor = isIce ? '#fff' : COLORS.LAND_LIT;
+            // Enhanced Country Visibility
+            const baseColor = isIce ? COLORS.ICE : COLORS.LAND;
+            const litColor = isIce ? '#ffffff' : COLORS.LAND_LIT;
             
-            // Subtle shading factor based on distance from center of viewport
-            const shadingFactor = Math.max(0, 1 - distance / (Math.PI / 1.6));
-            const finalColor = d3.interpolateRgb(litLandColor, baseLandColor)(shadingFactor);
+            const shadingFactor = Math.pow(Math.max(0, 1 - distance / (Math.PI / 1.8)), 1.1);
+            const landBodyColor = d3.interpolateRgb(litColor, baseColor)(1 - shadingFactor);
             
-            // Atmospheric horizon tint
-            ctx.fillStyle = d3.interpolateRgb(finalColor, COLORS.OCEAN_SHALLOW)(atmosphericWeight);
+            // Atmospheric fade at edges
+            ctx.fillStyle = d3.interpolateRgb(landBodyColor, COLORS.OCEAN_DEEP)(atmosphericWeight);
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
           
-          // Enhanced Borders
-          ctx.strokeStyle = `rgba(255,255,255, ${0.1 - atmosphericWeight * 0.08})`; 
-          ctx.lineWidth = 0.65; 
+          // Refined Borders
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.01, 0.12 - atmosphericWeight * 0.1)})`; 
+          ctx.lineWidth = isMobile ? 0.35 : 0.65; 
           ctx.stroke();
-
-          // Reset shadows for next feature
           ctx.shadowBlur = 0;
         }
       });
 
       // Lighting Overlays
-      const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
+      const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
-      rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
-      rimGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
+      rimGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
       ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
-
-      const specGrad = ctx.createRadialGradient(cx - radius * 0.5, cy - radius * 0.5, radius * 0.05, cx - radius * 0.5, cy - radius * 0.5, radius * 0.9);
-      specGrad.addColorStop(0, 'rgba(255,255,255,0.18)');
-      specGrad.addColorStop(0.4, 'rgba(255,255,255,0.05)');
-      specGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       animId = requestAnimationFrame(render);
     };
