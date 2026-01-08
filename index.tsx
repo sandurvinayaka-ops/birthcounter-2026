@@ -8,15 +8,15 @@ const AUTO_ROTATION_SPEED = 0.35;
 const FRICTION = 0.98; 
 const MEDITERRANEAN_LATITUDE = -38; 
 const COLORS = {
-  // Brightened land colors for better visibility on TV
-  LAND: '#5a8fb3',      
-  LAND_LIT: '#9ec4db',  
+  // Enhanced land colors for maximum contrast on TV screens
+  LAND: '#7aa3c0',      
+  LAND_LIT: '#c9e7f7',  
   OCEAN_DEEP: '#01040a',
   OCEAN_SHALLOW: '#0a1d47',
   OCEAN_BRIGHT: '#1e40af',
   GOLD: '#fbbf24',      
   BLUE: '#38bdf8',      
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.2)', 
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.15)', 
 };
 
 const STAR_COUNT = 350; 
@@ -45,7 +45,6 @@ const PACIFIERS = Array.from({ length: PACIFIER_COUNT }).map((_, i) => ({
 
 const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
   <div style={{ position: 'relative', width: size, height: size }}>
-    {/* Outer Atmosphere Glow */}
     <div style={{
       position: 'absolute',
       inset: '-10px',
@@ -82,12 +81,10 @@ const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
         </clipPath>
       </defs>
       
-      {/* Base Body */}
       <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="8" />
       <rect x="10" y="38" width="80" height="20" rx="10" fill="url(#pacifierGrad)" />
       <path fill="url(#pacifierGrad)" d="M35 58 C 35 58, 30 92, 50 92 C 70 92, 65 58, 65 58 Z" />
       
-      {/* Shine Layer */}
       <g clipPath="url(#pacifierClip)">
         <rect width="200" height="200" fill="url(#shineGrad)" opacity="0.6">
           <animateTransform
@@ -101,7 +98,6 @@ const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
         </rect>
       </g>
 
-      {/* Specular highlights for "shine" */}
       <path d="M45 15 A 8 8 0 0 1 55 15" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
       <circle cx="50" cy="80" r="4" fill="white" opacity="0.4" />
     </svg>
@@ -239,9 +235,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const radius = h * 0.25; 
-      // MOVED LEFT: cx shifted from 0.58 to 0.54
-      const cx = w * 0.54; 
-      const cy = h * 0.50; // Vertically centered
+      // MOVED LEFT (~1cm) and TOP (~2cm):
+      // cx shifted from 0.54 to 0.50
+      // cy shifted from 0.50 to 0.42
+      const cx = w * 0.50; 
+      const cy = h * 0.42; 
 
       ctx.clearRect(0, 0, w, h);
       
@@ -262,11 +260,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 45);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 40);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.01)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 45, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 40, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -285,7 +283,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           const flashStart = activeFlashes.current.get(d.id);
           const edgeFade = Math.pow(Math.max(0, (distance - (Math.PI / 3.2)) * 4), 1.5);
           
-          const shading = 1 - Math.pow(distance / (Math.PI / 1.7), 1.1); 
+          const shading = 1 - Math.pow(distance / (Math.PI / 1.7), 0.9); // Brighter shading for visibility
           const landBase = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
 
           if (flashStart) {
@@ -297,7 +295,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               const t = elapsed / 1800;
               const flashCol = d3.interpolateRgb(COLORS.GOLD, landBase)(t);
               ctx.fillStyle = flashCol;
-              ctx.shadowBlur = 15 * (1 - t); 
+              ctx.shadowBlur = 20 * (1 - t); 
               ctx.shadowColor = COLORS.GOLD;
             }
           } else {
@@ -306,8 +304,9 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.04, 0.15 - edgeFade * 0.1)})`; 
-          ctx.lineWidth = 0.5; 
+          // SIGNIFICANTLY ENHANCED STROKE for country borders
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.1, 0.3 - edgeFade * 0.2)})`; 
+          ctx.lineWidth = 0.8; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
@@ -395,14 +394,11 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content: Left-Pinned Wall Content */}
       <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[35%] transform translate-y-16">
-        
         <div className="flex flex-col items-start gap-3">
           <div className="flex flex-col gap-0.5 max-w-full">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-              {/* DELETED 'LIVE' FROM TEXT */}
               <span className="text-sky-400 font-bold uppercase tracking-[0.5em] text-[10px] md:text-sm opacity-60">Birth Counter Today</span>
             </div>
             
@@ -416,7 +412,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Progress Bar & Time */}
           <div className="w-full max-w-[340px] mt-8 relative">
             <div className="flex justify-between items-end mb-2 px-0.5">
               <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] opacity-40">Day Progress Cycle</span>
@@ -430,7 +425,6 @@ const App: React.FC = () => {
               />
             </div>
             
-            {/* Time Indicator Line and Box */}
             <div 
               className="absolute top-full mt-2 flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
@@ -446,7 +440,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Cinematic Vignettes */}
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none"></div>
     </div>
