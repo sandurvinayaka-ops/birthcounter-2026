@@ -12,7 +12,7 @@ const COLORS = {
   OCEAN_BRIGHT: '#1d4ed8',
   GOLD: '#FFD700',
   BLUE: '#60a5fa',      
-  ATMOSPHERE_INNER: 'rgba(96, 165, 250, 0.35)', 
+  ATMOSPHERE_INNER: 'rgba(96, 165, 250, 0.45)', 
   PACIFIER_MINT: '#d1fae5',
   PACIFIER_BLUE: '#bfdbfe',
   BOTTLE_GLASS: 'rgba(255, 255, 255, 0.2)',
@@ -20,21 +20,34 @@ const COLORS = {
 };
 
 const generateStars = (count: number) => {
-  const starColors = ['#ffffff', '#bae6fd', '#fef9c3', '#fef3c7', '#e0f2fe'];
+  const starColors = ['#ffffff', '#bae6fd', '#fef9c3', '#fef3c7', '#e0f2fe', '#fecaca'];
   return Array.from({ length: count }).map((_, i) => {
-    const isSupernova = Math.random() > 0.97;
+    const isSupernova = Math.random() > 0.96;
+    const isDistant = Math.random() > 0.7;
     return {
       id: i,
       x: Math.random() * 260 - 80, 
       y: Math.random() * 260 - 80, 
-      size: isSupernova ? Math.random() * 3.5 + 2.0 : Math.random() * 2.0 + 0.4, 
-      duration: Math.random() * 1.5 + 0.8, // Faster, more lively twinkle
+      size: isSupernova ? Math.random() * 3.5 + 2.0 : (isDistant ? Math.random() * 0.8 + 0.2 : Math.random() * 1.8 + 0.5), 
+      duration: Math.random() * 2.5 + 0.5, 
       delay: Math.random() * 10,
-      opacity: Math.random() * 0.9 + 0.3,
-      glow: Math.random() > 0.5,
-      color: starColors[Math.floor(Math.random() * starColors.length)]
+      opacity: isDistant ? Math.random() * 0.4 + 0.1 : Math.random() * 0.9 + 0.4,
+      glow: Math.random() > 0.4,
+      color: starColors[Math.floor(Math.random() * starColors.length)],
+      type: isSupernova ? 'cross' : 'circle'
     };
   });
+};
+
+const generateComets = (count: number) => {
+  return Array.from({ length: count }).map((_, i) => ({
+    id: i,
+    delay: Math.random() * 60,
+    duration: Math.random() * 3 + 2,
+    angle: Math.random() * 45 + 15, // Diagonal trajectory
+    startY: Math.random() * 100,
+    startX: -10
+  }));
 };
 
 const generateSpaceObjects = (count: number) => {
@@ -42,7 +55,7 @@ const generateSpaceObjects = (count: number) => {
     id: i,
     type: Math.random() > 0.35 ? 'PACIFIER' : 'BOTTLE',
     delay: Math.random() * -30,
-    duration: Math.random() * 25 + 30,
+    duration: Math.random() * 30 + 35,
     size: Math.random() * 12 + 20,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
@@ -85,8 +98,9 @@ const BottleIcon: React.FC<{ size?: number; className?: string; style?: React.CS
 );
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => generateStars(1400), []); // Increased star count
-  const spaceObjects = useMemo(() => generateSpaceObjects(12), []);
+  const stars = useMemo(() => generateStars(1600), []); 
+  const comets = useMemo(() => generateComets(5), []);
+  const spaceObjects = useMemo(() => generateSpaceObjects(10), []);
   
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000105]">
@@ -97,9 +111,22 @@ const SpaceBackground: React.FC = () => {
           90% { opacity: 0.7; }
           100% { transform: translate(130vw, 130vh) rotate(calc(var(--start-rot) + 360deg)); opacity: 0; }
         }
+        @keyframes comet-move {
+          0% { transform: translate(0, 0) scale(0); opacity: 0; }
+          5% { opacity: 1; scale(1); }
+          100% { transform: translate(120vw, 80vh) scale(0.5); opacity: 0; }
+        }
         .space-object {
           position: absolute;
           animation: drift-move linear infinite;
+        }
+        .comet {
+          position: absolute;
+          width: 150px;
+          height: 2px;
+          background: linear-gradient(to right, rgba(255,255,255,0.8), transparent);
+          animation: comet-move 4s linear infinite;
+          transform-origin: left center;
         }
         @keyframes rotate-bg {
           from { transform: translate(-50%, -50%) rotate(0deg); }
@@ -107,33 +134,52 @@ const SpaceBackground: React.FC = () => {
         }
         @keyframes star-twinkle {
           0%, 100% { 
-            opacity: 0.3; 
-            transform: scale(0.8); 
-            filter: brightness(0.8) blur(0px); 
+            opacity: 0.2; 
+            transform: scale(0.7); 
+            filter: brightness(0.6) blur(0.5px); 
           }
           50% { 
             opacity: 1; 
-            transform: scale(1.5); 
-            filter: brightness(2.5) blur(1px); 
+            transform: scale(1.6); 
+            filter: brightness(3) blur(1px); 
           }
+        }
+        @keyframes star-twinkle-cross {
+          0%, 100% { transform: rotate(0deg) scale(0.8); opacity: 0.4; }
+          50% { transform: rotate(45deg) scale(1.5); opacity: 1; }
         }
       `}</style>
       
-      <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 900s linear infinite' }}>
+      <div className="absolute top-1/2 left-1/2 w-[240vw] h-[240vw]" style={{ animation: 'rotate-bg 1200s linear infinite' }}>
         {stars.map(s => (
           <div key={s.id} style={{
             position: 'absolute',
             left: `${s.x}%`, top: `${s.y}%`, 
             width: `${s.size}px`, height: `${s.size}px`,
             backgroundColor: s.color,
-            borderRadius: '50%',
+            borderRadius: s.type === 'circle' ? '50%' : '0%',
             opacity: s.opacity,
-            boxShadow: s.glow ? `0 0 ${s.size * 5}px ${s.color}, 0 0 ${s.size * 12}px ${s.color}66` : 'none',
-            animation: `star-twinkle ${s.duration}s ease-in-out infinite`,
-            animationDelay: `${s.delay}s`
+            boxShadow: s.glow ? `0 0 ${s.size * 5}px ${s.color}, 0 0 ${s.size * 15}px ${s.color}44` : 'none',
+            animation: s.type === 'circle' ? `star-twinkle ${s.duration}s ease-in-out infinite` : `star-twinkle-cross ${s.duration * 2}s ease-in-out infinite`,
+            animationDelay: `${s.delay}s`,
+            clipPath: s.type === 'cross' ? 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' : 'none'
           }} />
         ))}
       </div>
+
+      {comets.map(c => (
+        <div 
+          key={c.id} 
+          className="comet"
+          style={{
+            top: `${c.startY}%`,
+            left: `${c.startX}%`,
+            animationDelay: `${c.delay}s`,
+            animationDuration: `${c.duration}s`,
+            transform: `rotate(${c.angle}deg)`
+          }}
+        />
+      ))}
 
       {spaceObjects.map(obj => (
         <div 
@@ -211,22 +257,33 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const glowRadius = radius + (isMobile ? 50 : 85);
-      const glow = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadius);
-      glow.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      glow.addColorStop(0.3, 'rgba(96, 165, 250, 0.15)');
-      glow.addColorStop(1, 'transparent');
-      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2); ctx.fill();
+      // Multi-layered Atmosphere Glow
+      const glowRadiusOuter = radius + (isMobile ? 60 : 110);
+      const glowRadiusInner = radius + (isMobile ? 20 : 40);
+      
+      const glowOuter = ctx.createRadialGradient(cx, cy, radius, cx, cy, glowRadiusOuter);
+      glowOuter.addColorStop(0, COLORS.ATMOSPHERE_INNER);
+      glowOuter.addColorStop(0.5, 'rgba(96, 165, 250, 0.1)');
+      glowOuter.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowOuter; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusOuter, 0, Math.PI * 2); ctx.fill();
 
+      const glowInner = ctx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, glowRadiusInner);
+      glowInner.addColorStop(0, 'rgba(96, 165, 250, 0.3)');
+      glowInner.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowInner; ctx.beginPath(); ctx.arc(cx, cy, glowRadiusInner, 0, Math.PI * 2); ctx.fill();
+
+      // Sharp Ocean
       const oceanGrad = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx, cy, radius);
       oceanGrad.addColorStop(0, COLORS.OCEAN_BRIGHT);
-      oceanGrad.addColorStop(0.4, COLORS.OCEAN_SHALLOW);
-      oceanGrad.addColorStop(0.8, COLORS.OCEAN_DEEP);
+      oceanGrad.addColorStop(0.5, COLORS.OCEAN_SHALLOW);
+      oceanGrad.addColorStop(0.9, COLORS.OCEAN_DEEP);
       oceanGrad.addColorStop(1, '#000');
       ctx.fillStyle = oceanGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      const specGrad = ctx.createRadialGradient(cx - radius * 0.5, cy - radius * 0.5, radius * 0.1, cx - radius * 0.5, cy - radius * 0.5, radius * 0.8);
-      specGrad.addColorStop(0, 'rgba(255,255,255,0.08)');
+      // Advanced Specular Reflection
+      const specGrad = ctx.createRadialGradient(cx - radius * 0.5, cy - radius * 0.5, radius * 0.05, cx - radius * 0.5, cy - radius * 0.5, radius * 0.9);
+      specGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
+      specGrad.addColorStop(0.4, 'rgba(255,255,255,0.03)');
       specGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = specGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
@@ -250,21 +307,34 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
             } else {
               const t = elapsed / 1500;
               ctx.fillStyle = elapsed < 50 ? '#fff' : d3.interpolateRgb(COLORS.GOLD, isIce ? COLORS.ICE : COLORS.LAND)(t);
-              ctx.shadowBlur = (isMobile ? 25 : 50) * (1 - t); ctx.shadowColor = COLORS.GOLD;
+              ctx.shadowBlur = (isMobile ? 35 : 70) * (1 - t); ctx.shadowColor = COLORS.GOLD;
             }
           } else {
             ctx.fillStyle = isIce ? COLORS.ICE : COLORS.LAND;
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
-          ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 0.4; ctx.stroke();
+          
+          // Enhanced Coastline Definition
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)'; 
+          ctx.lineWidth = 0.6; 
+          ctx.stroke();
         }
       });
 
-      const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius);
+      // Ambient Shadowing and Rim Highlight
+      const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
-      rimGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+      rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
+      rimGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
       ctx.fillStyle = rimGrad; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+
+      // Final Atmospheric Edge Rim (Thin white line on the lit side)
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, -Math.PI/2, Math.PI/2, true);
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       animId = requestAnimationFrame(render);
     };
@@ -339,7 +409,7 @@ const App: React.FC = () => {
               className="text-[16vw] md:text-[9vw] font-black tabular-nums leading-none block" 
               style={{ 
                 color: COLORS.GOLD, 
-                textShadow: '0 0 60px rgba(255,215,0,0.4)',
+                textShadow: '0 0 60px rgba(255,215,0,0.5)',
                 fontFamily: "'Anton', sans-serif",
                 letterSpacing: '0.08em'
               }}
@@ -369,7 +439,7 @@ const App: React.FC = () => {
                   }}
                 >
                   <div className="w-px h-4 bg-white/30"></div>
-                  <div className="bg-[#0f172a] border border-white/20 px-4 py-2 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] flex items-center justify-center min-w-[95px]">
+                  <div className="bg-[#0f172a] border border-white/20 px-4 py-2 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.7)] flex items-center justify-center min-w-[95px]">
                     <span className="text-white font-mono text-[14px] md:text-[18px] font-bold tracking-tight">{timeState.label}</span>
                   </div>
                 </div>
