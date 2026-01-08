@@ -18,9 +18,124 @@ const COLORS = {
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)', 
 };
 
+// Generate randomized star data once
+const STAR_COUNT = 250;
+const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
+  id: i,
+  top: `${Math.random() * 100}%`,
+  left: `${Math.random() * 100}%`,
+  size: Math.random() * 2 + 1,
+  delay: `${Math.random() * 5}s`,
+  duration: `${2 + Math.random() * 4}s`,
+  opacity: 0.3 + Math.random() * 0.7,
+}));
+
+// Generate randomized pacifier data for background
+const PACIFIER_COUNT = 14;
+const PACIFIERS = Array.from({ length: PACIFIER_COUNT }).map((_, i) => ({
+  id: i,
+  startX: Math.random() * 100,
+  startY: Math.random() * 100,
+  size: 30 + Math.random() * 40,
+  duration: 8 + Math.random() * 12, // High speed
+  driftX: (Math.random() - 0.5) * 80,
+  driftY: (Math.random() - 0.5) * 80,
+  rotation: Math.random() * 360,
+  rotationSpeed: (Math.random() - 0.5) * 1440, // High rotation
+}));
+
+const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 100 100" 
+    style={{ 
+      filter: `drop-shadow(0 0 15px ${color}) drop-shadow(0 0 5px white)`,
+      opacity: 0.8
+    }}
+  >
+    <defs>
+      <linearGradient id="pacifierGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="white" />
+        <stop offset="50%" stopColor={color} />
+        <stop offset="100%" stopColor={color} stopOpacity="0.8" />
+      </linearGradient>
+    </defs>
+    {/* Handle / Ring - Matching reference shape */}
+    <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="7" />
+    {/* Shield - Wide pill shape */}
+    <rect x="10" y="38" width="80" height="20" rx="10" fill="url(#pacifierGrad)" />
+    {/* Nipple - Bulbous shape */}
+    <path fill="url(#pacifierGrad)" d="M35 58 C 35 58, 30 92, 50 92 C 70 92, 65 58, 65 58 Z" />
+  </svg>
+);
+
 const SpaceBackground: React.FC = () => {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000105]">
+      {/* Dynamic CSS for animations */}
+      <style>{`
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+        @keyframes cometPath {
+          0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+          15% { opacity: 0.8; }
+          85% { opacity: 0.8; }
+          100% { transform: translate(var(--driftX), var(--driftY)) rotate(var(--rotFull)); opacity: 0; }
+        }
+        .star {
+          position: absolute;
+          background: white;
+          border-radius: 50%;
+          filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));
+          animation: twinkle var(--duration) ease-in-out infinite;
+          animation-delay: var(--delay);
+        }
+        .pacifier-comet {
+          position: absolute;
+          animation: cometPath var(--duration) linear infinite;
+        }
+      `}</style>
+
+      {/* Star Field */}
+      {STARS.map((star) => (
+        <div
+          key={star.id}
+          className="star"
+          style={{
+            top: star.top,
+            left: star.left,
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            opacity: star.opacity,
+            // @ts-ignore
+            '--delay': star.delay,
+            '--duration': star.duration,
+          }}
+        />
+      ))}
+
+      {/* Pacifier "Comets" */}
+      {PACIFIERS.map((p) => (
+        <div
+          key={p.id}
+          className="pacifier-comet"
+          style={{
+            top: `${p.startY}%`,
+            left: `${p.startX}%`,
+            // @ts-ignore
+            '--driftX': `${p.driftX}vw`,
+            '--driftY': `${p.driftY}vh`,
+            '--duration': `${p.duration}s`,
+            '--rotFull': `${p.rotation + p.rotationSpeed}deg`,
+          }}
+        >
+          <PacifierIcon size={p.size} color={COLORS.BLUE} />
+        </div>
+      ))}
+
       {/* Cinematic dark void with very subtle gradient for depth */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_50%,rgba(8,26,61,0.25)_0%,transparent_70%)]"></div>
     </div>
@@ -87,7 +202,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const isLarge = w > 1024;
-      // Globe positioning: shifted slightly left (cx 0.65)
       const radius = isLarge ? h * 0.46 : h * 0.4;
       const cx = isLarge ? w * 0.65 : w * 0.5;
       const cy = isLarge ? h * 0.5 : h * 0.4;
@@ -145,7 +259,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               ctx.fillStyle = landBase;
             } else {
               const t = elapsed / 1800;
-              // Flash goes from Gold back to landBase
               const flashCol = d3.interpolateRgb(COLORS.GOLD, landBase)(t);
               ctx.fillStyle = flashCol;
               ctx.shadowBlur = 40 * (1 - t); 
@@ -157,7 +270,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          // Border visibility
           ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.02, 0.2 - edgeFade * 0.15)})`; 
           ctx.lineWidth = 0.6; 
           ctx.stroke();
@@ -254,9 +366,8 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Timeline & Stats - Moved time below progress bar */}
+          {/* Timeline & Stats */}
           <div className="w-full max-w-[320px] md:max-w-[420px] mt-4 relative">
-            {/* Progress bar */}
             <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/10">
               <div 
                 className="h-full bg-gradient-to-r from-sky-500 via-sky-400 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(56,189,248,0.5)]"
@@ -264,7 +375,6 @@ const App: React.FC = () => {
               />
             </div>
 
-            {/* Time Marker positioned below bar */}
             <div 
               className="mt-2 flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ marginLeft: `${timeState.pct}%`, transform: 'translateX(-50%)', width: 'fit-content' }}
