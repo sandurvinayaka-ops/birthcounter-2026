@@ -340,12 +340,13 @@ const App: React.FC = () => {
       {/* Overlays Optimized for 45" TV */}
       <div className="absolute inset-0 z-20 flex flex-col justify-between p-16 md:p-20 pointer-events-none">
         
-        {/* Top Header Branding Only */}
+        {/* Top Header Branding Only - Updated colors as per request */}
         <div className="flex justify-between items-start w-full">
           <div className="flex flex-col">
             <span className="text-4xl md:text-6xl font-black tracking-tighter drop-shadow-[0_0_15px_rgba(56,189,248,0.4)]">
-              <span className="text-sky-500">M&C</span>
-              <span className="text-white">C</span>
+              <span className="text-white">M</span>
+              <span className="text-sky-500">&</span>
+              <span className="text-white">CC</span>
             </span>
             <div className="w-10 h-1 bg-sky-500 mt-2 rounded-full opacity-60"></div>
           </div>
