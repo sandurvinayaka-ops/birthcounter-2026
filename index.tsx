@@ -8,40 +8,38 @@ const AUTO_ROTATION_SPEED = 0.45;
 const FRICTION = 0.985; 
 const MEDITERRANEAN_LATITUDE = -38; 
 const COLORS = {
-  LAND: '#3e5c76',      // Base land color
-  LAND_LIT: '#748cab',  // Highlight shade for land
+  LAND: '#3e5c76',      
+  LAND_LIT: '#748cab',  
   OCEAN_DEEP: '#01040a',
   OCEAN_SHALLOW: '#0a1d47',
   OCEAN_BRIGHT: '#1e40af',
-  GOLD: '#fbbf24',      // Flash color
+  GOLD: '#fbbf24',      
   BLUE: '#38bdf8',      
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)', 
 };
 
-// Generate randomized star data once
-const STAR_COUNT = 250;
+const STAR_COUNT = 300;
 const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
-  size: Math.random() * 2 + 1,
+  size: Math.random() * 2.5 + 1,
   delay: `${Math.random() * 5}s`,
   duration: `${2 + Math.random() * 4}s`,
   opacity: 0.3 + Math.random() * 0.7,
 }));
 
-// Generate randomized pacifier data for background
-const PACIFIER_COUNT = 14;
+const PACIFIER_COUNT = 16;
 const PACIFIERS = Array.from({ length: PACIFIER_COUNT }).map((_, i) => ({
   id: i,
   startX: Math.random() * 100,
   startY: Math.random() * 100,
-  size: 30 + Math.random() * 40,
-  duration: 8 + Math.random() * 12, // High speed
-  driftX: (Math.random() - 0.5) * 80,
-  driftY: (Math.random() - 0.5) * 80,
+  size: 40 + Math.random() * 50, 
+  duration: 10 + Math.random() * 15, 
+  driftX: (Math.random() - 0.5) * 100,
+  driftY: (Math.random() - 0.5) * 100,
   rotation: Math.random() * 360,
-  rotationSpeed: (Math.random() - 0.5) * 1440, // High rotation
+  rotationSpeed: (Math.random() - 0.5) * 1800, 
 }));
 
 const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
@@ -50,8 +48,8 @@ const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
     height={size} 
     viewBox="0 0 100 100" 
     style={{ 
-      filter: `drop-shadow(0 0 15px ${color}) drop-shadow(0 0 5px white)`,
-      opacity: 0.8
+      filter: `drop-shadow(0 0 20px ${color}) drop-shadow(0 0 8px white)`,
+      opacity: 0.7
     }}
   >
     <defs>
@@ -61,11 +59,8 @@ const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
         <stop offset="100%" stopColor={color} stopOpacity="0.8" />
       </linearGradient>
     </defs>
-    {/* Handle / Ring - Matching reference shape */}
-    <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="7" />
-    {/* Shield - Wide pill shape */}
+    <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="8" />
     <rect x="10" y="38" width="80" height="20" rx="10" fill="url(#pacifierGrad)" />
-    {/* Nipple - Bulbous shape */}
     <path fill="url(#pacifierGrad)" d="M35 58 C 35 58, 30 92, 50 92 C 70 92, 65 58, 65 58 Z" />
   </svg>
 );
@@ -73,7 +68,6 @@ const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
 const SpaceBackground: React.FC = () => {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000105]">
-      {/* Dynamic CSS for animations */}
       <style>{`
         @keyframes twinkle {
           0%, 100% { opacity: 0.3; transform: scale(1); }
@@ -99,7 +93,6 @@ const SpaceBackground: React.FC = () => {
         }
       `}</style>
 
-      {/* Star Field */}
       {STARS.map((star) => (
         <div
           key={star.id}
@@ -117,7 +110,6 @@ const SpaceBackground: React.FC = () => {
         />
       ))}
 
-      {/* Pacifier "Comets" */}
       {PACIFIERS.map((p) => (
         <div
           key={p.id}
@@ -136,8 +128,7 @@ const SpaceBackground: React.FC = () => {
         </div>
       ))}
 
-      {/* Cinematic dark void with very subtle gradient for depth */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_50%,rgba(8,26,61,0.25)_0%,transparent_70%)]"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_50%,rgba(8,26,61,0.3)_0%,transparent_70%)]"></div>
     </div>
   );
 };
@@ -201,10 +192,9 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      const isLarge = w > 1024;
-      const radius = isLarge ? h * 0.46 : h * 0.4;
-      const cx = isLarge ? w * 0.65 : w * 0.5;
-      const cy = isLarge ? h * 0.5 : h * 0.4;
+      const radius = h * 0.48; 
+      const cx = w * 0.62;
+      const cy = h * 0.48;
 
       ctx.clearRect(0, 0, w, h);
       
@@ -226,11 +216,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 150);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 200);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.15)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 150, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 200, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -261,7 +251,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               const t = elapsed / 1800;
               const flashCol = d3.interpolateRgb(COLORS.GOLD, landBase)(t);
               ctx.fillStyle = flashCol;
-              ctx.shadowBlur = 40 * (1 - t); 
+              ctx.shadowBlur = 60 * (1 - t); 
               ctx.shadowColor = COLORS.GOLD;
             }
           } else {
@@ -270,8 +260,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.02, 0.2 - edgeFade * 0.15)})`; 
-          ctx.lineWidth = 0.6; 
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.02, 0.25 - edgeFade * 0.15)})`; 
+          ctx.lineWidth = 1.0; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
@@ -279,7 +269,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       const rim = ctx.createRadialGradient(cx, cy, radius * 0.85, cx, cy, radius);
       rim.addColorStop(0, 'transparent');
-      rim.addColorStop(1, 'rgba(0,0,0,0.6)');
+      rim.addColorStop(1, 'rgba(0,0,0,0.7)');
       ctx.fillStyle = rim; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       animId = requestAnimationFrame(render);
@@ -352,36 +342,75 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Broadcast UI Overlays */}
-      <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 md:p-16 lg:p-24 pointer-events-none">
-        <div className="w-full flex flex-col items-start gap-2">
+      {/* Cinematic Overlays Optimized for 45" TV */}
+      <div className="absolute inset-0 z-20 flex flex-col justify-between p-16 md:p-24 pointer-events-none">
+        
+        {/* Top Header Section */}
+        <div className="flex justify-between items-start w-full">
+          <div className="flex flex-col">
+            <span className="text-6xl md:text-8xl font-black tracking-tighter drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]">
+              <span className="text-sky-500">M&C</span>
+              <span className="text-white">C</span>
+            </span>
+          </div>
           
-          {/* Main Title Block */}
-          <div className="flex flex-col gap-0 mb-1 max-w-full">
-            <span className="text-sky-400 font-bold uppercase tracking-[0.4em] text-lg md:text-2xl ml-1 drop-shadow-lg">Total Births Today</span>
-            <div className="flex items-baseline gap-4">
-              <span className="text-[12vw] md:text-[8vw] font-black leading-tight drop-shadow-[0_0_80px_rgba(251,191,36,0.3)]" style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD }}>
+          <div className="flex flex-col items-end">
+            <div className="bg-white/5 backdrop-blur-3xl border border-white/10 px-10 py-6 rounded-2xl shadow-2xl flex flex-col items-end">
+               <span className="text-sky-300 font-bold uppercase tracking-widest text-lg mb-1">Live Server Time</span>
+               <span className="text-white font-mono text-5xl md:text-6xl font-black tracking-tighter tabular-nums">
+                {timeState.label}
+               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Center/Bottom Data Section */}
+        <div className="w-full flex flex-col items-start gap-8">
+          
+          <div className="flex flex-col gap-2 max-w-full">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-4 h-4 rounded-full bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,1)]"></div>
+              <span className="text-sky-400 font-bold uppercase tracking-[0.5em] text-2xl md:text-3xl drop-shadow-lg">Total Births Today</span>
+            </div>
+            
+            <div className="flex items-baseline gap-6">
+              <span 
+                className="text-[14vw] font-black leading-none drop-shadow-[0_0_100px_rgba(251,191,36,0.4)] transition-all duration-300" 
+                style={{ fontFamily: "'Anton', sans-serif", color: COLORS.GOLD, textShadow: `0 0 50px ${COLORS.GOLD}33` }}
+              >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
               </span>
             </div>
           </div>
 
-          {/* Timeline & Stats */}
-          <div className="w-full max-w-[320px] md:max-w-[420px] mt-4 relative">
-            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/10">
+          {/* Reduced Width TV-Style Progress Bar (50%) */}
+          <div className="w-1/2 max-w-[600px] mt-8 relative">
+            <div className="flex justify-between items-end mb-4 px-2">
+              <span className="text-sky-400 font-bold uppercase tracking-widest text-lg">Daily Cycle</span>
+              <span className="text-white/60 font-mono text-xl">{Math.floor(timeState.pct)}%</span>
+            </div>
+            
+            <div className="h-6 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
               <div 
-                className="h-full bg-gradient-to-r from-sky-500 via-sky-400 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(56,189,248,0.5)]"
+                className="h-full bg-gradient-to-r from-sky-600 via-sky-400 to-amber-400 transition-all duration-1000 ease-linear shadow-[0_0_30px_rgba(56,189,248,0.6)]"
                 style={{ width: `${timeState.pct}%` }}
               />
+              {/* Grid markers */}
+              <div className="absolute inset-0 flex justify-between px-1 pointer-events-none opacity-20">
+                {[...Array(12)].map((_, i) => (
+                  <div key={i} className="w-px h-full bg-white"></div>
+                ))}
+              </div>
             </div>
-
+            
+            {/* Dynamic Time Display below current progress */}
             <div 
-              className="mt-2 flex flex-col items-center transition-all duration-1000 ease-linear"
-              style={{ marginLeft: `${timeState.pct}%`, transform: 'translateX(-50%)', width: 'fit-content' }}
+              className="absolute top-full mt-4 flex flex-col items-center transition-all duration-1000 ease-linear"
+              style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="w-px h-4 bg-sky-400/80 mb-1 shadow-[0_0_12px_rgba(56,189,248,1)]"></div>
-              <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-lg shadow-2xl">
-                <span className="text-white font-mono text-lg md:text-xl font-black tracking-tight whitespace-nowrap drop-shadow-lg">
+              <div className="w-px h-10 bg-sky-400 shadow-[0_0_15px_rgba(56,189,248,1)]"></div>
+              <div className="bg-sky-500/10 backdrop-blur-xl border border-sky-500/30 px-6 py-3 rounded-xl shadow-2xl mt-2">
+                <span className="text-sky-400 font-mono text-3xl md:text-4xl font-black tracking-tight whitespace-nowrap drop-shadow-lg">
                   {timeState.label}
                 </span>
               </div>
@@ -390,19 +419,13 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Branding Logo */}
-      <div className="absolute top-8 left-8 md:top-12 md:left-12 z-30 pointer-events-none">
-        <div className="flex flex-col">
-          <span className="text-4xl md:text-6xl font-black tracking-tighter drop-shadow-2xl">
-            <span className="text-sky-500">M&C</span>
-            <span className="text-white">C</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Aesthetic Film Grain / Vignette */}
-      <div className="absolute inset-0 pointer-events-none z-50 mix-blend-overlay opacity-10" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/carbon-fibre.png")' }}></div>
-      <div className="absolute inset-0 pointer-events-none z-50 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]"></div>
+      {/* High-Resolution Aesthetic Overlays */}
+      <div className="absolute inset-0 pointer-events-none z-50 mix-blend-overlay opacity-15" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/carbon-fibre.png")' }}></div>
+      <div className="absolute inset-0 pointer-events-none z-50 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.5)_100%)]"></div>
+      
+      {/* Dashboard Frames */}
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/80 to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };
