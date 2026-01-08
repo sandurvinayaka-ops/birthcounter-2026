@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const ROTATION_SPEED = 0.045; // Units per millisecond for smoother time-based rotation
+const ROTATION_SPEED = 0.012; // Decreased for a smoother, slower cinematic drift
 const COLORS = {
   LAND: '#3d4a5e',      
   ICE: '#ffffff',       
@@ -411,14 +411,10 @@ const App: React.FC = () => {
       </div>
 
       <div className="absolute top-8 left-8 md:top-12 md:left-24 z-30 pointer-events-none opacity-90">
-        <div className="flex items-center gap-4">
-          <img 
-            src="https://img.icons8.com/ios-filled/100/ffffff/stork.png" 
-            alt="M&CC Logo" 
-            className="w-8 h-8 md:w-12 md:h-12 object-contain"
-            style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.5))' }}
-          />
-          <p className="font-black text-lg md:text-3xl tracking-tighter text-white">M&<span style={{ color: COLORS.GOLD }}>CC</span></p>
+        <div className="flex items-center gap-2">
+          <p className="font-black text-lg md:text-3xl tracking-tighter" style={{ color: COLORS.GOLD }}>
+            M&C<span className="text-white">C</span>
+          </p>
         </div>
       </div>
     </div>
