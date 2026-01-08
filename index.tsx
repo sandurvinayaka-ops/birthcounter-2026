@@ -4,8 +4,8 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.012; // Increased from 0.006 to 0.012 (1 level more)
-const FRICTION = 0.96; // Slightly higher friction for more controlled inertia
+const AUTO_ROTATION_SPEED = 0.025; // Increased further for more dynamic energy
+const FRICTION = 0.98; // Lower friction for longer, smoother inertia trails
 const COLORS = {
   LAND: '#3d4a5e',      
   ICE: '#ffffff',       
@@ -205,11 +205,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       .on('drag', (event) => {
         const dx = event.dx / dpr;
         const dy = event.dy / dpr;
-        // Immediate response
-        rotationRef.current[0] += dx * 0.4;
-        rotationRef.current[1] -= dy * 0.4;
-        // Tracking velocity for inertia
-        velocityRef.current = [dx * 0.5, dy * 0.5];
+        // High-responsiveness drag
+        rotationRef.current[0] += dx * 0.45;
+        rotationRef.current[1] -= dy * 0.45;
+        // Tracking velocity for elegant inertia transitions
+        velocityRef.current = [dx * 0.6, dy * 0.6];
       })
       .on('end', () => { 
         isDraggingRef.current = false; 
@@ -224,9 +224,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         return;
       }
       
-      // Calculate delta time and cap it to prevent jumps
       let deltaTime = time - lastTimeRef.current;
-      if (deltaTime > 100) deltaTime = 16.7; // Cap delta if frame took too long (e.g. background tab)
+      if (deltaTime > 100) deltaTime = 16.7; // Precision cap for tab switching
       lastTimeRef.current = time;
       
       const w = canvas.width / dpr;
@@ -242,20 +241,21 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       ctx.clearRect(0, 0, w, h);
       
-      // Ultra-smooth rotation logic with enhanced auto-speed and inertia
+      // Advanced rotation with inertia hand-off and increased auto-speed
       if (!isDraggingRef.current) {
-        // Inherit drag velocity then decay
+        // Apply inertia velocity
         rotationRef.current[0] += velocityRef.current[0];
         rotationRef.current[1] += velocityRef.current[1];
         
+        // Decay inertia velocity towards zero
         velocityRef.current[0] *= FRICTION;
         velocityRef.current[1] *= FRICTION;
         
-        // Base auto-rotation
+        // Steady-state auto-rotation (increased level)
         rotationRef.current[0] += AUTO_ROTATION_SPEED * deltaTime;
         
-        // Gently snap vertical tilt back to cinematic default (-15)
-        rotationRef.current[1] += (-15 - rotationRef.current[1]) * 0.015;
+        // Smoothly realign to horizontal axis over time (snapping phi back to -15)
+        rotationRef.current[1] += (-15 - rotationRef.current[1]) * 0.012;
       }
 
       const projection = d3.geoOrthographic()
@@ -324,7 +324,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         }
       });
 
-      // 4. Lighting FX
+      // 4. Rim Lighting & Specular FX
       const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
       rimGrad.addColorStop(0, 'transparent');
       rimGrad.addColorStop(0.9, 'rgba(0,0,0,0.6)');
