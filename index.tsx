@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352; 
-const AUTO_ROTATION_SPEED = 0.06; 
+const AUTO_ROTATION_SPEED = 0.12; // Increased rotation speed (2 steps up from 0.06)
 const FRICTION = 0.98; 
 const INITIAL_PHI = -25; 
 const COLORS = {
@@ -201,29 +201,21 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       const isLarge = w > 1024;
       
-      // Radius target is 30% of height (60% diameter)
       const radius = h * 0.3;
-
-      // Calculate horizontal position to be "next to" the dashboard
-      // Dashboard is roughly 34% width. We want the globe centered in the remaining 66%.
-      // But user said "bring it next to", so we shift it closer to that 34% boundary.
       const boundaryX = w * 0.34;
-      const availableWidth = w - boundaryX;
-      
-      // We position it so its left limb is roughly near the boundary with a small gap
-      const gap = w * 0.05; // 5% of screen width as a comfortable breathing space
+      const gap = w * 0.05; 
       let cx = boundaryX + radius + gap;
       
-      // Ensure the globe doesn't go off the right edge of the screen
       const maxCX = w - radius - (w * 0.02);
       if (cx > maxCX) cx = maxCX;
 
-      // Mobile centering fallback
       if (!isLarge) {
         cx = w / 2;
       }
 
-      const cy = h / 2;
+      // Shift globe vertically upwards by ~2cm (approx 75px at 96dpi)
+      const verticalOffset = 75; 
+      const cy = (h / 2) - verticalOffset;
       
       ctx.clearRect(0, 0, w, h);
       
@@ -243,7 +235,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // ATMOSPHERE GLOW
       const auraRadius = radius * 1.5;
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, auraRadius);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
@@ -252,14 +243,12 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, auraRadius, 0, Math.PI * 2); ctx.fill();
 
-      // OCEAN RADIAL GRADIENT
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.05, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.4, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // CURVATURE HIGHLIGHT
       const specular = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.0);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
@@ -373,7 +362,6 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Branding Logo - Refined Size */}
       <div className="absolute top-8 left-10 md:top-10 md:left-14 z-30 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-2xl md:text-3xl lg:text-4xl leading-none">
@@ -385,17 +373,14 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Counter Dashboard - Adjusted Scale & Layout */}
       <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-10 md:pl-16 pointer-events-none w-full max-w-[34%]">
         <div className="flex flex-col items-start gap-0">
           
-          {/* Header */}
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)] animate-pulse"></div>
             <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-[10px] md:text-base opacity-90">Birth Count Today</span>
           </div>
           
-          {/* Counter Numbers */}
           <div className="flex items-baseline mb-4">
             <span 
               className="text-[8vw] font-black leading-none tabular-nums inline-block" 
@@ -409,14 +394,12 @@ const App: React.FC = () => {
             </span>
           </div>
 
-          {/* Progress Bar Area */}
           <div className="w-full max-w-[420px] relative">
             <div className="flex justify-between items-end mb-1 px-1">
               <span className="text-sky-400 font-black uppercase tracking-[0.15em] text-[8px] md:text-[11px] opacity-70">Daily Cycle</span>
               <span className="text-white/40 font-mono text-[8px] md:text-[11px] tabular-nums font-bold tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
             
-            {/* The Bar */}
             <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
               <div 
                 className="h-full rounded-full transition-all duration-1000 ease-linear"
@@ -428,7 +411,6 @@ const App: React.FC = () => {
               />
             </div>
             
-            {/* Clock Box */}
             <div className="mt-4 flex justify-center w-full">
               <div className="bg-black/90 border border-white/20 px-4 py-1.5 rounded-md shadow-2xl backdrop-blur-xl">
                 <span className="font-mono text-[12px] md:text-[18px] font-extrabold tracking-[0.1em] tabular-nums text-white leading-none">
@@ -440,7 +422,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Cinematic Vignette */}
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none"></div>
     </div>
