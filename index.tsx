@@ -15,11 +15,12 @@ const COLORS = {
   OCEAN_SHALLOW: '#0a215e',
   OCEAN_BRIGHT: '#1a4fc2',
   SPECULAR: 'rgba(255, 255, 255, 0.5)', 
-  // Enhanced "Master" Gold palette
+  // ENHANCED GOLD PALETTE
   GOLD_PREMIUM: '#FFD700', 
-  GOLD_DEEP: '#B8860B',
-  GOLD_BRIGHT: '#FFF7AD',
-  GOLD_GLOW: 'rgba(255, 215, 0, 0.5)',
+  GOLD_DEEP: '#8B6B10',
+  GOLD_BRIGHT: '#FFFBD5',
+  GOLD_GLOW: 'rgba(255, 215, 0, 0.7)',
+  GOLD_GLOW_SOFT: 'rgba(255, 180, 0, 0.3)',
   BLUE: '#38bdf8',      
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.3)', 
 };
@@ -39,8 +40,8 @@ const PACIFIERS = Array.from({ length: 12 }).map((_, i) => ({
   id: i,
   startX: Math.random() * 100,
   startY: Math.random() * 100,
-  size: 8 + Math.random() * 12, 
-  duration: 8 + Math.random() * 12, 
+  size: 10 + Math.random() * 14, 
+  duration: 10 + Math.random() * 14, 
   driftX: (Math.random() - 0.5) * 120, 
   driftY: (Math.random() - 0.5) * 120,
   rotation: Math.random() * 360,
@@ -49,31 +50,41 @@ const PACIFIERS = Array.from({ length: 12 }).map((_, i) => ({
 
 const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
   <div style={{ position: 'relative', width: size, height: size }}>
+    {/* Enhanced Glow Aura */}
+    <div style={{
+      position: 'absolute',
+      inset: '-20px',
+      background: `radial-gradient(circle, ${color}66 0%, ${color}11 40%, transparent 70%)`,
+      borderRadius: '50%',
+      filter: 'blur(8px)',
+      animation: 'pacifierPulse 4s ease-in-out infinite'
+    }} />
     <div style={{
       position: 'absolute',
       inset: '-10px',
-      background: `radial-gradient(circle, ${color}33 0%, transparent 70%)`,
+      background: `radial-gradient(circle, white 0%, transparent 60%)`,
       borderRadius: '50%',
       filter: 'blur(4px)',
-      animation: 'pacifierPulse 4s ease-in-out infinite'
+      opacity: 0.4,
+      animation: 'pacifierPulse 4s ease-in-out infinite reverse'
     }} />
     <svg 
       width={size} 
       height={size} 
       viewBox="0 0 100 100" 
       style={{ 
-        filter: `drop-shadow(0 0 8px ${color})`,
-        opacity: 0.7
+        filter: `drop-shadow(0 0 12px ${color}) drop-shadow(0 0 4px white)`,
+        opacity: 0.9
       }}
     >
       <defs>
         <linearGradient id="pacifierGrad" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="white" />
           <stop offset="50%" stopColor={color} />
-          <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.8" />
         </linearGradient>
       </defs>
-      <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="6" />
+      <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="8" />
       <rect x="10" y="38" width="80" height="20" rx="10" fill="url(#pacifierGrad)" />
       <path fill="url(#pacifierGrad)" d="M35 58 C 35 58, 30 92, 50 92 C 70 92, 65 58, 65 58 Z" />
     </svg>
@@ -95,8 +106,12 @@ const SpaceBackground: React.FC = () => {
           100% { transform: translate(var(--driftX), var(--driftY)) rotate(var(--rotFull)); opacity: 0; }
         }
         @keyframes pacifierPulse {
-          0%, 100% { transform: scale(1); opacity: 0.2; }
-          50% { transform: scale(1.3); opacity: 0.4; }
+          0%, 100% { transform: scale(1); opacity: 0.4; }
+          50% { transform: scale(1.4); opacity: 0.7; }
+        }
+        @keyframes goldShine {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
         }
         .star {
           position: absolute;
@@ -207,14 +222,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      // DYNAMIC POSITIONING to avoid overlapping text on large screens
-      // UI panel is max-w-[45%]. So we center globe in the remaining [45% - 100%]
-      // Midpoint: (0.45 + 1.0) / 2 = 0.725
       const isLarge = w > 1200;
       const cx = isLarge ? w * 0.73 : w * 0.50; 
       const cy = h * 0.50; 
       
-      // Radius safety: ensure it fits the remaining horizontal box and full vertical box
       const maxWidthForGlobe = isLarge ? w * 0.52 : w * 0.95;
       const radius = Math.min((maxWidthForGlobe / 2) - 40, (h / 2) - 60);
 
@@ -396,11 +407,20 @@ const App: React.FC = () => {
                 className="text-[8vw] font-black leading-none transition-all duration-300 tabular-nums select-all inline-block" 
                 style={{ 
                   fontFamily: "'Anton', sans-serif", 
-                  // ENHANCED GOLD GRADIENT
-                  background: `linear-gradient(to bottom, ${COLORS.GOLD_BRIGHT} 0%, ${COLORS.GOLD_PREMIUM} 45%, ${COLORS.GOLD_DEEP} 100%)`,
+                  // FURTHER ENHANCED METALLIC GOLD
+                  background: `linear-gradient(to bottom, 
+                    ${COLORS.GOLD_BRIGHT} 0%, 
+                    ${COLORS.GOLD_PREMIUM} 40%, 
+                    ${COLORS.GOLD_DEEP} 60%, 
+                    ${COLORS.GOLD_PREMIUM} 85%, 
+                    ${COLORS.GOLD_DEEP} 100%
+                  )`,
+                  backgroundSize: '200% auto',
+                  animation: 'goldShine 8s linear infinite',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
-                  filter: `drop-shadow(0 0 20px ${COLORS.GOLD_GLOW})`
+                  // RICH LAYERED GLOW
+                  filter: `drop-shadow(0 0 15px ${COLORS.GOLD_GLOW}) drop-shadow(0 0 40px ${COLORS.GOLD_GLOW_SOFT})`
                 }}
               >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
@@ -408,7 +428,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Progress Indicator - Closest to numbers */}
+          {/* Progress Indicator */}
           <div className="w-full max-w-[480px] mt-1 relative">
             <div className="flex justify-between items-end mb-1 px-1">
               <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] md:text-[13px] opacity-60">Daily Cycle</span>
@@ -425,7 +445,7 @@ const App: React.FC = () => {
               />
             </div>
             
-            {/* Time Marker - Smaller White Font */}
+            {/* Time Marker */}
             <div 
               className="absolute top-full flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
@@ -441,7 +461,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Decorative Gradients */}
       <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/100 via-black/30 to-transparent z-10 pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/100 via-black/30 to-transparent z-10 pointer-events-none"></div>
     </div>
