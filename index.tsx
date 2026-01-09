@@ -5,24 +5,22 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352; 
-const AUTO_ROTATION_SPEED = 0.12; // Increased rotation speed (2 steps up from 0.06)
+const AUTO_ROTATION_SPEED = 0.12; 
 const FRICTION = 0.98; 
 const INITIAL_PHI = -25; 
 const COLORS = {
-  LAND: '#0a101d',      
-  LAND_LIT: '#25334d',  
+  LAND: '#111827',      // Slightly brighter and more neutral for better definition
+  LAND_LIT: '#374151',  // Clearer highlight for topography
   ICE: '#ffffff',       
-  OCEAN_DEEP: '#01050d',
-  OCEAN_SHALLOW: '#0a2a60',
-  OCEAN_BRIGHT: '#1e4fd2', 
-  SPECULAR: 'rgba(255, 255, 255, 0.45)', 
+  OCEAN_DEEP: '#020617', // Darker oceans for maximum land contrast
+  OCEAN_SHALLOW: '#0f172a',
+  OCEAN_BRIGHT: '#1e3a8a', 
+  SPECULAR: 'rgba(255, 255, 255, 0.3)', // Subdued specular to keep focus on land
   GOLD_SOLID: '#facc15', 
   GOLD_DEEP: '#a16207',
   GOLD_GLOW: 'rgba(250, 204, 21, 0.6)',
-  COMET_CORE: '#ffffff', 
-  COMET_TRAIL: 'rgba(56, 189, 248, 0.3)',
   BLUE_ATMOSPHERE: '#0ea5e9', 
-  ATMOSPHERE_INNER: 'rgba(14, 165, 233, 0.75)', 
+  ATMOSPHERE_INNER: 'rgba(14, 165, 233, 0.35)', // Reduced alpha for less glow
 };
 
 const STAR_COUNT = 350; 
@@ -201,7 +199,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       const isLarge = w > 1024;
       
-      const radius = h * 0.3;
+      // Globe size increased by 10% (0.3 * 1.1 = 0.33)
+      const radius = h * 0.33;
       const boundaryX = w * 0.34;
       const gap = w * 0.05; 
       let cx = boundaryX + radius + gap;
@@ -213,7 +212,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         cx = w / 2;
       }
 
-      // Shift globe vertically upwards by ~2cm (approx 75px at 96dpi)
       const verticalOffset = 75; 
       const cy = (h / 2) - verticalOffset;
       
@@ -235,20 +233,23 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const auraRadius = radius * 1.5;
+      // REDUCED ATMOSPHERE GLOW (Smaller radius and lower alpha)
+      const auraRadius = radius * 1.25;
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, auraRadius);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.2, 'rgba(14, 165, 233, 0.4)');
-      aura.addColorStop(0.6, 'rgba(14, 165, 233, 0.05)');
+      aura.addColorStop(0.3, 'rgba(14, 165, 233, 0.15)');
+      aura.addColorStop(0.7, 'rgba(14, 165, 233, 0.02)');
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, auraRadius, 0, Math.PI * 2); ctx.fill();
 
+      // DARKER OCEAN RADIAL GRADIENT
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.05, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
-      ocean.addColorStop(0.4, COLORS.OCEAN_SHALLOW);
+      ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
+      // SUBDUED SPECULAR
       const specular = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.0);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
@@ -283,13 +284,15 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               ctx.shadowColor = COLORS.GOLD_SOLID;
             }
           } else {
+            // ENHANCED LAND VISIBILITY (More contrast between shaded and lit sides)
             const landBase = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
             ctx.fillStyle = d3.interpolateRgb(landBase, COLORS.OCEAN_DEEP)(Math.min(1, edgeFade));
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
-          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.06, 0.18 - edgeFade * 0.15)})`; 
-          ctx.lineWidth = 0.4; 
+          // Sharper borders
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.1, 0.25 - edgeFade * 0.2)})`; 
+          ctx.lineWidth = 0.5; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
