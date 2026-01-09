@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as d3 from 'd3';
 
 // --- Configuration ---
-const BIRTHS_PER_SECOND = 4.35;
+const BIRTHS_PER_SECOND = 4.352; 
 const AUTO_ROTATION_SPEED = 0.15; 
 const FRICTION = 0.96; 
 const MEDITERRANEAN_LATITUDE = -38; 
@@ -15,13 +16,14 @@ const COLORS = {
   OCEAN_SHALLOW: '#0a215e',
   OCEAN_BRIGHT: '#1a4fc2',
   SPECULAR: 'rgba(255, 255, 255, 0.5)', 
-  // PREMIUM STABLE GOLD PALETTE
-  GOLD_PREMIUM: '#FFD700', 
-  GOLD_DEEP: '#996515', 
-  GOLD_BRIGHT: '#FFF9C4', 
-  GOLD_SHINE: '#FFFFFF', 
+  GOLD_SOLID: '#FFD700', 
+  GOLD_BRIGHT: '#FFF8E1',
+  GOLD_DEEP: '#B8860B',
+  GOLD_PREMIUM: '#FFD700',
   GOLD_GLOW: 'rgba(255, 215, 0, 0.6)',
-  GOLD_GLOW_SOFT: 'rgba(218, 165, 32, 0.3)',
+  // DARK COMET COLORS
+  COMET_CORE: '#4338ca', 
+  COMET_TRAIL: 'rgba(67, 56, 202, 0.4)',
   BLUE: '#38bdf8',      
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.3)', 
 };
@@ -37,59 +39,72 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   opacity: 0.15 + Math.random() * 0.4,
 }));
 
-// Increased count and size for better visibility
-const PACIFIERS = Array.from({ length: 16 }).map((_, i) => ({
-  id: i,
-  startX: Math.random() * 100,
-  startY: Math.random() * 100,
-  size: 16 + Math.random() * 18, // Bigger size
-  duration: 15 + Math.random() * 20, // Slower, clearer movement
-  driftX: (Math.random() - 0.5) * 140, 
-  driftY: (Math.random() - 0.5) * 140,
-  rotation: Math.random() * 360,
-  rotationSpeed: (Math.random() - 0.5) * 300, 
-}));
+// COMET CONFIGURATION: Smaller, faster, directional
+const PACIFIERS = Array.from({ length: 22 }).map((_, i) => {
+  const driftX = (Math.random() - 0.5) * 180;
+  const driftY = (Math.random() - 0.5) * 180;
+  // Calculate angle for the tail to point away from direction of travel
+  const angle = Math.atan2(driftY, driftX) * (180 / Math.PI) + 90;
 
-const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
-  <div style={{ position: 'relative', width: size, height: size }}>
-    {/* Concentrated, clearer Glow Aura */}
+  return {
+    id: i,
+    startX: Math.random() * 100,
+    startY: Math.random() * 100,
+    size: 14 + Math.random() * 10, // Significantly smaller
+    duration: 12 + Math.random() * 15, // Faster travel
+    driftX,
+    driftY,
+    angle,
+  };
+});
+
+const PacifierComet = ({ size, angle }: { size: number, angle: number }) => (
+  <div style={{ 
+    position: 'relative', 
+    width: size, 
+    height: size, 
+    transform: `rotate(${angle}deg)`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  }}>
+    {/* Long Comet Tail */}
     <div style={{
       position: 'absolute',
-      inset: '-15px',
-      background: `radial-gradient(circle, ${color}CC 0%, ${color}33 50%, transparent 80%)`,
-      borderRadius: '50%',
-      filter: 'blur(6px)',
-      animation: 'pacifierPulse 6s ease-in-out infinite'
+      top: size / 2,
+      width: size * 0.6,
+      height: size * 5, // The streak
+      background: `linear-gradient(to bottom, ${COLORS.COMET_TRAIL} 0%, transparent 100%)`,
+      filter: 'blur(3px)',
+      borderRadius: '50% 50% 0 0',
+      zIndex: -1
     }} />
-    {/* Bright core aura */}
+    
+    {/* Comet Glow Head */}
     <div style={{
       position: 'absolute',
       inset: '-6px',
-      background: `radial-gradient(circle, white 0%, transparent 70%)`,
+      background: `radial-gradient(circle, white 0%, ${COLORS.COMET_CORE} 40%, transparent 80%)`,
       borderRadius: '50%',
-      filter: 'blur(3px)',
-      opacity: 0.6,
-      animation: 'pacifierPulse 6s ease-in-out infinite reverse'
+      filter: 'blur(4px)',
+      opacity: 0.8
     }} />
+
+    {/* Small sharp pacifier icon at the head */}
     <svg 
       width={size} 
       height={size} 
       viewBox="0 0 100 100" 
       style={{ 
-        filter: `drop-shadow(0 0 10px ${color})`,
-        opacity: 1.0 // Fully opaque for visibility
+        filter: `drop-shadow(0 0 2px white)`,
+        opacity: 1.0,
+        zIndex: 2
       }}
     >
-      <defs>
-        <linearGradient id="pacifierGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="50%" stopColor={color} />
-          <stop offset="100%" stopColor="#0EA5E9" />
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="12" />
-      <rect x="8" y="38" width="84" height="22" rx="11" fill="url(#pacifierGrad)" />
-      <path fill="url(#pacifierGrad)" d="M35 60 C 35 60, 28 94, 50 94 C 72 94, 65 60, 65 60 Z" />
+      <circle cx="50" cy="22" r="16" fill="none" stroke="white" strokeWidth="22" />
+      <circle cx="50" cy="22" r="16" fill="none" stroke={COLORS.COMET_CORE} strokeWidth="12" />
+      <rect x="5" y="38" width="90" height="24" rx="12" fill="white" />
+      <path fill="white" d="M30 62 C 30 62, 22 96, 50 96 C 78 96, 70 62, 70 62 Z" />
     </svg>
   </div>
 );
@@ -103,18 +118,10 @@ const SpaceBackground: React.FC = () => {
           50% { opacity: 0.7; transform: scale(1.1); }
         }
         @keyframes cometPath {
-          0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
-          10% { opacity: 0.9; }
-          90% { opacity: 0.9; }
-          100% { transform: translate(var(--driftX), var(--driftY)) rotate(var(--rotFull)); opacity: 0; }
-        }
-        @keyframes pacifierPulse {
-          0%, 100% { transform: scale(1); opacity: 0.7; }
-          50% { transform: scale(1.2); opacity: 0.9; }
-        }
-        @keyframes slowGoldShimmer {
-          0% { background-position: 100% 0%; }
-          100% { background-position: 0% 100%; }
+          0% { transform: translate(0, 0); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translate(var(--driftX), var(--driftY)); opacity: 0; }
         }
         .star {
           position: absolute;
@@ -123,7 +130,7 @@ const SpaceBackground: React.FC = () => {
           animation: twinkle var(--duration) ease-in-out infinite;
           animation-delay: var(--delay);
         }
-        .pacifier-comet {
+        .pacifier-comet-container {
           position: absolute;
           animation: cometPath var(--duration) linear infinite;
         }
@@ -147,7 +154,7 @@ const SpaceBackground: React.FC = () => {
       {PACIFIERS.map((p) => (
         <div
           key={p.id}
-          className="pacifier-comet"
+          className="pacifier-comet-container"
           style={{
             top: `${p.startY}%`,
             left: `${p.startX}%`,
@@ -155,10 +162,9 @@ const SpaceBackground: React.FC = () => {
             '--driftX': `${p.driftX}vw`,
             '--driftY': `${p.driftY}vh`,
             '--duration': `${p.duration}s`,
-            '--rotFull': `${p.rotation + p.rotationSpeed}deg`,
           }}
         >
-          <PacifierIcon size={p.size} color={COLORS.BLUE} />
+          <PacifierComet size={p.size} angle={p.angle} />
         </div>
       ))}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(10,31,94,0.15)_0%,transparent_80%)]"></div>
@@ -401,27 +407,19 @@ const App: React.FC = () => {
         <div className="flex flex-col items-start gap-1">
           <div className="flex flex-col gap-0 max-w-full">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.9)]"></div>
+              <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_15px_rgba(239,68,68,0.9)]"></div>
               <span className="text-sky-400 font-bold uppercase tracking-[0.6em] text-[11px] md:text-lg opacity-80">Birth Count Today</span>
             </div>
             
             <div className="flex items-baseline overflow-visible">
               <span 
-                className="text-[9vw] font-black leading-none transition-all duration-300 tabular-nums select-all inline-block" 
+                className="text-[9vw] font-black leading-none tabular-nums select-all inline-block" 
                 style={{ 
                   fontFamily: "'Anton', sans-serif", 
-                  // REFINED STABLE GOLD (Removed fast flashing)
-                  background: `linear-gradient(to bottom, 
-                    ${COLORS.GOLD_BRIGHT} 0%, 
-                    ${COLORS.GOLD_PREMIUM} 45%, 
-                    ${COLORS.GOLD_DEEP} 100%
-                  )`,
-                  backgroundSize: '100% 100%',
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  // SOLID METALLIC SHADOWS
-                  filter: `drop-shadow(0 0 10px ${COLORS.GOLD_GLOW})`
+                  color: COLORS.GOLD_SOLID,
+                  textShadow: `0 4px 0 ${COLORS.GOLD_DEEP}, 0 8px 12px rgba(0,0,0,0.8), 0 0 10px ${COLORS.GOLD_GLOW}`,
+                  transition: 'none',
+                  animation: 'none'
                 }}
               >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
@@ -430,7 +428,7 @@ const App: React.FC = () => {
           </div>
 
           {/* Progress Indicator */}
-          <div className="w-full max-w-[480px] mt-1 relative">
+          <div className="w-full max-w-[480px] mt-2 relative">
             <div className="flex justify-between items-end mb-1 px-1">
               <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] md:text-[13px] opacity-60">Daily Cycle</span>
               <span className="text-white/40 font-mono text-[10px] md:text-[12px] tabular-nums">{Math.floor(timeState.pct)}%</span>
@@ -438,7 +436,7 @@ const App: React.FC = () => {
             
             <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10">
               <div 
-                className="h-full transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(255,215,0,0.3)]"
+                className="h-full"
                 style={{ 
                   width: `${timeState.pct}%`,
                   background: `linear-gradient(90deg, ${COLORS.GOLD_DEEP} 0%, ${COLORS.GOLD_PREMIUM} 50%, #FFD700 100%)`
@@ -446,13 +444,13 @@ const App: React.FC = () => {
               />
             </div>
             
-            {/* Time Marker - Simple White */}
+            {/* Time Marker - Simple position */}
             <div 
-              className="absolute top-full flex flex-col items-center transition-all duration-1000 ease-linear"
+              className="absolute top-full flex flex-col items-center"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="w-px h-1.5 bg-white/40"></div>
-              <div className="bg-black/90 backdrop-blur-2xl border border-white/10 px-2.5 py-1 rounded flex items-center shadow-2xl">
+              <div className="bg-black/95 backdrop-blur-2xl border border-white/10 px-2.5 py-1 rounded flex items-center shadow-2xl">
                 <span className="font-mono text-[10px] md:text-[15px] font-bold tracking-tight whitespace-nowrap tabular-nums text-white">
                   {timeState.label}
                 </span>
@@ -462,7 +460,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Decorative Overlays */}
       <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/100 via-black/40 to-transparent z-10 pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/100 via-black/40 to-transparent z-10 pointer-events-none"></div>
     </div>
