@@ -15,12 +15,13 @@ const COLORS = {
   OCEAN_SHALLOW: '#0a215e',
   OCEAN_BRIGHT: '#1a4fc2',
   SPECULAR: 'rgba(255, 255, 255, 0.5)', 
-  // ENHANCED GOLD PALETTE
+  // ULTRA-ENHANCED GOLD PALETTE
   GOLD_PREMIUM: '#FFD700', 
-  GOLD_DEEP: '#8B6B10',
-  GOLD_BRIGHT: '#FFFBD5',
-  GOLD_GLOW: 'rgba(255, 215, 0, 0.7)',
-  GOLD_GLOW_SOFT: 'rgba(255, 180, 0, 0.3)',
+  GOLD_DEEP: '#996515', // Richer bronze/gold
+  GOLD_BRIGHT: '#FFFFE0', // Near-white highlights
+  GOLD_SHINE: '#FFFFFF', // Pure white for the "shine" streak
+  GOLD_GLOW: 'rgba(255, 215, 0, 0.8)',
+  GOLD_GLOW_SOFT: 'rgba(218, 165, 32, 0.4)',
   BLUE: '#38bdf8',      
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.3)', 
 };
@@ -36,45 +37,46 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   opacity: 0.15 + Math.random() * 0.4,
 }));
 
-const PACIFIERS = Array.from({ length: 12 }).map((_, i) => ({
+const PACIFIERS = Array.from({ length: 14 }).map((_, i) => ({
   id: i,
   startX: Math.random() * 100,
   startY: Math.random() * 100,
-  size: 10 + Math.random() * 14, 
-  duration: 10 + Math.random() * 14, 
-  driftX: (Math.random() - 0.5) * 120, 
-  driftY: (Math.random() - 0.5) * 120,
+  size: 12 + Math.random() * 16, 
+  duration: 12 + Math.random() * 18, 
+  driftX: (Math.random() - 0.5) * 140, 
+  driftY: (Math.random() - 0.5) * 140,
   rotation: Math.random() * 360,
-  rotationSpeed: (Math.random() - 0.5) * 600, 
+  rotationSpeed: (Math.random() - 0.5) * 400, 
 }));
 
 const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
   <div style={{ position: 'relative', width: size, height: size }}>
-    {/* Enhanced Glow Aura */}
+    {/* Primary Glow Aura */}
     <div style={{
       position: 'absolute',
-      inset: '-20px',
-      background: `radial-gradient(circle, ${color}66 0%, ${color}11 40%, transparent 70%)`,
+      inset: '-25px',
+      background: `radial-gradient(circle, ${color}77 0%, ${color}22 45%, transparent 75%)`,
       borderRadius: '50%',
-      filter: 'blur(8px)',
-      animation: 'pacifierPulse 4s ease-in-out infinite'
+      filter: 'blur(10px)',
+      animation: 'pacifierPulse 5s ease-in-out infinite'
     }} />
+    {/* Secondary White Core Glow */}
     <div style={{
       position: 'absolute',
-      inset: '-10px',
+      inset: '-12px',
       background: `radial-gradient(circle, white 0%, transparent 60%)`,
       borderRadius: '50%',
-      filter: 'blur(4px)',
-      opacity: 0.4,
-      animation: 'pacifierPulse 4s ease-in-out infinite reverse'
+      filter: 'blur(5px)',
+      opacity: 0.5,
+      animation: 'pacifierPulse 5s ease-in-out infinite reverse'
     }} />
     <svg 
       width={size} 
       height={size} 
       viewBox="0 0 100 100" 
       style={{ 
-        filter: `drop-shadow(0 0 12px ${color}) drop-shadow(0 0 4px white)`,
-        opacity: 0.9
+        filter: `drop-shadow(0 0 15px ${color}) drop-shadow(0 0 5px white)`,
+        opacity: 0.95
       }}
     >
       <defs>
@@ -84,7 +86,7 @@ const PacifierIcon = ({ size, color }: { size: number, color: string }) => (
           <stop offset="100%" stopColor={color} stopOpacity="0.8" />
         </linearGradient>
       </defs>
-      <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="8" />
+      <circle cx="50" cy="22" r="16" fill="none" stroke="url(#pacifierGrad)" strokeWidth="10" />
       <rect x="10" y="38" width="80" height="20" rx="10" fill="url(#pacifierGrad)" />
       <path fill="url(#pacifierGrad)" d="M35 58 C 35 58, 30 92, 50 92 C 70 92, 65 58, 65 58 Z" />
     </svg>
@@ -106,12 +108,12 @@ const SpaceBackground: React.FC = () => {
           100% { transform: translate(var(--driftX), var(--driftY)) rotate(var(--rotFull)); opacity: 0; }
         }
         @keyframes pacifierPulse {
-          0%, 100% { transform: scale(1); opacity: 0.4; }
-          50% { transform: scale(1.4); opacity: 0.7; }
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.5); opacity: 0.8; }
         }
-        @keyframes goldShine {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
+        @keyframes goldMetallicShine {
+          0% { background-position: 200% center; }
+          100% { background-position: -200% center; }
         }
         .star {
           position: absolute;
@@ -222,12 +224,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
+      // Dynamic placement logic: Center globe in the open space to the right of the stats
       const isLarge = w > 1200;
-      const cx = isLarge ? w * 0.73 : w * 0.50; 
+      const cx = isLarge ? w * 0.72 : w * 0.50; 
       const cy = h * 0.50; 
       
-      const maxWidthForGlobe = isLarge ? w * 0.52 : w * 0.95;
-      const radius = Math.min((maxWidthForGlobe / 2) - 40, (h / 2) - 60);
+      const maxWidthForGlobe = isLarge ? w * 0.54 : w * 0.95;
+      const radius = Math.min((maxWidthForGlobe / 2) - 30, (h / 2) - 50);
 
       ctx.clearRect(0, 0, w, h);
       
@@ -249,11 +252,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 80);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 85);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.05)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 80, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 85, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -296,7 +299,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               const t = elapsed / 2000;
               const flashCol = d3.interpolateRgb(COLORS.GOLD_PREMIUM, landBase)(t);
               ctx.fillStyle = flashCol;
-              ctx.shadowBlur = 40 * (1 - t); 
+              ctx.shadowBlur = 45 * (1 - t); 
               ctx.shadowColor = COLORS.GOLD_PREMIUM;
             }
           } else {
@@ -306,7 +309,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           ctx.fill(); 
           
           ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.2, 0.5 - edgeFade * 0.3)})`; 
-          ctx.lineWidth = 1.4; 
+          ctx.lineWidth = 1.5; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
@@ -404,23 +407,26 @@ const App: React.FC = () => {
             
             <div className="flex items-baseline overflow-visible">
               <span 
-                className="text-[8vw] font-black leading-none transition-all duration-300 tabular-nums select-all inline-block" 
+                className="text-[9vw] font-black leading-none transition-all duration-300 tabular-nums select-all inline-block" 
                 style={{ 
                   fontFamily: "'Anton', sans-serif", 
-                  // FURTHER ENHANCED METALLIC GOLD
-                  background: `linear-gradient(to bottom, 
-                    ${COLORS.GOLD_BRIGHT} 0%, 
-                    ${COLORS.GOLD_PREMIUM} 40%, 
-                    ${COLORS.GOLD_DEEP} 60%, 
-                    ${COLORS.GOLD_PREMIUM} 85%, 
+                  // REFINED METALLIC GOLD WITH DIAGONAL SHINE
+                  background: `linear-gradient(110deg, 
+                    ${COLORS.GOLD_DEEP} 0%, 
+                    ${COLORS.GOLD_PREMIUM} 25%, 
+                    ${COLORS.GOLD_BRIGHT} 45%, 
+                    ${COLORS.GOLD_SHINE} 50%, 
+                    ${COLORS.GOLD_BRIGHT} 55%, 
+                    ${COLORS.GOLD_PREMIUM} 75%, 
                     ${COLORS.GOLD_DEEP} 100%
                   )`,
                   backgroundSize: '200% auto',
-                  animation: 'goldShine 8s linear infinite',
+                  animation: 'goldMetallicShine 5s linear infinite',
                   WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
-                  // RICH LAYERED GLOW
-                  filter: `drop-shadow(0 0 15px ${COLORS.GOLD_GLOW}) drop-shadow(0 0 40px ${COLORS.GOLD_GLOW_SOFT})`
+                  // DEEP CINEMATIC GLOW
+                  filter: `drop-shadow(0 0 20px ${COLORS.GOLD_GLOW}) drop-shadow(0 0 5px white)`
                 }}
               >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
@@ -428,31 +434,31 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Progress Indicator */}
+          {/* Progress Indicator - Compactly positioned */}
           <div className="w-full max-w-[480px] mt-1 relative">
             <div className="flex justify-between items-end mb-1 px-1">
               <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] md:text-[13px] opacity-60">Daily Cycle</span>
               <span className="text-white/40 font-mono text-[10px] md:text-[12px] tabular-nums">{Math.floor(timeState.pct)}%</span>
             </div>
             
-            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10">
+            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
               <div 
-                className="h-full transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(255,215,0,0.3)]"
+                className="h-full transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(255,215,0,0.4)]"
                 style={{ 
                   width: `${timeState.pct}%`,
-                  background: `linear-gradient(90deg, #8B6B10 0%, ${COLORS.GOLD_PREMIUM} 50%, #FFD700 100%)`
+                  background: `linear-gradient(90deg, ${COLORS.GOLD_DEEP} 0%, ${COLORS.GOLD_PREMIUM} 50%, #FFD700 100%)`
                 }}
               />
             </div>
             
-            {/* Time Marker */}
+            {/* Time Marker - White & Minimalist */}
             <div 
               className="absolute top-full flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="w-px h-1.5 bg-white/30"></div>
-              <div className="bg-black/80 backdrop-blur-xl border border-white/10 px-2.5 py-0.5 rounded flex items-center shadow-2xl">
-                <span className="font-mono text-xs md:text-lg font-medium tracking-tight whitespace-nowrap tabular-nums text-white">
+              <div className="w-px h-1.5 bg-white/40"></div>
+              <div className="bg-black/90 backdrop-blur-2xl border border-white/10 px-2.5 py-1 rounded flex items-center shadow-2xl">
+                <span className="font-mono text-[10px] md:text-[15px] font-bold tracking-tight whitespace-nowrap tabular-nums text-white">
                   {timeState.label}
                 </span>
               </div>
@@ -461,8 +467,9 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/100 via-black/30 to-transparent z-10 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/100 via-black/30 to-transparent z-10 pointer-events-none"></div>
+      {/* Decorative Overlays */}
+      <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/100 via-black/40 to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/100 via-black/40 to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };
