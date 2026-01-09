@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as d3 from 'd3';
@@ -6,7 +5,7 @@ import * as d3 from 'd3';
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352; 
 const AUTO_ROTATION_SPEED = 0.18; 
-const FRICTION = 0.98; 
+const FRICTION = 0.985; // Slightly higher friction for smoother stabilization
 const INITIAL_PHI = -25; 
 const COLORS = {
   LAND: '#1e293b',      
@@ -23,24 +22,81 @@ const COLORS = {
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.55)', 
 };
 
-const STAR_COUNT = 350; 
+// --- Brightened Stars ---
+const STAR_COUNT = 400; 
 const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
-  size: Math.random() * 1.4 + 0.2,
+  size: Math.random() * 2.2 + 0.5, // Larger stars
   delay: `${Math.random() * 5}s`,
-  duration: `${5 + Math.random() * 8}s`,
-  opacity: 0.1 + Math.random() * 0.4,
+  duration: `${4 + Math.random() * 6}s`,
+  opacity: 0.4 + Math.random() * 0.5, // Significantly higher base opacity for brightness
 }));
+
+// --- Pacifier Data ---
+const PACIFIERS = Array.from({ length: 12 }).map((_, i) => {
+  const driftX = (Math.random() - 0.5) * 120;
+  const driftY = (Math.random() - 0.5) * 120;
+  const angle = Math.atan2(driftY, driftX) * (180 / Math.PI) + 90;
+
+  return {
+    id: i,
+    startX: Math.random() * 100,
+    startY: Math.random() * 100,
+    size: 12 + Math.random() * 8,
+    duration: 25 + Math.random() * 15,
+    driftX,
+    driftY,
+    angle,
+  };
+});
+
+const PacifierComet = ({ size, angle }: { size: number, angle: number }) => (
+  <div style={{ 
+    position: 'relative', 
+    width: size, 
+    height: size, 
+    transform: `rotate(${angle}deg)`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  }}>
+    <div style={{
+      position: 'absolute',
+      inset: '-4px',
+      background: `radial-gradient(circle, white 0%, rgba(56,189,248,0.5) 60%, transparent 90%)`,
+      borderRadius: '50%',
+      filter: 'blur(8px)',
+      opacity: 0.7
+    }} />
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 100 100" 
+      style={{ filter: `drop-shadow(0 0 6px rgba(255,255,255,0.9))`, zIndex: 2 }}
+    >
+      <circle cx="50" cy="22" r="16" fill="none" stroke="white" strokeWidth="22" />
+      <circle cx="50" cy="22" r="16" fill="none" stroke="#3b82f6" strokeWidth="12" />
+      <rect x="5" y="38" width="90" height="24" rx="12" fill="white" />
+      <path fill="white" d="M30 62 C 30 62, 22 96, 50 96 C 78 96, 70 62, 70 62 Z" />
+    </svg>
+  </div>
+);
 
 const SpaceBackground: React.FC = () => {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000103]">
       <style>{`
         @keyframes twinkle {
-          0%, 100% { opacity: 0.2; transform: scale(0.9); }
-          50% { opacity: 0.7; transform: scale(1.1); }
+          0%, 100% { opacity: 0.4; transform: scale(0.9); }
+          50% { opacity: 0.95; transform: scale(1.1); }
+        }
+        @keyframes cometPath {
+          0% { transform: translate(0, 0); opacity: 0; }
+          5% { opacity: 0.8; }
+          95% { opacity: 0.8; }
+          100% { transform: translate(var(--driftX), var(--driftY)); opacity: 0; }
         }
         .star {
           position: absolute;
@@ -48,6 +104,11 @@ const SpaceBackground: React.FC = () => {
           border-radius: 50%;
           animation: twinkle var(--duration) ease-in-out infinite;
           animation-delay: var(--delay);
+          box-shadow: 0 0 4px rgba(255,255,255,0.4);
+        }
+        .pacifier-comet-container {
+          position: absolute;
+          animation: cometPath var(--duration) linear infinite;
         }
       `}</style>
       {STARS.map((star) => (
@@ -65,6 +126,22 @@ const SpaceBackground: React.FC = () => {
             '--duration': star.duration,
           }}
         />
+      ))}
+      {PACIFIERS.map((p) => (
+        <div
+          key={p.id}
+          className="pacifier-comet-container"
+          style={{
+            top: `${p.startY}%`,
+            left: `${p.startX}%`,
+            // @ts-ignore
+            '--driftX': `${p.driftX}vw`,
+            '--driftY': `${p.driftY}vh`,
+            '--duration': `${p.duration}s`,
+          }}
+        >
+          <PacifierComet size={p.size} angle={p.angle} />
+        </div>
       ))}
     </div>
   );
@@ -118,33 +195,41 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       
       const dt = Math.min(time - lastTimeRef.current, 100); 
       lastTimeRef.current = time;
-      const timeFactor = dt / 16.666; 
+      // Ultra-smooth frame-rate independent rotation for TV
+      const timeFactor = dt / 16.66667; 
       
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       const isLarge = w > 1024;
       
-      const radius = h * 0.33;
+      // Adjusted radius to ensure earth is fully visible on TVs (avoiding overscan edges)
+      const radius = h * 0.32;
+      // Position earth close to the dashboard but with safe right padding
       const boundaryX = w * 0.28; 
-      const gap = w * 0.02; 
+      const gap = w * 0.04; 
       let cx = boundaryX + radius + gap;
       
-      const maxCX = w - radius - (w * 0.02);
+      // Safety check for 16:9 TVs to ensure the globe isn't partial/cut-off
+      const safeRightMargin = w * 0.08;
+      const maxCX = w - radius - safeRightMargin;
       if (cx > maxCX) cx = maxCX;
 
       if (!isLarge) {
         cx = w / 2;
       }
 
-      const verticalOffset = 75; 
+      const verticalOffset = 70; 
       const cy = (h / 2) - verticalOffset;
       
       ctx.clearRect(0, 0, w, h);
       
       if (!isDraggingRef.current) {
-        velocityRef.current[0] += (AUTO_ROTATION_SPEED - velocityRef.current[0]) * 0.04 * timeFactor;
+        // Smooth lerping for the velocity to maintain constant rotation
+        const inertia = 0.05 * timeFactor;
+        velocityRef.current[0] += (AUTO_ROTATION_SPEED - velocityRef.current[0]) * inertia;
         rotationRef.current[0] += velocityRef.current[0] * timeFactor;
         rotationRef.current[1] += (INITIAL_PHI - rotationRef.current[1]) * 0.01 * timeFactor;
+        
         velocityRef.current[0] *= Math.pow(FRICTION, timeFactor);
         velocityRef.current[1] *= Math.pow(FRICTION, timeFactor);
       }
@@ -157,6 +242,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
+      // ATMOSPHERE GLOW
       const auraRadius = radius * 1.35;
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, auraRadius);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
@@ -165,12 +251,14 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, auraRadius, 0, Math.PI * 2); ctx.fill();
 
+      // OCEAN
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.05, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
+      // SPECULAR HIGHLIGHT
       const specular = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.1);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
@@ -210,7 +298,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
-          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.12, 0.3 - edgeFade * 0.2)})`; 
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.15, 0.35 - edgeFade * 0.2)})`; 
           ctx.lineWidth = 0.6; 
           ctx.stroke();
           ctx.shadowBlur = 0;
@@ -269,7 +357,8 @@ const App: React.FC = () => {
       spawnTimeoutId = setTimeout(() => {
         countRef.current += 1; 
         setTotal(countRef.current);
-        const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS'];
+        // List of major countries for visual flashes
+        const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS', 'FRA', 'DEU', 'TUR', 'VNM', 'IRN', 'THA'];
         setFlashId(countries[Math.floor(Math.random() * countries.length)]);
         spawn();
       }, -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND));
@@ -284,7 +373,7 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Logo Branding - White with Blue Underline */}
+      {/* Logo Branding - White with Sharp Blue Underline */}
       <div className="absolute top-8 left-10 md:top-10 md:left-14 z-30 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-2xl md:text-3xl lg:text-4xl leading-none">
@@ -310,7 +399,7 @@ const App: React.FC = () => {
               style={{ 
                 fontFamily: "'Anton', sans-serif", 
                 color: COLORS.GOLD_SOLID,
-                textShadow: `0 3px 0 ${COLORS.GOLD_DEEP}, 0 8px 20px rgba(0,0,0,0.9), 0 0 10px rgba(250,204,21,0.2)`
+                textShadow: `0 3px 0 ${COLORS.GOLD_DEEP}, 0 8px 24px rgba(0,0,0,0.95), 0 0 12px rgba(250,204,21,0.25)`
               }}
             >
               {total.toLocaleString('en-US').replace(/,/g, '.')}
@@ -319,7 +408,7 @@ const App: React.FC = () => {
 
           <div className="w-full max-w-[420px] relative">
             <div className="flex justify-between items-end mb-1 px-1">
-              <span className="text-sky-400 font-black uppercase tracking-[0.15em] text-[8px] md:text-[11px] opacity-70">Daily Pulse Cycle</span>
+              <span className="text-sky-400 font-black uppercase tracking-[0.15em] text-[8px] md:text-[11px] opacity-70">DAY Progress</span>
               <span className="text-white/40 font-mono text-[8px] md:text-[11px] tabular-nums font-bold tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
             
@@ -329,20 +418,19 @@ const App: React.FC = () => {
                 style={{ 
                   width: `${timeState.pct}%`,
                   background: `linear-gradient(90deg, ${COLORS.GOLD_DEEP} 0%, ${COLORS.GOLD_SOLID} 100%)`,
-                  boxShadow: '0 0 6px rgba(250,204,21,0.2)'
+                  boxShadow: '0 0 8px rgba(250,204,21,0.3)'
                 }}
               />
             </div>
 
-            {/* HH:MM Clock - Positioned under progress bar at current time indicator */}
+            {/* HH:MM Clock - Positioned under progress bar indicator */}
             <div 
               className="absolute mt-2 transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
-                 {/* Tiny arrow pointing up to the bar */}
                 <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-sky-500/50 mb-0.5"></div>
-                <span className="font-mono text-[9px] md:text-[11px] font-bold tracking-[0.1em] tabular-nums text-white/90 bg-black/40 px-1.5 py-0.5 rounded backdrop-blur-sm border border-white/5">
+                <span className="font-mono text-[9px] md:text-[11px] font-bold tracking-[0.1em] tabular-nums text-white/90 bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm border border-white/10 shadow-xl">
                   {timeState.label}
                 </span>
               </div>
@@ -351,8 +439,9 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/90 to-transparent z-10 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none"></div>
+      {/* Cinematic Vignettes */}
+      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/95 to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-full h-56 bg-gradient-to-t from-black/95 to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };
