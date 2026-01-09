@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as d3 from 'd3';
@@ -5,7 +6,7 @@ import * as d3 from 'd3';
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352; 
 const AUTO_ROTATION_SPEED = 0.18; 
-const FRICTION = 0.985; // Slightly higher friction for smoother stabilization
+const FRICTION = 0.96; // Adjusted for smooth drag-to-auto-rotation transition
 const INITIAL_PHI = -25; 
 const COLORS = {
   LAND: '#1e293b',      
@@ -14,12 +15,12 @@ const COLORS = {
   OCEAN_DEEP: '#08132b', 
   OCEAN_SHALLOW: '#1e3a8a', 
   OCEAN_BRIGHT: '#3b82f6',  
-  SPECULAR: 'rgba(255, 255, 255, 0.5)', 
+  SPECULAR: 'rgba(255, 255, 255, 0.35)', // Toned down
   GOLD_SOLID: '#facc15', 
   GOLD_DEEP: '#a16207',
   GOLD_GLOW: 'rgba(250, 204, 21, 0.8)', 
   BLUE_ATMOSPHERE: '#0ea5e9', 
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.55)', 
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)', // Toned down
 };
 
 // --- Brightened Stars ---
@@ -28,10 +29,10 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   id: i,
   top: `${Math.random() * 100}%`,
   left: `${Math.random() * 100}%`,
-  size: Math.random() * 2.2 + 0.5, // Larger stars
+  size: Math.random() * 2.2 + 0.5, 
   delay: `${Math.random() * 5}s`,
   duration: `${4 + Math.random() * 6}s`,
-  opacity: 0.4 + Math.random() * 0.5, // Significantly higher base opacity for brightness
+  opacity: 0.4 + Math.random() * 0.5,
 }));
 
 // --- Pacifier Data ---
@@ -151,7 +152,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoDataRef = useRef<any>(null);
   const rotationRef = useRef<[number, number, number]>([0, INITIAL_PHI, 0]); 
-  const velocityRef = useRef<[number, number]>([AUTO_ROTATION_SPEED, 0]); 
+  const velocityRef = useRef<[number, number]>([0, 0]); 
   const isDraggingRef = useRef(false);
   const lastTimeRef = useRef<number>(performance.now());
   const activeFlashes = useRef<Map<string, number>>(new Map());
@@ -195,21 +196,17 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       
       const dt = Math.min(time - lastTimeRef.current, 100); 
       lastTimeRef.current = time;
-      // Ultra-smooth frame-rate independent rotation for TV
       const timeFactor = dt / 16.66667; 
       
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       const isLarge = w > 1024;
       
-      // Adjusted radius to ensure earth is fully visible on TVs (avoiding overscan edges)
       const radius = h * 0.32;
-      // Position earth close to the dashboard but with safe right padding
       const boundaryX = w * 0.28; 
       const gap = w * 0.04; 
       let cx = boundaryX + radius + gap;
       
-      // Safety check for 16:9 TVs to ensure the globe isn't partial/cut-off
       const safeRightMargin = w * 0.08;
       const maxCX = w - radius - safeRightMargin;
       if (cx > maxCX) cx = maxCX;
@@ -224,14 +221,21 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       ctx.clearRect(0, 0, w, h);
       
       if (!isDraggingRef.current) {
-        // Smooth lerping for the velocity to maintain constant rotation
-        const inertia = 0.05 * timeFactor;
-        velocityRef.current[0] += (AUTO_ROTATION_SPEED - velocityRef.current[0]) * inertia;
-        rotationRef.current[0] += velocityRef.current[0] * timeFactor;
-        rotationRef.current[1] += (INITIAL_PHI - rotationRef.current[1]) * 0.01 * timeFactor;
+        // High-precision smooth rotation logic
+        // Always add base constant speed
+        rotationRef.current[0] += AUTO_ROTATION_SPEED * timeFactor;
         
-        velocityRef.current[0] *= Math.pow(FRICTION, timeFactor);
-        velocityRef.current[1] *= Math.pow(FRICTION, timeFactor);
+        // Recover from user drag velocity smoothly
+        if (Math.abs(velocityRef.current[0]) > 0.001 || Math.abs(velocityRef.current[1]) > 0.001) {
+            rotationRef.current[0] += velocityRef.current[0] * timeFactor;
+            rotationRef.current[1] -= velocityRef.current[1] * timeFactor;
+            
+            velocityRef.current[0] *= Math.pow(FRICTION, timeFactor);
+            velocityRef.current[1] *= Math.pow(FRICTION, timeFactor);
+        }
+
+        // Return to initial latitude smoothly
+        rotationRef.current[1] += (INITIAL_PHI - rotationRef.current[1]) * 0.015 * timeFactor;
       }
 
       const projection = d3.geoOrthographic()
@@ -242,12 +246,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // ATMOSPHERE GLOW
-      const auraRadius = radius * 1.35;
+      // ATMOSPHERE GLOW - Tighter and reduced
+      const auraRadius = radius * 1.15; // Tightened
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, auraRadius);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.3, 'rgba(56, 189, 248, 0.25)');
-      aura.addColorStop(0.7, 'rgba(56, 189, 248, 0.05)');
+      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.1)'); // Toned down significantly
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, auraRadius, 0, Math.PI * 2); ctx.fill();
 
@@ -258,7 +261,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // SPECULAR HIGHLIGHT
+      // SPECULAR HIGHLIGHT - Reduced
       const specular = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.1);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
@@ -357,7 +360,6 @@ const App: React.FC = () => {
       spawnTimeoutId = setTimeout(() => {
         countRef.current += 1; 
         setTotal(countRef.current);
-        // List of major countries for visual flashes
         const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS', 'FRA', 'DEU', 'TUR', 'VNM', 'IRN', 'THA'];
         setFlashId(countries[Math.floor(Math.random() * countries.length)]);
         spawn();
@@ -373,7 +375,7 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
-      {/* Logo Branding - White with Sharp Blue Underline */}
+      {/* Logo Branding */}
       <div className="absolute top-8 left-10 md:top-10 md:left-14 z-30 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-2xl md:text-3xl lg:text-4xl leading-none">
@@ -423,7 +425,6 @@ const App: React.FC = () => {
               />
             </div>
 
-            {/* HH:MM Clock - Positioned under progress bar indicator */}
             <div 
               className="absolute mt-2 transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
@@ -439,7 +440,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Cinematic Vignettes */}
       <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/95 to-transparent z-10 pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-full h-56 bg-gradient-to-t from-black/95 to-transparent z-10 pointer-events-none"></div>
     </div>
