@@ -6,7 +6,7 @@ import * as d3 from 'd3';
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352; 
 const AUTO_ROTATION_SPEED = 0.18; 
-const FRICTION = 0.96; // Adjusted for smooth drag-to-auto-rotation transition
+const FRICTION = 0.96; 
 const INITIAL_PHI = -25; 
 const COLORS = {
   LAND: '#1e293b',      
@@ -15,15 +15,15 @@ const COLORS = {
   OCEAN_DEEP: '#08132b', 
   OCEAN_SHALLOW: '#1e3a8a', 
   OCEAN_BRIGHT: '#3b82f6',  
-  SPECULAR: 'rgba(255, 255, 255, 0.35)', // Toned down
+  SPECULAR: 'rgba(255, 255, 255, 0.35)', 
   GOLD_SOLID: '#facc15', 
   GOLD_DEEP: '#a16207',
   GOLD_GLOW: 'rgba(250, 204, 21, 0.8)', 
   BLUE_ATMOSPHERE: '#0ea5e9', 
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)', // Toned down
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)', 
 };
 
-// --- Brightened Stars ---
+// --- Background Stars ---
 const STAR_COUNT = 400; 
 const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   id: i,
@@ -35,25 +35,79 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   opacity: 0.4 + Math.random() * 0.5,
 }));
 
-// --- Pacifier Data ---
-const PACIFIERS = Array.from({ length: 12 }).map((_, i) => {
-  const driftX = (Math.random() - 0.5) * 120;
-  const driftY = (Math.random() - 0.5) * 120;
+// --- Comet Data (Philips Natural Teats) ---
+const COMET_COUNT = 24;
+const COMETS = Array.from({ length: COMET_COUNT }).map((_, i) => {
+  const driftX = (Math.random() - 0.5) * 160;
+  const driftY = (Math.random() - 0.5) * 160;
   const angle = Math.atan2(driftY, driftX) * (180 / Math.PI) + 90;
 
   return {
     id: i,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
-    size: 12 + Math.random() * 8,
-    duration: 25 + Math.random() * 15,
+    size: 28 + Math.random() * 32,
+    duration: 18 + Math.random() * 22,
     driftX,
     driftY,
     angle,
+    delay: Math.random() * -40,
+    rotationSpeed: (Math.random() - 0.5) * 1.8,
   };
 });
 
-const PacifierComet = ({ size, angle }: { size: number, angle: number }) => (
+// --- High Fidelity Philips Teat SVG (Natural Silicone Design) ---
+const TeatSVG = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" className="drop-shadow-lg">
+    <defs>
+      <linearGradient id="t-silicone" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="rgba(255,255,255,0.95)" />
+        <stop offset="60%" stopColor="rgba(255,255,255,0.5)" />
+        <stop offset="100%" stopColor="rgba(220,240,255,0.3)" />
+      </linearGradient>
+    </defs>
+    
+    {/* Base Mounting Ring */}
+    <path 
+      d="M10,85 Q50,98 90,85 L92,78 Q50,91 8,78 Z" 
+      fill="url(#t-silicone)" 
+      stroke="rgba(255,255,255,0.3)" 
+      strokeWidth="0.5"
+    />
+    
+    {/* Main Silicone Nipple Body */}
+    <path 
+      d="M22,75 Q50,65 78,75 C78,55 65,48 62,38 C62,22 58,10 50,10 C42,10 38,22 38,38 C35,48 22,55 22,75 Z" 
+      fill="rgba(255,255,255,0.3)" 
+      stroke="rgba(255,255,255,0.5)" 
+      strokeWidth="0.5" 
+    />
+    
+    {/* Signature Philips Avent Petal Textures */}
+    <ellipse cx="50" cy="58" rx="10" ry="5" fill="rgba(255,255,255,0.18)" />
+    <ellipse cx="34" cy="65" rx="8" ry="4" transform="rotate(-30 34 65)" fill="rgba(255,255,255,0.12)" />
+    <ellipse cx="66" cy="65" rx="8" ry="4" transform="rotate(30 66 65)" fill="rgba(255,255,255,0.12)" />
+    
+    {/* Medical Grade Silicone Highlights */}
+    <path 
+      d="M44,14 Q50,11 56,14" 
+      fill="none" 
+      stroke="white" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      opacity="0.6" 
+    />
+    <path 
+      d="M50,8 L50,12" 
+      fill="none" 
+      stroke="white" 
+      strokeWidth="0.5" 
+      opacity="0.4" 
+    />
+  </svg>
+);
+
+const CometRenderer = ({ size, angle, rotationSpeed }: { size: number, angle: number, rotationSpeed: number }) => (
   <div style={{ 
     position: 'relative', 
     width: size, 
@@ -63,85 +117,98 @@ const PacifierComet = ({ size, angle }: { size: number, angle: number }) => (
     flexDirection: 'column',
     alignItems: 'center'
   }}>
+    {/* Ethereal Silicone Glow Trail */}
     <div style={{
       position: 'absolute',
-      inset: '-4px',
-      background: `radial-gradient(circle, white 0%, rgba(56,189,248,0.5) 60%, transparent 90%)`,
+      inset: '-12px',
+      background: `radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(14,165,233,0.05) 60%, transparent 90%)`,
       borderRadius: '50%',
-      filter: 'blur(8px)',
-      opacity: 0.7
+      filter: 'blur(10px)',
+      opacity: 0.6
     }} />
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 100 100" 
-      style={{ filter: `drop-shadow(0 0 6px rgba(255,255,255,0.9))`, zIndex: 2 }}
-    >
-      <circle cx="50" cy="22" r="16" fill="none" stroke="white" strokeWidth="22" />
-      <circle cx="50" cy="22" r="16" fill="none" stroke="#3b82f6" strokeWidth="12" />
-      <rect x="5" y="38" width="90" height="24" rx="12" fill="white" />
-      <path fill="white" d="M30 62 C 30 62, 22 96, 50 96 C 78 96, 70 62, 70 62 Z" />
-    </svg>
+    
+    <div className="animate-spin-slow" style={{ animationDuration: `${10 + Math.abs(rotationSpeed) * 12}s` }}>
+       <TeatSVG size={size} />
+    </div>
   </div>
 );
 
-const SpaceBackground: React.FC = () => {
+const SpaceBackground: React.FC = () => (
+  <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000103]">
+    <style>{`
+      @keyframes twinkle {
+        0%, 100% { opacity: 0.4; transform: scale(0.9); }
+        50% { opacity: 0.95; transform: scale(1.1); }
+      }
+      .star {
+        position: absolute;
+        background: white;
+        border-radius: 50%;
+        animation: twinkle var(--duration) ease-in-out infinite;
+        animation-delay: var(--delay);
+      }
+      @keyframes spin-slow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .animate-spin-slow {
+        animation: spin-slow linear infinite;
+      }
+    `}</style>
+    {STARS.map((star) => (
+      <div
+        key={star.id}
+        className="star"
+        style={{
+          top: star.top,
+          left: star.left,
+          width: `${star.size}px`,
+          height: `${star.size}px`,
+          opacity: star.opacity,
+          // @ts-ignore
+          '--delay': star.delay,
+          '--duration': star.duration,
+        }}
+      />
+    ))}
+  </div>
+);
+
+const CometForeground: React.FC = () => {
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000103]">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-[20]">
       <style>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 0.4; transform: scale(0.9); }
-          50% { opacity: 0.95; transform: scale(1.1); }
-        }
         @keyframes cometPath {
           0% { transform: translate(0, 0); opacity: 0; }
-          5% { opacity: 0.8; }
-          95% { opacity: 0.8; }
+          15% { opacity: 0.85; }
+          85% { opacity: 0.85; }
           100% { transform: translate(var(--driftX), var(--driftY)); opacity: 0; }
         }
-        .star {
-          position: absolute;
-          background: white;
-          border-radius: 50%;
-          animation: twinkle var(--duration) ease-in-out infinite;
-          animation-delay: var(--delay);
-          box-shadow: 0 0 4px rgba(255,255,255,0.4);
-        }
-        .pacifier-comet-container {
+        .comet-container {
           position: absolute;
           animation: cometPath var(--duration) linear infinite;
+          animation-delay: var(--delay);
         }
       `}</style>
-      {STARS.map((star) => (
+      {COMETS.map((c) => (
         <div
-          key={star.id}
-          className="star"
+          key={c.id}
+          className="comet-container"
           style={{
-            top: star.top,
-            left: star.left,
-            width: `${star.size}px`,
-            height: `${star.size}px`,
-            opacity: star.opacity,
+            top: `${c.startY}%`,
+            left: `${c.startX}%`,
             // @ts-ignore
-            '--delay': star.delay,
-            '--duration': star.duration,
-          }}
-        />
-      ))}
-      {PACIFIERS.map((p) => (
-        <div
-          key={p.id}
-          className="pacifier-comet-container"
-          style={{
-            top: `${p.startY}%`,
-            left: `${p.startX}%`,
-            // @ts-ignore
-            '--driftX': `${p.driftX}vw`,
-            '--driftY': `${p.driftY}vh`,
-            '--duration': `${p.duration}s`,
+            '--driftX': `${c.driftX}vw`,
+            '--driftY': `${c.driftY}vh`,
+            '--duration': `${c.duration}s`,
+            '--delay': `${c.delay}s`,
           }}
         >
-          <PacifierComet size={p.size} angle={p.angle} />
+          <CometRenderer 
+            size={c.size} 
+            angle={c.angle} 
+            rotationSpeed={c.rotationSpeed} 
+          />
         </div>
       ))}
     </div>
@@ -211,9 +278,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const maxCX = w - radius - safeRightMargin;
       if (cx > maxCX) cx = maxCX;
 
-      if (!isLarge) {
-        cx = w / 2;
-      }
+      if (!isLarge) cx = w / 2;
 
       const verticalOffset = 70; 
       const cy = (h / 2) - verticalOffset;
@@ -221,20 +286,13 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       ctx.clearRect(0, 0, w, h);
       
       if (!isDraggingRef.current) {
-        // High-precision smooth rotation logic
-        // Always add base constant speed
         rotationRef.current[0] += AUTO_ROTATION_SPEED * timeFactor;
-        
-        // Recover from user drag velocity smoothly
         if (Math.abs(velocityRef.current[0]) > 0.001 || Math.abs(velocityRef.current[1]) > 0.001) {
             rotationRef.current[0] += velocityRef.current[0] * timeFactor;
             rotationRef.current[1] -= velocityRef.current[1] * timeFactor;
-            
             velocityRef.current[0] *= Math.pow(FRICTION, timeFactor);
             velocityRef.current[1] *= Math.pow(FRICTION, timeFactor);
         }
-
-        // Return to initial latitude smoothly
         rotationRef.current[1] += (INITIAL_PHI - rotationRef.current[1]) * 0.015 * timeFactor;
       }
 
@@ -246,22 +304,19 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // ATMOSPHERE GLOW - Tighter and reduced
-      const auraRadius = radius * 1.15; // Tightened
+      const auraRadius = radius * 1.15;
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, auraRadius);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.1)'); // Toned down significantly
+      aura.addColorStop(0.5, 'rgba(56, 189, 248, 0.1)'); 
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, auraRadius, 0, Math.PI * 2); ctx.fill();
 
-      // OCEAN
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.05, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // SPECULAR HIGHLIGHT - Reduced
       const specular = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.1);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
@@ -373,10 +428,11 @@ const App: React.FC = () => {
   return (
     <div className="relative w-full h-full select-none overflow-hidden bg-black flex flex-col font-sans">
       <SpaceBackground />
+      <CometForeground />
       <Globe lastFlash={flashId} />
       
-      {/* Logo Branding */}
-      <div className="absolute top-8 left-10 md:top-10 md:left-14 z-30 pointer-events-none">
+      {/* Branding */}
+      <div className="absolute top-8 left-10 md:top-10 md:left-14 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-2xl md:text-3xl lg:text-4xl leading-none">
             <span className="text-white">M</span>
@@ -387,7 +443,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-10 md:pl-16 pointer-events-none w-full max-w-[34%]">
+      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-16 pointer-events-none w-full max-w-[34%]">
         <div className="flex flex-col items-start gap-0">
           
           <div className="flex items-center gap-2 mb-2">
