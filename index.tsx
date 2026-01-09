@@ -39,19 +39,17 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   opacity: 0.15 + Math.random() * 0.4,
 }));
 
-// COMET CONFIGURATION: Smaller, faster, directional
 const PACIFIERS = Array.from({ length: 22 }).map((_, i) => {
   const driftX = (Math.random() - 0.5) * 180;
   const driftY = (Math.random() - 0.5) * 180;
-  // Calculate angle for the tail to point away from direction of travel
   const angle = Math.atan2(driftY, driftX) * (180 / Math.PI) + 90;
 
   return {
     id: i,
     startX: Math.random() * 100,
     startY: Math.random() * 100,
-    size: 14 + Math.random() * 10, // Significantly smaller
-    duration: 12 + Math.random() * 15, // Faster travel
+    size: 14 + Math.random() * 10,
+    duration: 12 + Math.random() * 15,
     driftX,
     driftY,
     angle,
@@ -68,19 +66,17 @@ const PacifierComet = ({ size, angle }: { size: number, angle: number }) => (
     flexDirection: 'column',
     alignItems: 'center'
   }}>
-    {/* Long Comet Tail */}
     <div style={{
       position: 'absolute',
       top: size / 2,
       width: size * 0.6,
-      height: size * 5, // The streak
+      height: size * 5,
       background: `linear-gradient(to bottom, ${COLORS.COMET_TRAIL} 0%, transparent 100%)`,
       filter: 'blur(3px)',
       borderRadius: '50% 50% 0 0',
       zIndex: -1
     }} />
     
-    {/* Comet Glow Head */}
     <div style={{
       position: 'absolute',
       inset: '-6px',
@@ -90,7 +86,6 @@ const PacifierComet = ({ size, angle }: { size: number, angle: number }) => (
       opacity: 0.8
     }} />
 
-    {/* Small sharp pacifier icon at the head */}
     <svg 
       width={size} 
       height={size} 
@@ -232,14 +227,20 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const isLarge = w > 1200;
-      // TV Optimized: Push center even further right to make room for giant globe
-      const cx = isLarge ? w * 0.74 : w * 0.50; 
+      
+      // AUTO-ADJUST LOGIC: 
+      // Reserve space on the left for text (approx 42% on TV/Large screens)
+      const textReserve = isLarge ? w * 0.42 : 0;
+      const availableWidth = w - textReserve;
+      
+      // Center the globe in the remaining area
+      const cx = textReserve + (availableWidth / 2); 
       const cy = h * 0.50; 
       
-      // TV Optimized: Increase radius to use as much of the height as possible
+      // Radius should be as large as possible without hitting text or top/bottom edges
       const radius = isLarge 
-        ? Math.min(w * 0.36, h * 0.48) // Nearly half the screen height
-        : Math.min((w * 0.95 / 2) - 30, (h / 2) - 50);
+        ? Math.min(availableWidth * 0.45, h * 0.46) 
+        : Math.min((w * 0.9 / 2) - 10, (h / 2) - 40);
 
       ctx.clearRect(0, 0, w, h);
       
@@ -261,11 +262,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 100);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 110);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.05)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 100, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 110, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -406,8 +407,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Counter: Reduced max-width slightly for better globe isolation on TV sizes */}
-      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-24 pointer-events-none w-full max-w-[40%] md:max-w-[42%] transform translate-y-12">
+      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-24 pointer-events-none w-full max-w-[42%] transform translate-y-12">
         <div className="flex flex-col items-start gap-1">
           <div className="flex flex-col gap-0 max-w-full">
             <div className="flex items-center gap-3 mb-1">
@@ -431,7 +431,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Progress Indicator */}
           <div className="w-full max-w-[480px] mt-2 relative">
             <div className="flex justify-between items-end mb-1 px-1">
               <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] md:text-[13px] opacity-60">Daily Cycle</span>
@@ -448,7 +447,6 @@ const App: React.FC = () => {
               />
             </div>
             
-            {/* Time Marker - Simple position */}
             <div 
               className="absolute top-full flex flex-col items-center"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
