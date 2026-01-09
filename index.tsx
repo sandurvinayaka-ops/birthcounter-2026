@@ -226,22 +226,32 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      const isLarge = w > 1200;
+      const isLarge = w > 1024;
       
-      // AUTO-ADJUST LOGIC: 
-      // Reserve space on the left for text (approx 42% on TV/Large screens)
-      const textReserve = isLarge ? w * 0.42 : 0;
-      const availableWidth = w - textReserve;
+      // ATMOSPHERE GLOW OFFSET
+      const glowBuffer = 120; // Enough space for the 110px atmosphere aura
       
-      // Center the globe in the remaining area
-      const cx = textReserve + (availableWidth / 2); 
-      const cy = h * 0.50; 
+      // On large screens, reserve the left 45% for text
+      const textAreaReserveX = isLarge ? w * 0.45 : 0;
       
-      // Radius should be as large as possible without hitting text or top/bottom edges
-      const radius = isLarge 
-        ? Math.min(availableWidth * 0.45, h * 0.46) 
-        : Math.min((w * 0.9 / 2) - 10, (h / 2) - 40);
+      // Calculate effective workspace for the globe in the remaining area
+      const globeWorkAreaWidth = w - textAreaReserveX - (glowBuffer * 1.2);
+      const globeWorkAreaHeight = h - (glowBuffer * 1.5);
+      
+      // Calculate radius based on available height or width constraints
+      // Ensure globe + glow fits within work area
+      let radius = isLarge 
+        ? Math.min(globeWorkAreaWidth * 0.45, globeWorkAreaHeight * 0.45)
+        : Math.min(w * 0.4, h * 0.35);
+        
+      // Ensure center is positioned to show full globe plus glow
+      const cx = isLarge ? (textAreaReserveX + (w - textAreaReserveX) / 2) : (w / 2);
+      const cy = h / 2;
 
+      // Final constraint checks to pull globe away from screen edges if glow clips
+      const finalCX = Math.min(cx, w - radius - glowBuffer);
+      const finalCY = Math.min(cy, h - radius - glowBuffer);
+      
       ctx.clearRect(0, 0, w, h);
       
       if (!isDraggingRef.current) {
@@ -256,29 +266,29 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       const projection = d3.geoOrthographic()
         .scale(radius)
-        .translate([cx, cy])
+        .translate([finalCX, finalCY])
         .rotate([rotationRef.current[0], rotationRef.current[1], rotationRef.current[2]])
         .clipAngle(90);
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 110);
+      const aura = ctx.createRadialGradient(finalCX, finalCY, radius, finalCX, finalCY, radius + 110);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.05)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 110, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(finalCX, finalCY, radius + 110, 0, Math.PI * 2); ctx.fill();
 
-      const ocean = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
+      const ocean = ctx.createRadialGradient(finalCX - radius * 0.3, finalCY - radius * 0.3, 0, finalCX, finalCY, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
-      ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(finalCX, finalCY, radius, 0, Math.PI * 2); ctx.fill();
 
-      const specular = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx - radius * 0.4, cy - radius * 0.4, radius * 1.0);
+      const specular = ctx.createRadialGradient(finalCX - radius * 0.4, finalCY - radius * 0.4, 0, finalCX - radius * 0.4, finalCY - radius * 0.4, radius * 1.0);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
       ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = specular; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = specular; ctx.beginPath(); ctx.arc(finalCX, finalCY, radius, 0, Math.PI * 2); ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
 
       const now = Date.now();
