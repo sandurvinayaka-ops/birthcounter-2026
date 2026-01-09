@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352; 
-const AUTO_ROTATION_SPEED = 0.12; 
+const AUTO_ROTATION_SPEED = 0.18; // Increased rotation speed by another 2 steps
 const FRICTION = 0.98; 
 const INITIAL_PHI = -25; 
 const COLORS = {
