@@ -1,24 +1,22 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.35;
-const AUTO_ROTATION_SPEED = 0.15; // Slower, more majestic rotation
+const AUTO_ROTATION_SPEED = 0.15; 
 const FRICTION = 0.96; 
 const MEDITERRANEAN_LATITUDE = -38; 
 const COLORS = {
-  // Ultra-high contrast for countries
   LAND: '#4b7ea2',      
   LAND_LIT: '#d0f0ff',  
   ICE: '#ffffff',       
-  // Cinematic ocean colors
   OCEAN_DEEP: '#00040d',
   OCEAN_SHALLOW: '#0a215e',
   OCEAN_BRIGHT: '#1a4fc2',
-  SPECULAR: 'rgba(255, 255, 255, 0.5)', // Stronger glint on water
-  GOLD: '#ffcc00',      
+  SPECULAR: 'rgba(255, 255, 255, 0.5)', 
+  GOLD_PREMIUM: '#E8C13F', // Brighter, more metallic premium gold
+  GOLD_GLOW: 'rgba(232, 193, 63, 0.4)',
   BLUE: '#38bdf8',      
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.3)', 
 };
@@ -200,25 +198,23 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         return;
       }
       
-      const dt = Math.min(time - lastTimeRef.current, 100); // Guard against giant jumps
+      const dt = Math.min(time - lastTimeRef.current, 100); 
       lastTimeRef.current = time;
       const timeFactor = dt / 16.67;
       
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
-      const radius = h * 0.26; 
       
-      // Position: Shifted LEFT and TOP (as per previous request)
-      const cx = w * 0.50; 
-      const cy = h * 0.42; 
+      const safePadding = 80; 
+      const radius = Math.min((w * 0.4) - safePadding, (h * 0.5) - safePadding); 
+      
+      const cx = w * 0.65; 
+      const cy = h * 0.50; 
 
       ctx.clearRect(0, 0, w, h);
       
-      // Smooth Rotation Logic
       if (!isDraggingRef.current) {
-        // Linear interpolation towards base rotation speed for extra smoothness
         velocityRef.current[0] += (AUTO_ROTATION_SPEED - velocityRef.current[0]) * 0.04 * timeFactor;
-        // Corrected typo: MEDITERRERRANEAN_LATITUDE -> MEDITERRANEAN_LATITUDE
         const targetPhi = MEDITERRANEAN_LATITUDE;
         rotationRef.current[0] += velocityRef.current[0] * timeFactor;
         rotationRef.current[1] += (targetPhi - rotationRef.current[1]) * 0.015 * timeFactor;
@@ -235,21 +231,18 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // 1. Atmosphere Glow
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 55);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 70);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.03)');
+      aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.05)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 55, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 70, 0, Math.PI * 2); ctx.fill();
 
-      // 2. Cinematic Ocean Depth
       const ocean = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // 3. Specular Ocean Glint
       const specular = ctx.createRadialGradient(cx - radius * 0.4, cy - radius * 0.4, 0, cx - radius * 0.4, cy - radius * 0.4, radius * 1.0);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
@@ -259,20 +252,16 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
 
       const now = Date.now();
       
-      // Draw features
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
         const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
         
-        // Only render visible side
         if (distance < Math.PI / 1.6) { 
           ctx.beginPath(); 
           path(d);
           
           const flashStart = activeFlashes.current.get(d.id);
           const edgeFade = Math.pow(Math.max(0, (distance - (Math.PI / 3.4)) * 3.5), 1.6);
-          
-          // Enhanced shading for visibility
           const shading = 1 - Math.pow(distance / (Math.PI / 1.6), 1.1); 
           
           const isIce = d.id === 'ATA' || d.id === 'GRL';
@@ -287,10 +276,10 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               ctx.fillStyle = landBase;
             } else {
               const t = elapsed / 2000;
-              const flashCol = d3.interpolateRgb(COLORS.GOLD, landBase)(t);
+              const flashCol = d3.interpolateRgb(COLORS.GOLD_PREMIUM, landBase)(t);
               ctx.fillStyle = flashCol;
-              ctx.shadowBlur = 30 * (1 - t); 
-              ctx.shadowColor = COLORS.GOLD;
+              ctx.shadowBlur = 40 * (1 - t); 
+              ctx.shadowColor = COLORS.GOLD_PREMIUM;
             }
           } else {
             ctx.fillStyle = d3.interpolateRgb(landBase, COLORS.OCEAN_DEEP)(edgeFade);
@@ -298,9 +287,8 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
           }
           ctx.fill(); 
           
-          // HIGH VISIBILITY BORDERS
           ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.2, 0.5 - edgeFade * 0.3)})`; 
-          ctx.lineWidth = 1.2; 
+          ctx.lineWidth = 1.4; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
@@ -355,7 +343,6 @@ const App: React.FC = () => {
     
     let spawnTimeoutId: any;
     const spawn = () => {
-      // Use Poisson distribution for more realistic birth timing
       spawnTimeoutId = setTimeout(() => {
         countRef.current += 1; 
         setTotal(countRef.current);
@@ -378,32 +365,32 @@ const App: React.FC = () => {
       <Globe lastFlash={flashId} />
       
       {/* Branding */}
-      <div className="absolute top-8 left-10 md:top-12 md:left-16 z-30 pointer-events-none">
+      <div className="absolute top-10 left-12 md:top-14 md:left-20 z-30 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
-          <div className="flex items-baseline font-black tracking-tighter text-2xl md:text-4xl leading-none">
+          <div className="flex items-baseline font-black tracking-tighter text-3xl md:text-5xl leading-none">
             <span className="text-white">M</span>
             <span className="text-sky-500">&</span>
             <span className="text-white">CC</span>
           </div>
-          <div className="w-full h-[2px] md:h-[3px] bg-sky-500 mt-1.5 shadow-[0_0_10px_rgba(56,189,248,0.5)]"></div>
+          <div className="w-full h-[3px] md:h-[4px] bg-sky-500 mt-2 shadow-[0_0_15px_rgba(56,189,248,0.6)]"></div>
         </div>
       </div>
 
-      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[35%] transform translate-y-16">
-        <div className="flex flex-col items-start gap-4">
-          <div className="flex flex-col gap-0.5 max-w-full">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.8)]"></div>
-              <span className="text-sky-400 font-bold uppercase tracking-[0.6em] text-[10px] md:text-sm opacity-70">Birth Count Today</span>
+      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-24 pointer-events-none w-full max-w-[45%] transform translate-y-12">
+        <div className="flex flex-col items-start gap-2">
+          <div className="flex flex-col gap-0 max-w-full">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.9)]"></div>
+              <span className="text-sky-400 font-bold uppercase tracking-[0.6em] text-[11px] md:text-lg opacity-80">Birth Count Today</span>
             </div>
             
             <div className="flex items-baseline overflow-visible">
               <span 
-                className="text-[6vw] font-black leading-none transition-all duration-300 tabular-nums" 
+                className="text-[7.5vw] font-black leading-none transition-all duration-300 tabular-nums select-all" 
                 style={{ 
                   fontFamily: "'Anton', sans-serif", 
-                  color: COLORS.GOLD, 
-                  textShadow: `0 0 30px ${COLORS.GOLD}33, 0 0 5px white` 
+                  color: COLORS.GOLD_PREMIUM, 
+                  textShadow: `0 0 40px ${COLORS.GOLD_GLOW}, 0 0 5px #fff` 
                 }}
               >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
@@ -411,26 +398,33 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="w-full max-w-[360px] mt-10 relative">
-            <div className="flex justify-between items-end mb-2.5 px-0.5">
-              <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] opacity-50">Day Rotation Cycle</span>
-              <span className="text-white/30 font-mono text-[10px] tabular-nums">{Math.floor(timeState.pct)}%</span>
+          {/* Progress Indicator - Further moved close to numbers */}
+          <div className="w-full max-w-[480px] mt-2 relative">
+            <div className="flex justify-between items-end mb-1.5 px-1">
+              <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] md:text-[13px] opacity-60">Daily Cycle</span>
+              <span className="text-white/40 font-mono text-[10px] md:text-[12px] tabular-nums">{Math.floor(timeState.pct)}%</span>
             </div>
             
             <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
               <div 
-                className="h-full bg-gradient-to-r from-sky-900 via-sky-500 to-amber-500 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(56,189,248,0.3)]"
-                style={{ width: `${timeState.pct}%` }}
+                className="h-full transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(232,193,63,0.3)]"
+                style={{ 
+                  width: `${timeState.pct}%`,
+                  background: `linear-gradient(90deg, #8B6B10 0%, ${COLORS.GOLD_PREMIUM} 50%, #FFD700 100%)`
+                }}
               />
             </div>
             
+            {/* Time Marker Popup - Extremely close to progress bar, smaller white font */}
             <div 
-              className="absolute top-full mt-3 flex flex-col items-center transition-all duration-1000 ease-linear"
+              className="absolute top-full flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="w-px h-6 bg-sky-500/20"></div>
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-lg mt-1 flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                <span className="text-white font-mono text-base md:text-2xl font-black tracking-tighter whitespace-nowrap tabular-nums opacity-90">
+              <div className="w-px h-2 bg-white/20"></div>
+              <div className="bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/10 px-3 py-1 rounded-lg flex items-center shadow-[0_10px_30px_rgba(0,0,0,0.9)]">
+                <span 
+                   className="font-mono text-sm md:text-xl font-bold tracking-tight whitespace-nowrap tabular-nums text-white opacity-100"
+                >
                   {timeState.label}
                 </span>
               </div>
@@ -439,8 +433,8 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/95 to-transparent z-10 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-full h-56 bg-gradient-to-t from-black/95 to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/100 via-black/40 to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/100 via-black/40 to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };
