@@ -232,11 +232,14 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       
       const isLarge = w > 1200;
-      const cx = isLarge ? w * 0.72 : w * 0.50; 
+      // TV Optimized: Push center even further right to make room for giant globe
+      const cx = isLarge ? w * 0.74 : w * 0.50; 
       const cy = h * 0.50; 
       
-      const maxWidthForGlobe = isLarge ? w * 0.54 : w * 0.95;
-      const radius = Math.min((maxWidthForGlobe / 2) - 30, (h / 2) - 50);
+      // TV Optimized: Increase radius to use as much of the height as possible
+      const radius = isLarge 
+        ? Math.min(w * 0.36, h * 0.48) // Nearly half the screen height
+        : Math.min((w * 0.95 / 2) - 30, (h / 2) - 50);
 
       ctx.clearRect(0, 0, w, h);
       
@@ -258,11 +261,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 85);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 100);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.05)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 85, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 100, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -403,7 +406,8 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-24 pointer-events-none w-full max-w-[45%] transform translate-y-12">
+      {/* Counter: Reduced max-width slightly for better globe isolation on TV sizes */}
+      <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-24 pointer-events-none w-full max-w-[40%] md:max-w-[42%] transform translate-y-12">
         <div className="flex flex-col items-start gap-1">
           <div className="flex flex-col gap-0 max-w-full">
             <div className="flex items-center gap-3 mb-1">
