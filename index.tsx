@@ -20,19 +20,24 @@ const COLORS = {
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)',
 };
 
-// --- Shared Helper for Responsive Globe Placement ---
+// --- Shared Helper for Responsive Globe Placement (Optimized for TV Dashboard) ---
 const getGlobePosition = (w: number, h: number) => {
   const isLarge = w > 1024;
-  const hScale = isLarge ? 0.35 : 0.32;
+  // Reduced scale for TV to ensure atmosphere doesn't clip
+  const hScale = isLarge ? 0.33 : 0.30;
   const radius = h * hScale;
-  const boundaryX = w * 0.28;
-  const gap = w * 0.04;
+  // Increased boundary to keep globe further from the counter
+  const boundaryX = w * 0.32;
+  const gap = w * 0.05;
   let cx = boundaryX + radius + gap;
-  const safeRightMargin = w * 0.08;
+  
+  // Extra safety margin for TV overscan (bottom/right edges)
+  const safeRightMargin = w * 0.12;
   const maxCX = w - radius - safeRightMargin;
   if (cx > maxCX) cx = maxCX;
   if (!isLarge) cx = w / 2;
-  const verticalOffset = isLarge ? 40 : 70;
+  
+  const verticalOffset = isLarge ? 20 : 50;
   const cy = (h / 2) - verticalOffset;
   return { cx, cy, radius };
 };
@@ -116,10 +121,10 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
       const path = d3.geoPath(projection, ctx);
 
       // Atmosphere
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.18);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.15);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.15, 0, Math.PI * 2); ctx.fill();
 
       // Ocean
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
@@ -150,7 +155,7 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
             ctx.shadowBlur = 0;
           }
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 0.5; ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.5; ctx.stroke();
           ctx.shadowBlur = 0;
         }
       });
@@ -174,7 +179,7 @@ const SpaceBackground: React.FC = () => {
     id: i,
     top: `${Math.random() * 100}%`,
     left: `${Math.random() * 100}%`,
-    size: Math.random() * 2 + 0.4,
+    size: Math.random() * 1.5 + 0.4,
     delay: `${Math.random() * 5}s`,
     duration: `${4 + Math.random() * 8}s`,
   })), []);
@@ -198,6 +203,7 @@ const SpaceBackground: React.FC = () => {
         <div key={star.id} className="star" style={{ top: star.top, left: star.left, width: star.size, height: star.size, // @ts-ignore
           '--delay': star.delay, '--duration': star.duration }} />
       ))}
+      <div className="absolute inset-0 opacity-10" style={{ background: 'radial-gradient(circle at 30% 20%, #1e3a8a 0%, transparent 60%), radial-gradient(circle at 70% 80%, #1e1b4b 0%, transparent 60%)' }} />
     </div>
   );
 };
@@ -251,9 +257,10 @@ const App: React.FC = () => {
       <SpaceBackground />
       <GlobalCanvas lastFlashId={pureFlashId} />
       
-      <div className="absolute top-8 left-10 md:top-10 md:left-14 z-40 pointer-events-none">
+      {/* Increased padding for TV Safe Zone */}
+      <div className="absolute top-12 left-12 md:top-16 md:left-20 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
-          <div className="flex items-baseline font-black tracking-tighter text-2xl md:text-3xl lg:text-4xl leading-none">
+          <div className="flex items-baseline font-black tracking-tighter text-xl md:text-2xl lg:text-3xl leading-none">
             <span className="text-white">M</span>
             <span className="text-white">&</span>
             <span className="text-white">CC</span>
@@ -262,14 +269,16 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-16 pointer-events-none w-full max-w-[400px]">
+      {/* Optimized info column for large screen dashboards */}
+      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[340px]">
         <div className="flex flex-col items-start">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)] animate-pulse"></div>
-            <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-[10px] md:text-base opacity-90">Live Global Births</span>
+            <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-[10px] md:text-sm opacity-90">Live Global Births</span>
           </div>
-          <div className="flex items-baseline mb-6">
-            <span className="text-[9vw] md:text-[80px] font-black leading-none tabular-nums" 
+          <div className="flex items-baseline mb-8">
+            {/* Reduced counter size to fit TV viewing distance and screen real estate better */}
+            <span className="text-[7vw] md:text-[64px] font-black leading-none tabular-nums" 
               style={{ 
                 fontFamily: "'Anton', sans-serif", 
                 color: COLORS.GOLD_SOLID,
@@ -278,16 +287,16 @@ const App: React.FC = () => {
               {total.toLocaleString('en-US').replace(/,/g, '.')}
             </span>
           </div>
-          <div className="w-full relative">
-            <div className="flex justify-between items-end mb-1">
+          <div className="w-full relative pr-4">
+            <div className="flex justify-between items-end mb-2">
               <span className="text-sky-400 font-black uppercase tracking-[0.15em] text-[10px]">Day Progress</span>
               <span className="text-white/40 font-mono text-[10px] tabular-nums">{Math.floor(timeState.pct)}%</span>
             </div>
-            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/5">
+            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative border border-white/5">
               <div className="h-full rounded-full transition-all duration-1000 ease-linear"
                 style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, ${COLORS.GOLD_DEEP}, ${COLORS.GOLD_SOLID})` }} />
             </div>
-            <div className="absolute mt-2 transition-all duration-1000 ease-linear" style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}>
+            <div className="absolute mt-3 transition-all duration-1000 ease-linear" style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}>
               <span className="font-mono text-[11px] font-bold tracking-widest text-white bg-black/80 px-2 py-0.5 rounded border border-white/10 backdrop-blur-md">
                 {timeState.label}
               </span>
