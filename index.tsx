@@ -20,25 +20,27 @@ const COLORS = {
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)',
 };
 
-// --- Shared Helper for Responsive Globe Placement (Optimized for TV Dashboard) ---
+// --- Helper for TV-Safe Globe Placement ---
 const getGlobePosition = (w: number, h: number) => {
   const isLarge = w > 1024;
-  // Reduced scale for TV to ensure atmosphere doesn't clip
-  const hScale = isLarge ? 0.33 : 0.30;
+  
+  // Significantly reduced scale to ensure full visibility even with overscan
+  const hScale = isLarge ? 0.24 : 0.22;
   const radius = h * hScale;
-  // Increased boundary to keep globe further from the counter
-  const boundaryX = w * 0.32;
-  const gap = w * 0.05;
-  let cx = boundaryX + radius + gap;
   
-  // Extra safety margin for TV overscan (bottom/right edges)
-  const safeRightMargin = w * 0.12;
-  const maxCX = w - radius - safeRightMargin;
-  if (cx > maxCX) cx = maxCX;
-  if (!isLarge) cx = w / 2;
+  // Reserved width for the counter text panel
+  const panelWidth = isLarge ? w * 0.38 : 0;
   
-  const verticalOffset = isLarge ? 20 : 50;
-  const cy = (h / 2) - verticalOffset;
+  // Center the globe in the remaining space on the right
+  let cx = isLarge ? panelWidth + (w - panelWidth) / 2 : w / 2;
+  
+  // Apply a strict 10% safety margin from the right edge
+  const rightSafetyLimit = w - radius - (w * 0.08);
+  if (cx > rightSafetyLimit) cx = rightSafetyLimit;
+
+  // Center vertically for TV balance
+  const cy = h / 2; 
+  
   return { cx, cy, radius };
 };
 
@@ -120,11 +122,11 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      // Atmosphere
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.15);
+      // Atmosphere Aura
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.12);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.15, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.12, 0, Math.PI * 2); ctx.fill();
 
       // Ocean
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
@@ -147,7 +149,7 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
             else {
               const t = elapsed / 2000;
               ctx.fillStyle = d3.interpolateRgb(COLORS.GOLD_SOLID, COLORS.LAND)(t);
-              ctx.shadowBlur = 40 * (1 - t); ctx.shadowColor = COLORS.GOLD_SOLID;
+              ctx.shadowBlur = 30 * (1 - t); ctx.shadowColor = COLORS.GOLD_SOLID;
             }
           } else {
             const shading = 1 - Math.pow(distance / (Math.PI / 1.5), 1.2);
@@ -155,7 +157,7 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
             ctx.shadowBlur = 0;
           }
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.5; ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.5; ctx.stroke();
           ctx.shadowBlur = 0;
         }
       });
@@ -269,7 +271,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Optimized info column for large screen dashboards */}
+      {/* Optimized info column for TV Dashboards */}
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[340px]">
         <div className="flex flex-col items-start">
           <div className="flex items-center gap-2 mb-3">
@@ -277,7 +279,6 @@ const App: React.FC = () => {
             <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-[10px] md:text-sm opacity-90">Live Global Births</span>
           </div>
           <div className="flex items-baseline mb-8">
-            {/* Reduced counter size to fit TV viewing distance and screen real estate better */}
             <span className="text-[7vw] md:text-[64px] font-black leading-none tabular-nums" 
               style={{ 
                 fontFamily: "'Anton', sans-serif", 
