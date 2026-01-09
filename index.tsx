@@ -5,22 +5,22 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352; 
-const AUTO_ROTATION_SPEED = 0.18; // Increased rotation speed by another 2 steps
+const AUTO_ROTATION_SPEED = 0.18; 
 const FRICTION = 0.98; 
 const INITIAL_PHI = -25; 
 const COLORS = {
-  LAND: '#1e293b',      // Lighter, more vibrant slate for landmasses
-  LAND_LIT: '#475569',  // Significantly brighter highlight for topography
+  LAND: '#1e293b',      
+  LAND_LIT: '#475569',  
   ICE: '#ffffff',       
-  OCEAN_DEEP: '#08132b', // Brighter deep ocean
-  OCEAN_SHALLOW: '#1e3a8a', // Vibrant shallow ocean
-  OCEAN_BRIGHT: '#3b82f6',  // Pop of bright blue
-  SPECULAR: 'rgba(255, 255, 255, 0.5)', // Increased specular reflection
+  OCEAN_DEEP: '#08132b', 
+  OCEAN_SHALLOW: '#1e3a8a', 
+  OCEAN_BRIGHT: '#3b82f6',  
+  SPECULAR: 'rgba(255, 255, 255, 0.5)', 
   GOLD_SOLID: '#facc15', 
   GOLD_DEEP: '#a16207',
-  GOLD_GLOW: 'rgba(250, 204, 21, 0.8)', // Stronger flash glow
+  GOLD_GLOW: 'rgba(250, 204, 21, 0.8)', 
   BLUE_ATMOSPHERE: '#0ea5e9', 
-  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.55)', // More luminous atmosphere
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.55)', 
 };
 
 const STAR_COUNT = 350; 
@@ -34,55 +34,6 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   opacity: 0.1 + Math.random() * 0.4,
 }));
 
-const PACIFIERS = Array.from({ length: 15 }).map((_, i) => {
-  const driftX = (Math.random() - 0.5) * 120;
-  const driftY = (Math.random() - 0.5) * 120;
-  const angle = Math.atan2(driftY, driftX) * (180 / Math.PI) + 90;
-
-  return {
-    id: i,
-    startX: Math.random() * 100,
-    startY: Math.random() * 100,
-    size: 10 + Math.random() * 6,
-    duration: 20 + Math.random() * 15,
-    driftX,
-    driftY,
-    angle,
-  };
-});
-
-const PacifierComet = ({ size, angle }: { size: number, angle: number }) => (
-  <div style={{ 
-    position: 'relative', 
-    width: size, 
-    height: size, 
-    transform: `rotate(${angle}deg)`,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
-  }}>
-    <div style={{
-      position: 'absolute',
-      inset: '-4px',
-      background: `radial-gradient(circle, white 0%, rgba(56,189,248,0.4) 60%, transparent 90%)`,
-      borderRadius: '50%',
-      filter: 'blur(6px)',
-      opacity: 0.6
-    }} />
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 100 100" 
-      style={{ filter: `drop-shadow(0 0 4px rgba(255,255,255,0.8))`, zIndex: 2 }}
-    >
-      <circle cx="50" cy="22" r="16" fill="none" stroke="white" strokeWidth="22" />
-      <circle cx="50" cy="22" r="16" fill="none" stroke="#3b82f6" strokeWidth="12" />
-      <rect x="5" y="38" width="90" height="24" rx="12" fill="white" />
-      <path fill="white" d="M30 62 C 30 62, 22 96, 50 96 C 78 96, 70 62, 70 62 Z" />
-    </svg>
-  </div>
-);
-
 const SpaceBackground: React.FC = () => {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000103]">
@@ -91,22 +42,12 @@ const SpaceBackground: React.FC = () => {
           0%, 100% { opacity: 0.2; transform: scale(0.9); }
           50% { opacity: 0.7; transform: scale(1.1); }
         }
-        @keyframes cometPath {
-          0% { transform: translate(0, 0); opacity: 0; }
-          5% { opacity: 0.8; }
-          95% { opacity: 0.8; }
-          100% { transform: translate(var(--driftX), var(--driftY)); opacity: 0; }
-        }
         .star {
           position: absolute;
           background: white;
           border-radius: 50%;
           animation: twinkle var(--duration) ease-in-out infinite;
           animation-delay: var(--delay);
-        }
-        .pacifier-comet-container {
-          position: absolute;
-          animation: cometPath var(--duration) linear infinite;
         }
       `}</style>
       {STARS.map((star) => (
@@ -124,22 +65,6 @@ const SpaceBackground: React.FC = () => {
             '--duration': star.duration,
           }}
         />
-      ))}
-      {PACIFIERS.map((p) => (
-        <div
-          key={p.id}
-          className="pacifier-comet-container"
-          style={{
-            top: `${p.startY}%`,
-            left: `${p.startX}%`,
-            // @ts-ignore
-            '--driftX': `${p.driftX}vw`,
-            '--driftY': `${p.driftY}vh`,
-            '--duration': `${p.duration}s`,
-          }}
-        >
-          <PacifierComet size={p.size} angle={p.angle} />
-        </div>
       ))}
     </div>
   );
@@ -193,16 +118,15 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       
       const dt = Math.min(time - lastTimeRef.current, 100); 
       lastTimeRef.current = time;
-      const timeFactor = dt / 16.67;
+      const timeFactor = dt / 16.666; 
       
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       const isLarge = w > 1024;
       
-      // Globe size
       const radius = h * 0.33;
-      const boundaryX = w * 0.34;
-      const gap = w * 0.05; 
+      const boundaryX = w * 0.28; 
+      const gap = w * 0.02; 
       let cx = boundaryX + radius + gap;
       
       const maxCX = w - radius - (w * 0.02);
@@ -233,7 +157,6 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // ATMOSPHERE GLOW - Brighter and slightly larger
       const auraRadius = radius * 1.35;
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, auraRadius);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
@@ -242,14 +165,12 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, auraRadius, 0, Math.PI * 2); ctx.fill();
 
-      // BRIGHTER OCEAN GRADIENT
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.05, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // BRIGHTER SPECULAR
       const specular = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.1);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
@@ -284,13 +205,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               ctx.shadowColor = COLORS.GOLD_SOLID;
             }
           } else {
-            // BRIGHTER LAND DEFINITION
             const landBase = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
             ctx.fillStyle = d3.interpolateRgb(landBase, COLORS.OCEAN_DEEP)(Math.min(1, edgeFade));
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
-          // Brighter borders
           ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.12, 0.3 - edgeFade * 0.2)})`; 
           ctx.lineWidth = 0.6; 
           ctx.stroke();
@@ -365,14 +284,15 @@ const App: React.FC = () => {
       <SpaceBackground />
       <Globe lastFlash={flashId} />
       
+      {/* Logo Branding - White with Blue Underline */}
       <div className="absolute top-8 left-10 md:top-10 md:left-14 z-30 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-2xl md:text-3xl lg:text-4xl leading-none">
-            <span className="text-sky-500">M</span>
-            <span className="text-sky-400">&</span>
-            <span className="text-white opacity-80">CC</span>
+            <span className="text-white">M</span>
+            <span className="text-white">&</span>
+            <span className="text-white">CC</span>
           </div>
-          <div className="w-full h-[2px] bg-sky-500 mt-1.5 shadow-[0_0_10px_rgba(56,189,248,0.5)]"></div>
+          <div className="w-full h-[3px] bg-sky-500 mt-1.5 shadow-[0_0_12px_rgba(14,165,233,0.7)]"></div>
         </div>
       </div>
 
@@ -381,7 +301,7 @@ const App: React.FC = () => {
           
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)] animate-pulse"></div>
-            <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-[10px] md:text-base opacity-90">Birth Count Today</span>
+            <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-[10px] md:text-base opacity-90">Live Birth Count</span>
           </div>
           
           <div className="flex items-baseline mb-4">
@@ -399,7 +319,7 @@ const App: React.FC = () => {
 
           <div className="w-full max-w-[420px] relative">
             <div className="flex justify-between items-end mb-1 px-1">
-              <span className="text-sky-400 font-black uppercase tracking-[0.15em] text-[8px] md:text-[11px] opacity-70">Daily Cycle</span>
+              <span className="text-sky-400 font-black uppercase tracking-[0.15em] text-[8px] md:text-[11px] opacity-70">Daily Pulse Cycle</span>
               <span className="text-white/40 font-mono text-[8px] md:text-[11px] tabular-nums font-bold tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
             
@@ -413,10 +333,16 @@ const App: React.FC = () => {
                 }}
               />
             </div>
-            
-            <div className="mt-4 flex justify-center w-full">
-              <div className="bg-black/90 border border-white/20 px-4 py-1.5 rounded-md shadow-2xl backdrop-blur-xl">
-                <span className="font-mono text-[12px] md:text-[18px] font-extrabold tracking-[0.1em] tabular-nums text-white leading-none">
+
+            {/* HH:MM Clock - Positioned under progress bar at current time indicator */}
+            <div 
+              className="absolute mt-2 transition-all duration-1000 ease-linear"
+              style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
+            >
+              <div className="flex flex-col items-center">
+                 {/* Tiny arrow pointing up to the bar */}
+                <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-sky-500/50 mb-0.5"></div>
+                <span className="font-mono text-[9px] md:text-[11px] font-bold tracking-[0.1em] tabular-nums text-white/90 bg-black/40 px-1.5 py-0.5 rounded backdrop-blur-sm border border-white/5">
                   {timeState.label}
                 </span>
               </div>
