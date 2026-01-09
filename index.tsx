@@ -15,8 +15,11 @@ const COLORS = {
   OCEAN_SHALLOW: '#0a215e',
   OCEAN_BRIGHT: '#1a4fc2',
   SPECULAR: 'rgba(255, 255, 255, 0.5)', 
-  GOLD_PREMIUM: '#E8C13F', // Brighter, more metallic premium gold
-  GOLD_GLOW: 'rgba(232, 193, 63, 0.4)',
+  // Enhanced "Master" Gold palette
+  GOLD_PREMIUM: '#FFD700', 
+  GOLD_DEEP: '#B8860B',
+  GOLD_BRIGHT: '#FFF7AD',
+  GOLD_GLOW: 'rgba(255, 215, 0, 0.5)',
   BLUE: '#38bdf8',      
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.3)', 
 };
@@ -32,8 +35,7 @@ const STARS = Array.from({ length: STAR_COUNT }).map((_, i) => ({
   opacity: 0.15 + Math.random() * 0.4,
 }));
 
-const PACIFIER_COUNT = 12; 
-const PACIFIERS = Array.from({ length: PACIFIER_COUNT }).map((_, i) => ({
+const PACIFIERS = Array.from({ length: 12 }).map((_, i) => ({
   id: i,
   startX: Math.random() * 100,
   startY: Math.random() * 100,
@@ -205,11 +207,16 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
       
-      const safePadding = 80; 
-      const radius = Math.min((w * 0.4) - safePadding, (h * 0.5) - safePadding); 
-      
-      const cx = w * 0.65; 
+      // DYNAMIC POSITIONING to avoid overlapping text on large screens
+      // UI panel is max-w-[45%]. So we center globe in the remaining [45% - 100%]
+      // Midpoint: (0.45 + 1.0) / 2 = 0.725
+      const isLarge = w > 1200;
+      const cx = isLarge ? w * 0.73 : w * 0.50; 
       const cy = h * 0.50; 
+      
+      // Radius safety: ensure it fits the remaining horizontal box and full vertical box
+      const maxWidthForGlobe = isLarge ? w * 0.52 : w * 0.95;
+      const radius = Math.min((maxWidthForGlobe / 2) - 40, (h / 2) - 60);
 
       ctx.clearRect(0, 0, w, h);
       
@@ -231,11 +238,11 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 70);
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius + 80);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.4, 'rgba(56, 189, 248, 0.05)');
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 70, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius + 80, 0, Math.PI * 2); ctx.fill();
 
       const ocean = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -377,7 +384,7 @@ const App: React.FC = () => {
       </div>
 
       <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center pl-12 md:pl-24 pointer-events-none w-full max-w-[45%] transform translate-y-12">
-        <div className="flex flex-col items-start gap-2">
+        <div className="flex flex-col items-start gap-1">
           <div className="flex flex-col gap-0 max-w-full">
             <div className="flex items-center gap-3 mb-1">
               <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.9)]"></div>
@@ -386,11 +393,14 @@ const App: React.FC = () => {
             
             <div className="flex items-baseline overflow-visible">
               <span 
-                className="text-[7.5vw] font-black leading-none transition-all duration-300 tabular-nums select-all" 
+                className="text-[8vw] font-black leading-none transition-all duration-300 tabular-nums select-all inline-block" 
                 style={{ 
                   fontFamily: "'Anton', sans-serif", 
-                  color: COLORS.GOLD_PREMIUM, 
-                  textShadow: `0 0 40px ${COLORS.GOLD_GLOW}, 0 0 5px #fff` 
+                  // ENHANCED GOLD GRADIENT
+                  background: `linear-gradient(to bottom, ${COLORS.GOLD_BRIGHT} 0%, ${COLORS.GOLD_PREMIUM} 45%, ${COLORS.GOLD_DEEP} 100%)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  filter: `drop-shadow(0 0 20px ${COLORS.GOLD_GLOW})`
                 }}
               >
                 {total.toLocaleString('en-US').replace(/,/g, '.')}
@@ -398,16 +408,16 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Progress Indicator - Further moved close to numbers */}
-          <div className="w-full max-w-[480px] mt-2 relative">
-            <div className="flex justify-between items-end mb-1.5 px-1">
+          {/* Progress Indicator - Closest to numbers */}
+          <div className="w-full max-w-[480px] mt-1 relative">
+            <div className="flex justify-between items-end mb-1 px-1">
               <span className="text-sky-400 font-bold uppercase tracking-widest text-[9px] md:text-[13px] opacity-60">Daily Cycle</span>
               <span className="text-white/40 font-mono text-[10px] md:text-[12px] tabular-nums">{Math.floor(timeState.pct)}%</span>
             </div>
             
-            <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
+            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10">
               <div 
-                className="h-full transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(232,193,63,0.3)]"
+                className="h-full transition-all duration-1000 ease-linear shadow-[0_0_20px_rgba(255,215,0,0.3)]"
                 style={{ 
                   width: `${timeState.pct}%`,
                   background: `linear-gradient(90deg, #8B6B10 0%, ${COLORS.GOLD_PREMIUM} 50%, #FFD700 100%)`
@@ -415,16 +425,14 @@ const App: React.FC = () => {
               />
             </div>
             
-            {/* Time Marker Popup - Extremely close to progress bar, smaller white font */}
+            {/* Time Marker - Smaller White Font */}
             <div 
               className="absolute top-full flex flex-col items-center transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
-              <div className="w-px h-2 bg-white/20"></div>
-              <div className="bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/10 px-3 py-1 rounded-lg flex items-center shadow-[0_10px_30px_rgba(0,0,0,0.9)]">
-                <span 
-                   className="font-mono text-sm md:text-xl font-bold tracking-tight whitespace-nowrap tabular-nums text-white opacity-100"
-                >
+              <div className="w-px h-1.5 bg-white/30"></div>
+              <div className="bg-black/80 backdrop-blur-xl border border-white/10 px-2.5 py-0.5 rounded flex items-center shadow-2xl">
+                <span className="font-mono text-xs md:text-lg font-medium tracking-tight whitespace-nowrap tabular-nums text-white">
                   {timeState.label}
                 </span>
               </div>
@@ -433,8 +441,9 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/100 via-black/40 to-transparent z-10 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/100 via-black/40 to-transparent z-10 pointer-events-none"></div>
+      {/* Decorative Gradients */}
+      <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/100 via-black/30 to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black/100 via-black/30 to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };
