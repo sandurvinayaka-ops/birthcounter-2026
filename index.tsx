@@ -9,18 +9,18 @@ const AUTO_ROTATION_SPEED = 0.12;
 const FRICTION = 0.98; 
 const INITIAL_PHI = -25; 
 const COLORS = {
-  LAND: '#111827',      // Slightly brighter and more neutral for better definition
-  LAND_LIT: '#374151',  // Clearer highlight for topography
+  LAND: '#1e293b',      // Lighter, more vibrant slate for landmasses
+  LAND_LIT: '#475569',  // Significantly brighter highlight for topography
   ICE: '#ffffff',       
-  OCEAN_DEEP: '#020617', // Darker oceans for maximum land contrast
-  OCEAN_SHALLOW: '#0f172a',
-  OCEAN_BRIGHT: '#1e3a8a', 
-  SPECULAR: 'rgba(255, 255, 255, 0.3)', // Subdued specular to keep focus on land
+  OCEAN_DEEP: '#08132b', // Brighter deep ocean
+  OCEAN_SHALLOW: '#1e3a8a', // Vibrant shallow ocean
+  OCEAN_BRIGHT: '#3b82f6',  // Pop of bright blue
+  SPECULAR: 'rgba(255, 255, 255, 0.5)', // Increased specular reflection
   GOLD_SOLID: '#facc15', 
   GOLD_DEEP: '#a16207',
-  GOLD_GLOW: 'rgba(250, 204, 21, 0.6)',
+  GOLD_GLOW: 'rgba(250, 204, 21, 0.8)', // Stronger flash glow
   BLUE_ATMOSPHERE: '#0ea5e9', 
-  ATMOSPHERE_INNER: 'rgba(14, 165, 233, 0.35)', // Reduced alpha for less glow
+  ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.55)', // More luminous atmosphere
 };
 
 const STAR_COUNT = 350; 
@@ -199,7 +199,7 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
       const h = canvas.height / dpr;
       const isLarge = w > 1024;
       
-      // Globe size increased by 10% (0.3 * 1.1 = 0.33)
+      // Globe size
       const radius = h * 0.33;
       const boundaryX = w * 0.34;
       const gap = w * 0.05; 
@@ -233,24 +233,24 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
         
       const path = d3.geoPath(projection, ctx);
       
-      // REDUCED ATMOSPHERE GLOW (Smaller radius and lower alpha)
-      const auraRadius = radius * 1.25;
+      // ATMOSPHERE GLOW - Brighter and slightly larger
+      const auraRadius = radius * 1.35;
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, auraRadius);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.3, 'rgba(14, 165, 233, 0.15)');
-      aura.addColorStop(0.7, 'rgba(14, 165, 233, 0.02)');
+      aura.addColorStop(0.3, 'rgba(56, 189, 248, 0.25)');
+      aura.addColorStop(0.7, 'rgba(56, 189, 248, 0.05)');
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, auraRadius, 0, Math.PI * 2); ctx.fill();
 
-      // DARKER OCEAN RADIAL GRADIENT
+      // BRIGHTER OCEAN GRADIENT
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.05, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // SUBDUED SPECULAR
-      const specular = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.0);
+      // BRIGHTER SPECULAR
+      const specular = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.1);
       specular.addColorStop(0, COLORS.SPECULAR);
       specular.addColorStop(1, 'transparent');
       ctx.globalCompositeOperation = 'screen';
@@ -280,19 +280,19 @@ const Globe: React.FC<{ lastFlash: string | null }> = ({ lastFlash }) => {
               const t = elapsed / 2000;
               const flashCol = d3.interpolateRgb(COLORS.GOLD_SOLID, COLORS.LAND)(t);
               ctx.fillStyle = flashCol;
-              ctx.shadowBlur = 45 * (1 - t); 
+              ctx.shadowBlur = 50 * (1 - t); 
               ctx.shadowColor = COLORS.GOLD_SOLID;
             }
           } else {
-            // ENHANCED LAND VISIBILITY (More contrast between shaded and lit sides)
+            // BRIGHTER LAND DEFINITION
             const landBase = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
             ctx.fillStyle = d3.interpolateRgb(landBase, COLORS.OCEAN_DEEP)(Math.min(1, edgeFade));
             ctx.shadowBlur = 0;
           }
           ctx.fill(); 
-          // Sharper borders
-          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.1, 0.25 - edgeFade * 0.2)})`; 
-          ctx.lineWidth = 0.5; 
+          // Brighter borders
+          ctx.strokeStyle = `rgba(255,255,255, ${Math.max(0.12, 0.3 - edgeFade * 0.2)})`; 
+          ctx.lineWidth = 0.6; 
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
