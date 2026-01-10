@@ -28,10 +28,13 @@ const COLORS = {
 
 /**
  * TV-Optimized Auto-Adjust Globe Logic
+ * Reduced scaleFactor to 0.40 to ensure "Action Safe" visibility on all TVs.
  */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  let scaleFactor = 0.47;
+  // 0.40 scale factor means the globe takes up 80% of the screen height/width.
+  // This leaves a 10% margin on all sides, well within standard TV safe zones.
+  let scaleFactor = 0.40;
   const radius = minDim * scaleFactor;
   const cx = w / 2;
   const cy = h / 2; 
@@ -161,7 +164,7 @@ const PacifierComets: React.FC = () => {
       if (!lastTimeRef.current) lastTimeRef.current = time;
       const dt = time - lastTimeRef.current;
       lastTimeRef.current = time;
-      const timeFactor = Math.min(dt / 16.667, 3); // Normalize to 60fps, cap at 3x to prevent massive jumps
+      const timeFactor = Math.min(dt / 16.667, 3);
 
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -179,13 +182,11 @@ const PacifierComets: React.FC = () => {
       if (!ctx) return;
 
       cometsRef.current.forEach((c, i) => {
-        // Strict time-based movement
         c.x += c.vx * timeFactor;
         c.y += c.vy * timeFactor;
         c.rotation += c.rv * timeFactor;
         c.opacity = Math.min(c.opacity + 0.01 * timeFactor, 0.7);
 
-        // Limit history size slightly for TV performance
         c.history.unshift({x: c.x, y: c.y});
         if (c.history.length > 10) c.history.pop();
 
@@ -273,7 +274,7 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
       if (!lastTimeRef.current) lastTimeRef.current = time;
       const dt = time - lastTimeRef.current;
       lastTimeRef.current = time;
-      const timeFactor = Math.min(dt / 16.667, 3); // Normalize to 60fps
+      const timeFactor = Math.min(dt / 16.667, 3);
 
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -310,13 +311,11 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      // Draw simplified glow/atmosphere for performance
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.12);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.12, 0, Math.PI * 2); ctx.fill();
 
-      // Oceans
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
@@ -328,7 +327,6 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
         const centroid = d3.geoCentroid(d);
         const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
         
-        // Only draw features on the visible hemisphere + small margin
         if (distance < 1.7) { 
           ctx.beginPath(); path(d);
           const flashStart = activeFlashes.current.get(d.id);
