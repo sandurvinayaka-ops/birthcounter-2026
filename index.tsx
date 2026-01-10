@@ -21,25 +21,23 @@ const COLORS = {
   ATMOSPHERE_OUTER: 'rgba(56, 189, 248, 0.1)',
   PACIFIER_TEAL: '#009b9b',
   PACIFIER_BEIGE: '#f5e6cc',
+  TEAT_CLEAR: 'rgba(255, 255, 255, 0.6)',
+  TEAT_HIGHLIGHT: 'rgba(255, 255, 255, 0.9)',
+  TEAT_SHADOW: 'rgba(200, 200, 200, 0.4)',
 };
 
-/**
- * TV Safe Zone Logic
- * We want the globe centered and large, but slightly away from the absolute edges
- * to account for overscan common on many television screens.
- */
+// --- Helper for TV-Safe Globe Placement ---
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  // 0.45 radius means 0.90 diameter. This leaves a 5% margin on top and bottom.
-  // This is well within the "Action Safe" zone for television (90% area).
   const radius = minDim * 0.45; 
   const cx = w / 2;
   const cy = h / 2; 
   return { cx, cy, radius };
 };
 
-// --- Pacifier Comet Logic ---
+// --- Comet Logic ---
 interface Comet {
+  type: 'pacifier' | 'teat';
   x: number;
   y: number;
   z: number;
@@ -64,6 +62,7 @@ const PacifierComets: React.FC = () => {
     let animId: number;
 
     const createComet = (w: number, h: number): Comet => ({
+      type: Math.random() > 0.5 ? 'pacifier' : 'teat',
       x: Math.random() * w,
       y: Math.random() * h,
       z: Math.random() * 0.5 + 0.5,
@@ -123,6 +122,60 @@ const PacifierComets: React.FC = () => {
       ctx.restore();
     };
 
+    const drawTeat = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, rotation: number) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.scale(scale * 1.5, scale * 1.5); // Adjust scale for visibility
+
+      // Teat Base (wide bell)
+      ctx.beginPath();
+      ctx.moveTo(-15, 10);
+      ctx.bezierCurveTo(-15, 5, -8, 2, -5, -8); // Left curve up to neck
+      ctx.bezierCurveTo(-5, -15, -4, -18, 0, -18); // Top bulb
+      ctx.bezierCurveTo(4, -18, 5, -15, 5, -8); // Top bulb down
+      ctx.bezierCurveTo(8, 2, 15, 5, 15, 10); // Right curve down to base
+      ctx.lineTo(-15, 10);
+      ctx.closePath();
+
+      const teatGrad = ctx.createRadialGradient(0, -5, 0, 0, 0, 15);
+      teatGrad.addColorStop(0, COLORS.TEAT_HIGHLIGHT);
+      teatGrad.addColorStop(0.5, COLORS.TEAT_CLEAR);
+      teatGrad.addColorStop(1, COLORS.TEAT_SHADOW);
+      ctx.fillStyle = teatGrad;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+      ctx.fill();
+
+      // Detail: Spiral lines on neck
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(-4, -12);
+      ctx.quadraticCurveTo(0, -10, 4, -12);
+      ctx.moveTo(-4, -8);
+      ctx.quadraticCurveTo(0, -6, 4, -8);
+      ctx.stroke();
+
+      // Detail: Base petals (Avent Natural look)
+      ctx.beginPath();
+      for(let i = -12; i <= 12; i += 6) {
+        ctx.moveTo(i, 8);
+        ctx.bezierCurveTo(i, 4, i + 3, 4, i + 3, 8);
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.stroke();
+
+      // Highlight on the top bulb
+      ctx.beginPath();
+      ctx.ellipse(-2, -15, 1.5, 1, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.globalAlpha = 0.6;
+      ctx.fill();
+
+      ctx.restore();
+    };
+
     const render = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -132,7 +185,7 @@ const PacifierComets: React.FC = () => {
         ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
 
-      if (cometsRef.current.length < 12) {
+      if (cometsRef.current.length < 16) {
         cometsRef.current.push(createComet(w, h));
       }
 
@@ -146,7 +199,7 @@ const PacifierComets: React.FC = () => {
         c.opacity = Math.min(c.opacity + 0.01, 0.7);
 
         c.history.unshift({x: c.x, y: c.y});
-        if (c.history.length > 20) c.history.pop();
+        if (c.history.length > 15) c.history.pop();
 
         if (c.history.length > 1) {
           ctx.beginPath();
@@ -154,16 +207,27 @@ const PacifierComets: React.FC = () => {
           for(let j = 1; j < c.history.length; j++) {
             ctx.lineTo(c.history[j].x, c.history[j].y);
           }
+          
+          // Fixed trail color generation to avoid SyntaxError
+          const alpha = c.opacity * 0.4;
+          const trailColorStart = c.type === 'pacifier' 
+            ? `rgba(0, 155, 155, ${alpha})` 
+            : `rgba(255, 255, 255, ${alpha})`;
+            
           const trailGrad = ctx.createLinearGradient(c.history[0].x, c.history[0].y, c.history[c.history.length-1].x, c.history[c.history.length-1].y);
-          trailGrad.addColorStop(0, `rgba(0, 155, 155, ${c.opacity * 0.4})`);
+          trailGrad.addColorStop(0, trailColorStart);
           trailGrad.addColorStop(1, 'transparent');
           ctx.strokeStyle = trailGrad;
-          ctx.lineWidth = c.size * 0.4;
+          ctx.lineWidth = c.size * 0.3;
           ctx.lineCap = 'round';
           ctx.stroke();
         }
 
-        drawPacifier(ctx, c.x, c.y, (c.size / 40) * c.z, c.rotation);
+        if (c.type === 'pacifier') {
+          drawPacifier(ctx, c.x, c.y, (c.size / 40) * c.z, c.rotation);
+        } else {
+          drawTeat(ctx, c.x, c.y, (c.size / 40) * c.z, c.rotation);
+        }
 
         if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
           cometsRef.current[i] = createComet(w, h);
@@ -258,7 +322,6 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      // Enhance atmosphere for TV visibility (more glow)
       const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.15);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(0.5, COLORS.ATMOSPHERE_OUTER);
@@ -395,7 +458,6 @@ const App: React.FC = () => {
       <PacifierComets />
       <GlobalCanvas lastFlashId={pureFlashId} />
 
-      {/* Title Safe Area Margins for UI (Padded more for TV) */}
       <div className="absolute top-12 left-12 md:top-20 md:left-20 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-xl md:text-2xl lg:text-3xl leading-none">
