@@ -8,6 +8,10 @@ const BIRTHS_PER_SECOND = 4.352;
 const AUTO_ROTATION_SPEED = 0.25; 
 const FRICTION = 0.985;
 const INITIAL_PHI = -25;
+
+// TV browsers often struggle with high pixel density. Cap DPR to ensure performance.
+const MAX_DPR = 1.5; 
+
 const COLORS = {
   LAND: '#1e293b',
   LAND_LIT: '#475569',
@@ -28,12 +32,9 @@ const COLORS = {
 
 /**
  * TV-Optimized Auto-Adjust Globe Logic
- * Reduced scaleFactor to 0.40 to ensure "Action Safe" visibility on all TVs.
  */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  // 0.40 scale factor means the globe takes up 80% of the screen height/width.
-  // This leaves a 10% margin on all sides, well within standard TV safe zones.
   let scaleFactor = 0.40;
   const radius = minDim * scaleFactor;
   const cx = w / 2;
@@ -65,7 +66,8 @@ const PacifierComets: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true });
-    const dpr = window.devicePixelRatio || 1;
+    // Cap DPR for TV performance
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     let animId: number;
 
     const createComet = (w: number, h: number): Comet => ({
@@ -164,6 +166,8 @@ const PacifierComets: React.FC = () => {
       if (!lastTimeRef.current) lastTimeRef.current = time;
       const dt = time - lastTimeRef.current;
       lastTimeRef.current = time;
+      
+      // Use a smoothed delta to prevent jittering on TV
       const timeFactor = Math.min(dt / 16.667, 3);
 
       const w = window.innerWidth;
@@ -174,7 +178,7 @@ const PacifierComets: React.FC = () => {
         ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
 
-      if (cometsRef.current.length < 16) {
+      if (cometsRef.current.length < 12) { // Slightly reduced comet count for TV smoothness
         cometsRef.current.push(createComet(w, h));
       }
 
@@ -188,7 +192,7 @@ const PacifierComets: React.FC = () => {
         c.opacity = Math.min(c.opacity + 0.01 * timeFactor, 0.7);
 
         c.history.unshift({x: c.x, y: c.y});
-        if (c.history.length > 10) c.history.pop();
+        if (c.history.length > 8) c.history.pop(); // Shorter history for faster path drawing
 
         if (c.history.length > 1) {
           ctx.beginPath();
@@ -206,7 +210,7 @@ const PacifierComets: React.FC = () => {
           trailGrad.addColorStop(0, trailColorStart);
           trailGrad.addColorStop(1, 'transparent');
           ctx.strokeStyle = trailGrad;
-          ctx.lineWidth = c.size * 0.25;
+          ctx.lineWidth = c.size * 0.2;
           ctx.lineCap = 'round';
           ctx.stroke();
         }
@@ -242,10 +246,16 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
   const lastTimeRef = useRef<number>(0);
   const activeFlashes = useRef<Map<string, number>>(new Map());
 
+  // Pre-calculate centroids to save CPU cycles on every frame
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
-      .then(data => { geoDataRef.current = data; });
+      .then(data => {
+        data.features.forEach((f: any) => {
+          f.centroid = d3.geoCentroid(f);
+        });
+        geoDataRef.current = data;
+      });
   }, []);
 
   useEffect(() => {
@@ -256,7 +266,8 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true });
-    const dpr = window.devicePixelRatio || 1;
+    // Cap DPR for TV performance
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     let animId: number;
 
     const drag = d3.drag<HTMLCanvasElement, unknown>()
@@ -294,6 +305,7 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
       }
 
       if (!isDraggingRef.current) {
+        // Linearized rotation update for consistency
         rotationRef.current[0] += AUTO_ROTATION_SPEED * timeFactor;
         if (Math.abs(velocityRef.current[0]) > 0.001 || Math.abs(velocityRef.current[1]) > 0.001) {
           rotationRef.current[0] += velocityRef.current[0] * timeFactor;
@@ -301,7 +313,8 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
           velocityRef.current[0] *= Math.pow(FRICTION, timeFactor);
           velocityRef.current[1] *= Math.pow(FRICTION, timeFactor);
         }
-        rotationRef.current[1] += (INITIAL_PHI - rotationRef.current[1]) * 0.02 * timeFactor;
+        // Smooth snap-back to initial phi
+        rotationRef.current[1] += (INITIAL_PHI - rotationRef.current[1]) * 0.015 * timeFactor;
       }
 
       const projection = d3.geoOrthographic()
@@ -311,40 +324,58 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.12);
+      // Draw simplified glow/atmosphere
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.10);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; 
+      ctx.beginPath(); 
+      ctx.arc(cx, cy, radius * 1.10, 0, Math.PI * 2); 
+      ctx.fill();
 
+      // Oceans
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
-      ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = ocean; 
+      ctx.beginPath(); 
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2); 
+      ctx.fill();
 
       const now = Date.now();
+      const rot0 = -rotationRef.current[0];
+      const rot1 = -rotationRef.current[1];
+
       geoDataRef.current.features.forEach((d: any) => {
-        const centroid = d3.geoCentroid(d);
-        const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
+        // Fast distance check using pre-calculated centroid
+        const distance = d3.geoDistance(d.centroid, [rot0, rot1]);
         
-        if (distance < 1.7) { 
-          ctx.beginPath(); path(d);
+        // Slightly tighter visible window for performance
+        if (distance < 1.6) { 
+          ctx.beginPath(); 
+          path(d);
           const flashStart = activeFlashes.current.get(d.id);
           if (flashStart) {
             const elapsed = now - flashStart;
-            if (elapsed > 2000) { activeFlashes.current.delete(d.id); ctx.fillStyle = COLORS.LAND; }
-            else {
+            if (elapsed > 2000) { 
+              activeFlashes.current.delete(d.id); 
+              ctx.fillStyle = COLORS.LAND; 
+            } else {
               const t = elapsed / 2000;
               ctx.fillStyle = d3.interpolateRgb(COLORS.GOLD_SOLID, COLORS.LAND)(t);
-              ctx.shadowBlur = 40 * (1 - t); ctx.shadowColor = COLORS.GOLD_SOLID;
+              ctx.shadowBlur = 30 * (1 - t); 
+              ctx.shadowColor = COLORS.GOLD_SOLID;
             }
           } else {
-            const shading = 1 - Math.pow(distance / 1.7, 1.2);
+            const shading = 1 - Math.pow(distance / 1.6, 1.2);
             ctx.fillStyle = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
             ctx.shadowBlur = 0;
           }
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,0.05)'; 
+          ctx.lineWidth = 0.5; 
+          ctx.stroke();
           ctx.shadowBlur = 0;
         }
       });
