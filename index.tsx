@@ -5,12 +5,12 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 0.25; 
+const AUTO_ROTATION_SPEED = 0.015; // Degrees per millisecond
 const FRICTION = 0.985;
 const INITIAL_PHI = -25;
 
-// TV browsers often struggle with high pixel density. Cap DPR to ensure performance.
-const MAX_DPR = 1.5; 
+// TV browsers often have weak GPUs. Capping DPR even further to 1.2 ensures 60fps on more devices.
+const MAX_DPR = 1.2; 
 
 const COLORS = {
   LAND: '#1e293b',
@@ -35,7 +35,7 @@ const COLORS = {
  */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  let scaleFactor = 0.40;
+  let scaleFactor = 0.38; // Slightly smaller to be safe
   const radius = minDim * scaleFactor;
   const cx = w / 2;
   const cy = h / 2; 
@@ -66,7 +66,6 @@ const PacifierComets: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true });
-    // Cap DPR for TV performance
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     let animId: number;
 
@@ -75,11 +74,11 @@ const PacifierComets: React.FC = () => {
       x: Math.random() * w,
       y: Math.random() * h,
       z: Math.random() * 0.5 + 0.5,
-      vx: (Math.random() - 0.5) * 2.0,
-      vy: (Math.random() - 0.5) * 2.0,
+      vx: (Math.random() - 0.5) * 2.5,
+      vy: (Math.random() - 0.5) * 2.5,
       rotation: Math.random() * Math.PI * 2,
       rv: (Math.random() - 0.5) * 0.05,
-      size: 15 + Math.random() * 20,
+      size: 15 + Math.random() * 15,
       opacity: 0,
       history: []
     });
@@ -98,10 +97,7 @@ const PacifierComets: React.FC = () => {
       ctx.bezierCurveTo(22, 0, 18, -12, 10, -8);
       ctx.closePath();
       
-      const shieldGrad = ctx.createLinearGradient(-20, -10, 20, 10);
-      shieldGrad.addColorStop(0, COLORS.PACIFIER_TEAL);
-      shieldGrad.addColorStop(1, '#006d6d');
-      ctx.fillStyle = shieldGrad;
+      ctx.fillStyle = COLORS.PACIFIER_TEAL;
       ctx.fill();
 
       ctx.beginPath();
@@ -116,13 +112,6 @@ const PacifierComets: React.FC = () => {
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(3, -1, 2, 0, Math.PI);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(0, 10, 12, Math.PI * 0.2, Math.PI * 0.8);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
       ctx.stroke();
 
       ctx.restore();
@@ -143,21 +132,8 @@ const PacifierComets: React.FC = () => {
       ctx.lineTo(-15, 10);
       ctx.closePath();
 
-      const teatGrad = ctx.createRadialGradient(0, -5, 0, 0, 0, 15);
-      teatGrad.addColorStop(0, COLORS.TEAT_HIGHLIGHT);
-      teatGrad.addColorStop(0.5, COLORS.TEAT_CLEAR);
-      teatGrad.addColorStop(1, COLORS.TEAT_SHADOW);
-      ctx.fillStyle = teatGrad;
+      ctx.fillStyle = COLORS.TEAT_CLEAR;
       ctx.fill();
-
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(-4, -12);
-      ctx.quadraticCurveTo(0, -10, 4, -12);
-      ctx.moveTo(-4, -8);
-      ctx.quadraticCurveTo(0, -6, 4, -8);
-      ctx.stroke();
 
       ctx.restore();
     };
@@ -166,19 +142,17 @@ const PacifierComets: React.FC = () => {
       if (!lastTimeRef.current) lastTimeRef.current = time;
       const dt = time - lastTimeRef.current;
       lastTimeRef.current = time;
-      
-      // Use a smoothed delta to prevent jittering on TV
-      const timeFactor = Math.min(dt / 16.667, 3);
+      const timeFactor = dt / 16.667;
 
       const w = window.innerWidth;
       const h = window.innerHeight;
-      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        ctx?.scale(dpr, dpr);
       }
 
-      if (cometsRef.current.length < 12) { // Slightly reduced comet count for TV smoothness
+      if (cometsRef.current.length < 8) { // Further reduced for smoothness
         cometsRef.current.push(createComet(w, h));
       }
 
@@ -192,7 +166,7 @@ const PacifierComets: React.FC = () => {
         c.opacity = Math.min(c.opacity + 0.01 * timeFactor, 0.7);
 
         c.history.unshift({x: c.x, y: c.y});
-        if (c.history.length > 8) c.history.pop(); // Shorter history for faster path drawing
+        if (c.history.length > 6) c.history.pop(); 
 
         if (c.history.length > 1) {
           ctx.beginPath();
@@ -201,16 +175,9 @@ const PacifierComets: React.FC = () => {
             ctx.lineTo(c.history[j].x, c.history[j].y);
           }
           
-          const alpha = c.opacity * 0.3;
-          const trailColorStart = c.type === 'pacifier' 
-            ? `rgba(0, 155, 155, ${alpha})` 
-            : `rgba(255, 255, 255, ${alpha})`;
-            
-          const trailGrad = ctx.createLinearGradient(c.history[0].x, c.history[0].y, c.history[c.history.length-1].x, c.history[c.history.length-1].y);
-          trailGrad.addColorStop(0, trailColorStart);
-          trailGrad.addColorStop(1, 'transparent');
-          ctx.strokeStyle = trailGrad;
-          ctx.lineWidth = c.size * 0.2;
+          const alpha = c.opacity * 0.25;
+          ctx.strokeStyle = c.type === 'pacifier' ? `rgba(0, 155, 155, ${alpha})` : `rgba(255, 255, 255, ${alpha})`;
+          ctx.lineWidth = c.size * 0.15;
           ctx.lineCap = 'round';
           ctx.stroke();
         }
@@ -233,20 +200,19 @@ const PacifierComets: React.FC = () => {
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 z-[5] pointer-events-none opacity-40" style={{ willChange: 'transform' }} />;
+  return <canvas ref={canvasRef} className="absolute inset-0 z-[5] pointer-events-none opacity-30" style={{ willChange: 'contents' }} />;
 };
 
 const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geoDataRef = useRef<any>(null);
+  const startTimeRef = useRef<number>(performance.now());
+  const dragRotationRef = useRef<number>(0);
   const rotationRef = useRef<[number, number, number]>([0, INITIAL_PHI, 0]);
-  const velocityRef = useRef<[number, number]>([0, 0]);
   const isDraggingRef = useRef(false);
-  const lastTimeRef = useRef<number>(0);
   const activeFlashes = useRef<Map<string, number>>(new Map());
 
-  // Pre-calculate centroids to save CPU cycles on every frame
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
@@ -266,35 +232,28 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true });
-    // Cap DPR for TV performance
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     let animId: number;
 
     const drag = d3.drag<HTMLCanvasElement, unknown>()
       .on('start', () => { isDraggingRef.current = true; canvas.style.cursor = 'grabbing'; })
       .on('drag', (event) => {
-        rotationRef.current[0] += (event.dx / dpr) * 0.25;
+        dragRotationRef.current += (event.dx / dpr) * 0.25;
         rotationRef.current[1] -= (event.dy / dpr) * 0.25;
-        velocityRef.current = [(event.dx / dpr) * 0.45, (event.dy / dpr) * 0.45];
       })
       .on('end', () => { isDraggingRef.current = false; canvas.style.cursor = 'grab'; });
 
     d3.select(canvas).call(drag);
 
     const render = (time: number) => {
-      if (!lastTimeRef.current) lastTimeRef.current = time;
-      const dt = time - lastTimeRef.current;
-      lastTimeRef.current = time;
-      const timeFactor = Math.min(dt / 16.667, 3);
-
       const w = window.innerWidth;
       const h = window.innerHeight;
       const { cx, cy, radius } = getGlobePosition(w, h);
 
-      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        ctx?.scale(dpr, dpr);
       }
 
       ctx?.clearRect(0, 0, w, h);
@@ -304,39 +263,30 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
         return;
       }
 
-      if (!isDraggingRef.current) {
-        // Linearized rotation update for consistency
-        rotationRef.current[0] += AUTO_ROTATION_SPEED * timeFactor;
-        if (Math.abs(velocityRef.current[0]) > 0.001 || Math.abs(velocityRef.current[1]) > 0.001) {
-          rotationRef.current[0] += velocityRef.current[0] * timeFactor;
-          rotationRef.current[1] -= velocityRef.current[1] * timeFactor;
-          velocityRef.current[0] *= Math.pow(FRICTION, timeFactor);
-          velocityRef.current[1] *= Math.pow(FRICTION, timeFactor);
-        }
-        // Smooth snap-back to initial phi
-        rotationRef.current[1] += (INITIAL_PHI - rotationRef.current[1]) * 0.015 * timeFactor;
-      }
+      // Absolute time-based rotation prevents jerky micro-stutters
+      const elapsed = time - startTimeRef.current;
+      const autoRot = (elapsed * AUTO_ROTATION_SPEED) % 360;
+      const currentRot0 = autoRot + dragRotationRef.current;
 
       const projection = d3.geoOrthographic()
         .scale(radius)
         .translate([cx, cy])
-        .rotate([rotationRef.current[0], rotationRef.current[1], rotationRef.current[2]])
+        .rotate([currentRot0, rotationRef.current[1], rotationRef.current[2]])
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      // Draw simplified glow/atmosphere
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.10);
+      // Atmosphere
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.08);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
       aura.addColorStop(1, 'transparent');
       ctx.fillStyle = aura; 
       ctx.beginPath(); 
-      ctx.arc(cx, cy, radius * 1.10, 0, Math.PI * 2); 
+      ctx.arc(cx, cy, radius * 1.08, 0, Math.PI * 2); 
       ctx.fill();
 
       // Oceans
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
-      ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; 
       ctx.beginPath(); 
@@ -344,39 +294,32 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
       ctx.fill();
 
       const now = Date.now();
-      const rot0 = -rotationRef.current[0];
+      const rot0 = -currentRot0;
       const rot1 = -rotationRef.current[1];
 
       geoDataRef.current.features.forEach((d: any) => {
-        // Fast distance check using pre-calculated centroid
         const distance = d3.geoDistance(d.centroid, [rot0, rot1]);
         
-        // Slightly tighter visible window for performance
-        if (distance < 1.6) { 
+        if (distance < 1.57) { // Pi/2 approx
           ctx.beginPath(); 
           path(d);
           const flashStart = activeFlashes.current.get(d.id);
           if (flashStart) {
-            const elapsed = now - flashStart;
-            if (elapsed > 2000) { 
+            const t = Math.min((now - flashStart) / 2000, 1);
+            if (t >= 1) { 
               activeFlashes.current.delete(d.id); 
               ctx.fillStyle = COLORS.LAND; 
             } else {
-              const t = elapsed / 2000;
               ctx.fillStyle = d3.interpolateRgb(COLORS.GOLD_SOLID, COLORS.LAND)(t);
-              ctx.shadowBlur = 30 * (1 - t); 
-              ctx.shadowColor = COLORS.GOLD_SOLID;
             }
           } else {
-            const shading = 1 - Math.pow(distance / 1.6, 1.2);
+            const shading = 1 - Math.pow(distance / 1.57, 1.2);
             ctx.fillStyle = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
-            ctx.shadowBlur = 0;
           }
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.05)'; 
+          ctx.strokeStyle = 'rgba(255,255,255,0.04)'; 
           ctx.lineWidth = 0.5; 
           ctx.stroke();
-          ctx.shadowBlur = 0;
         }
       });
 
@@ -389,27 +332,27 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
 
   return (
     <div ref={containerRef} className="absolute inset-0 z-10 pointer-events-none">
-      <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-auto cursor-grab active:cursor-grabbing" style={{ willChange: 'transform' }} />
+      <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-auto cursor-grab active:cursor-grabbing" style={{ willChange: 'contents' }} />
     </div>
   );
 };
 
 const SpaceBackground: React.FC = () => {
-  const stars = useMemo(() => Array.from({ length: 450 }).map((_, i) => ({
+  const stars = useMemo(() => Array.from({ length: 300 }).map((_, i) => ({
     id: i,
     top: `${Math.random() * 100}%`,
     left: `${Math.random() * 100}%`,
-    size: Math.random() * 1.5 + 0.4,
+    size: Math.random() * 1.2 + 0.4,
     delay: `${Math.random() * 5}s`,
-    duration: `${4 + Math.random() * 8}s`,
+    duration: `${6 + Math.random() * 6}s`,
   })), []);
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#000103]">
       <style>{`
         @keyframes twinkle {
-          0%, 100% { opacity: 0.2; transform: scale(0.8); }
-          50% { opacity: 0.8; transform: scale(1.1); }
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.8; }
         }
         .star {
           position: absolute;
@@ -417,7 +360,6 @@ const SpaceBackground: React.FC = () => {
           border-radius: 50%;
           animation: twinkle var(--duration) ease-in-out infinite;
           animation-delay: var(--delay);
-          will-change: opacity;
         }
       `}</style>
       {stars.map(star => (
