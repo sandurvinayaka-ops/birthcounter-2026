@@ -26,10 +26,13 @@ const COLORS = {
   TEAT_SHADOW: 'rgba(200, 200, 200, 0.4)',
 };
 
-// --- Helper for TV-Safe Globe Placement ---
+/**
+ * TV-Optimized Auto-Adjust Globe Logic
+ */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  const radius = minDim * 0.45; 
+  let scaleFactor = 0.47;
+  const radius = minDim * scaleFactor;
   const cx = w / 2;
   const cy = h / 2; 
   return { cx, cy, radius };
@@ -53,11 +56,12 @@ interface Comet {
 const PacifierComets: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cometsRef = useRef<Comet[]>([]);
+  const lastTimeRef = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     const dpr = window.devicePixelRatio || 1;
     let animId: number;
 
@@ -66,8 +70,8 @@ const PacifierComets: React.FC = () => {
       x: Math.random() * w,
       y: Math.random() * h,
       z: Math.random() * 0.5 + 0.5,
-      vx: (Math.random() - 0.5) * 1.5,
-      vy: (Math.random() - 0.5) * 1.5,
+      vx: (Math.random() - 0.5) * 2.0,
+      vy: (Math.random() - 0.5) * 2.0,
       rotation: Math.random() * Math.PI * 2,
       rv: (Math.random() - 0.5) * 0.05,
       size: 15 + Math.random() * 20,
@@ -93,14 +97,11 @@ const PacifierComets: React.FC = () => {
       shieldGrad.addColorStop(0, COLORS.PACIFIER_TEAL);
       shieldGrad.addColorStop(1, '#006d6d');
       ctx.fillStyle = shieldGrad;
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = COLORS.PACIFIER_TEAL;
       ctx.fill();
 
       ctx.beginPath();
       ctx.ellipse(0, 0, 11, 8, 0, 0, Math.PI * 2);
       ctx.fillStyle = COLORS.PACIFIER_BEIGE;
-      ctx.shadowBlur = 0;
       ctx.fill();
       
       ctx.strokeStyle = 'rgba(0, 155, 155, 0.4)';
@@ -126,15 +127,14 @@ const PacifierComets: React.FC = () => {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(rotation);
-      ctx.scale(scale * 1.5, scale * 1.5); // Adjust scale for visibility
+      ctx.scale(scale * 1.5, scale * 1.5);
 
-      // Teat Base (wide bell)
       ctx.beginPath();
       ctx.moveTo(-15, 10);
-      ctx.bezierCurveTo(-15, 5, -8, 2, -5, -8); // Left curve up to neck
-      ctx.bezierCurveTo(-5, -15, -4, -18, 0, -18); // Top bulb
-      ctx.bezierCurveTo(4, -18, 5, -15, 5, -8); // Top bulb down
-      ctx.bezierCurveTo(8, 2, 15, 5, 15, 10); // Right curve down to base
+      ctx.bezierCurveTo(-15, 5, -8, 2, -5, -8);
+      ctx.bezierCurveTo(-5, -15, -4, -18, 0, -18);
+      ctx.bezierCurveTo(4, -18, 5, -15, 5, -8);
+      ctx.bezierCurveTo(8, 2, 15, 5, 15, 10);
       ctx.lineTo(-15, 10);
       ctx.closePath();
 
@@ -143,11 +143,8 @@ const PacifierComets: React.FC = () => {
       teatGrad.addColorStop(0.5, COLORS.TEAT_CLEAR);
       teatGrad.addColorStop(1, COLORS.TEAT_SHADOW);
       ctx.fillStyle = teatGrad;
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
       ctx.fill();
 
-      // Detail: Spiral lines on neck
       ctx.strokeStyle = 'rgba(255,255,255,0.4)';
       ctx.lineWidth = 0.8;
       ctx.beginPath();
@@ -157,26 +154,15 @@ const PacifierComets: React.FC = () => {
       ctx.quadraticCurveTo(0, -6, 4, -8);
       ctx.stroke();
 
-      // Detail: Base petals (Avent Natural look)
-      ctx.beginPath();
-      for(let i = -12; i <= 12; i += 6) {
-        ctx.moveTo(i, 8);
-        ctx.bezierCurveTo(i, 4, i + 3, 4, i + 3, 8);
-      }
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-      ctx.stroke();
-
-      // Highlight on the top bulb
-      ctx.beginPath();
-      ctx.ellipse(-2, -15, 1.5, 1, Math.PI / 4, 0, Math.PI * 2);
-      ctx.fillStyle = 'white';
-      ctx.globalAlpha = 0.6;
-      ctx.fill();
-
       ctx.restore();
     };
 
-    const render = () => {
+    const render = (time: number) => {
+      if (!lastTimeRef.current) lastTimeRef.current = time;
+      const dt = time - lastTimeRef.current;
+      lastTimeRef.current = time;
+      const timeFactor = Math.min(dt / 16.667, 3); // Normalize to 60fps, cap at 3x to prevent massive jumps
+
       const w = window.innerWidth;
       const h = window.innerHeight;
       if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
@@ -193,13 +179,15 @@ const PacifierComets: React.FC = () => {
       if (!ctx) return;
 
       cometsRef.current.forEach((c, i) => {
-        c.x += c.vx;
-        c.y += c.vy;
-        c.rotation += c.rv;
-        c.opacity = Math.min(c.opacity + 0.01, 0.7);
+        // Strict time-based movement
+        c.x += c.vx * timeFactor;
+        c.y += c.vy * timeFactor;
+        c.rotation += c.rv * timeFactor;
+        c.opacity = Math.min(c.opacity + 0.01 * timeFactor, 0.7);
 
+        // Limit history size slightly for TV performance
         c.history.unshift({x: c.x, y: c.y});
-        if (c.history.length > 15) c.history.pop();
+        if (c.history.length > 10) c.history.pop();
 
         if (c.history.length > 1) {
           ctx.beginPath();
@@ -208,8 +196,7 @@ const PacifierComets: React.FC = () => {
             ctx.lineTo(c.history[j].x, c.history[j].y);
           }
           
-          // Fixed trail color generation to avoid SyntaxError
-          const alpha = c.opacity * 0.4;
+          const alpha = c.opacity * 0.3;
           const trailColorStart = c.type === 'pacifier' 
             ? `rgba(0, 155, 155, ${alpha})` 
             : `rgba(255, 255, 255, ${alpha})`;
@@ -218,7 +205,7 @@ const PacifierComets: React.FC = () => {
           trailGrad.addColorStop(0, trailColorStart);
           trailGrad.addColorStop(1, 'transparent');
           ctx.strokeStyle = trailGrad;
-          ctx.lineWidth = c.size * 0.3;
+          ctx.lineWidth = c.size * 0.25;
           ctx.lineCap = 'round';
           ctx.stroke();
         }
@@ -229,7 +216,7 @@ const PacifierComets: React.FC = () => {
           drawTeat(ctx, c.x, c.y, (c.size / 40) * c.z, c.rotation);
         }
 
-        if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
+        if (c.x < -200 || c.x > w + 200 || c.y < -200 || c.y > h + 200) {
           cometsRef.current[i] = createComet(w, h);
         }
       });
@@ -237,14 +224,13 @@ const PacifierComets: React.FC = () => {
       animId = requestAnimationFrame(render);
     };
 
-    render();
+    animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 z-[5] pointer-events-none opacity-40" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 z-[5] pointer-events-none opacity-40" style={{ willChange: 'transform' }} />;
 };
 
-// --- Space & Globe Master Component ---
 const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -252,7 +238,7 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
   const rotationRef = useRef<[number, number, number]>([0, INITIAL_PHI, 0]);
   const velocityRef = useRef<[number, number]>([0, 0]);
   const isDraggingRef = useRef(false);
-  const lastTimeRef = useRef<number>(performance.now());
+  const lastTimeRef = useRef<number>(0);
   const activeFlashes = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
@@ -284,9 +270,11 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
     d3.select(canvas).call(drag);
 
     const render = (time: number) => {
+      if (!lastTimeRef.current) lastTimeRef.current = time;
       const dt = time - lastTimeRef.current;
       lastTimeRef.current = time;
-      const timeFactor = Math.min(dt / 16.667, 3);
+      const timeFactor = Math.min(dt / 16.667, 3); // Normalize to 60fps
+
       const w = window.innerWidth;
       const h = window.innerHeight;
       const { cx, cy, radius } = getGlobePosition(w, h);
@@ -322,12 +310,13 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.15);
+      // Draw simplified glow/atmosphere for performance
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.12);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
-      aura.addColorStop(0.5, COLORS.ATMOSPHERE_OUTER);
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.15, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.12, 0, Math.PI * 2); ctx.fill();
 
+      // Oceans
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
@@ -338,7 +327,9 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
         const distance = d3.geoDistance(centroid, [-rotationRef.current[0], -rotationRef.current[1]]);
-        if (distance < Math.PI / 1.5) {
+        
+        // Only draw features on the visible hemisphere + small margin
+        if (distance < 1.7) { 
           ctx.beginPath(); path(d);
           const flashStart = activeFlashes.current.get(d.id);
           if (flashStart) {
@@ -350,12 +341,12 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
               ctx.shadowBlur = 40 * (1 - t); ctx.shadowColor = COLORS.GOLD_SOLID;
             }
           } else {
-            const shading = 1 - Math.pow(distance / (Math.PI / 1.5), 1.2);
+            const shading = 1 - Math.pow(distance / 1.7, 1.2);
             ctx.fillStyle = d3.interpolateRgb(COLORS.LAND, COLORS.LAND_LIT)(shading);
             ctx.shadowBlur = 0;
           }
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.5; ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
           ctx.shadowBlur = 0;
         }
       });
@@ -369,7 +360,7 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
 
   return (
     <div ref={containerRef} className="absolute inset-0 z-10 pointer-events-none">
-      <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-auto cursor-grab active:cursor-grabbing" />
+      <canvas ref={canvasRef} className="absolute inset-0 z-10 pointer-events-auto cursor-grab active:cursor-grabbing" style={{ willChange: 'transform' }} />
     </div>
   );
 };
@@ -397,6 +388,7 @@ const SpaceBackground: React.FC = () => {
           border-radius: 50%;
           animation: twinkle var(--duration) ease-in-out infinite;
           animation-delay: var(--delay);
+          will-change: opacity;
         }
       `}</style>
       {stars.map(star => (
@@ -408,7 +400,6 @@ const SpaceBackground: React.FC = () => {
   );
 };
 
-// --- Main Application ---
 const App: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -436,6 +427,7 @@ const App: React.FC = () => {
     
     let spawnTimeoutId: any;
     const spawn = () => {
+      const nextDelay = -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND);
       spawnTimeoutId = setTimeout(() => {
         countRef.current += 1; 
         setTotal(countRef.current);
@@ -443,7 +435,7 @@ const App: React.FC = () => {
         const target = countries[Math.floor(Math.random() * countries.length)];
         setFlashId(target + Math.random());
         spawn();
-      }, -Math.log(Math.random()) * (1000 / BIRTHS_PER_SECOND));
+      }, nextDelay);
     };
     spawn();
     
