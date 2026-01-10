@@ -17,7 +17,7 @@ const COLORS = {
   ATMOSPHERE: 'rgba(56, 189, 248, 0.2)',
   PACIFIER_SHIELD: '#009b9b',
   PACIFIER_HANDLE: '#ffffff',
-  TEAT_SILICONE: 'rgba(255, 255, 255, 0.4)',
+  TEAT_SILICONE: 'rgba(255, 255, 255, 0.5)',
 };
 
 /**
@@ -26,14 +26,12 @@ const COLORS = {
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
   const radius = minDim * 0.42;
-  // Shift globe to the right (approx 65% of width)
   const cx = w > 768 ? w * 0.65 : w / 2;
   const cy = h / 2;
   return { cx, cy, radius };
 };
 
 interface Comet {
-  type: 'pacifier' | 'teat';
   x: number;
   y: number;
   z: number;
@@ -117,59 +115,45 @@ const GlobalApp: React.FC = () => {
     const dpr = MAX_DPR;
 
     const createComet = (w: number, h: number): Comet => ({
-      type: Math.random() > 0.5 ? 'pacifier' : 'teat',
       x: Math.random() * w,
       y: Math.random() * h,
       z: 0.6 + Math.random() * 0.4,
-      vx: (Math.random() - 0.5) * 1.5,
-      vy: (Math.random() - 0.5) * 1.5,
+      vx: (Math.random() - 0.5) * 2.8,
+      vy: (Math.random() - 0.5) * 2.8,
       rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 0.02,
-      size: 15 + Math.random() * 10,
+      rv: (Math.random() - 0.5) * 0.05,
+      size: 20 + Math.random() * 15,
       alpha: 0,
       history: []
     });
 
     const drawPhilipsPacifier = (ctx: CanvasRenderingContext2D, size: number) => {
-      // Shield (Butterfly shape)
+      // Shield - Improved Ultra Air shape
       ctx.beginPath();
-      ctx.moveTo(-size, -size * 0.4);
-      ctx.bezierCurveTo(-size * 1.2, -size, -size * 0.2, -size * 0.8, 0, -size * 0.4);
-      ctx.bezierCurveTo(size * 0.2, -size * 0.8, size * 1.2, -size, size, -size * 0.4);
-      ctx.bezierCurveTo(size * 1.5, 0, size * 1.2, size, 0, size * 0.6);
-      ctx.bezierCurveTo(-size * 1.2, size, -size * 1.5, 0, -size, -size * 0.4);
+      ctx.moveTo(-size, -size * 0.3);
+      ctx.bezierCurveTo(-size * 1.1, -size * 0.8, -size * 0.2, -size * 0.7, 0, -size * 0.4);
+      ctx.bezierCurveTo(size * 0.2, -size * 0.7, size * 1.1, -size * 0.8, size, -size * 0.3);
+      ctx.bezierCurveTo(size * 1.3, size * 0.2, size * 0.8, size * 0.8, 0, size * 0.5);
+      ctx.bezierCurveTo(-size * 0.8, size * 0.8, -size * 1.3, size * 0.2, -size, -size * 0.3);
       ctx.fillStyle = COLORS.PACIFIER_SHIELD;
       ctx.fill();
       
+      // Airflow holes
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath(); ctx.ellipse(-size * 0.5, 0, size * 0.2, size * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(size * 0.5, 0, size * 0.2, size * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+
       // Teat (Silicone tip)
       ctx.beginPath();
-      ctx.ellipse(0, -size * 0.6, size * 0.4, size * 0.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, -size * 0.5, size * 0.35, size * 0.55, 0, 0, Math.PI * 2);
       ctx.fillStyle = COLORS.TEAT_SILICONE;
       ctx.fill();
 
       // Handle (Ring)
       ctx.beginPath();
-      ctx.arc(0, size * 0.2, size * 0.4, 0, Math.PI * 2);
+      ctx.arc(0, size * 0.15, size * 0.35, 0, Math.PI * 2);
       ctx.strokeStyle = COLORS.PACIFIER_HANDLE;
-      ctx.lineWidth = size * 0.15;
-      ctx.stroke();
-    };
-
-    const drawPhilipsTeat = (ctx: CanvasRenderingContext2D, size: number) => {
-      // Base
-      ctx.beginPath();
-      ctx.arc(0, size * 0.5, size * 0.8, Math.PI, 0);
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.fill();
-
-      // Teat Bulb
-      ctx.beginPath();
-      ctx.moveTo(-size * 0.4, size * 0.5);
-      ctx.bezierCurveTo(-size * 0.4, -size * 0.2, -size * 0.8, -size * 0.8, 0, -size * 1.2);
-      ctx.bezierCurveTo(size * 0.8, -size * 0.8, size * 0.4, -size * 0.2, size * 0.4, size * 0.5);
-      ctx.fillStyle = COLORS.TEAT_SILICONE;
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = size * 0.1;
       ctx.stroke();
     };
 
@@ -184,52 +168,62 @@ const GlobalApp: React.FC = () => {
         ctx.scale(dpr, dpr);
       }
 
-      // Background
       ctx.fillStyle = '#010206';
       ctx.fillRect(0, 0, w, h);
 
-      // Stars (Simple static twinkling effect using time)
-      const starSeed = 42;
-      for (let i = 0; i < 150; i++) {
+      // Glowing Stars
+      for (let i = 0; i < 180; i++) {
         const sx = (Math.sin(i * 123.45) * 0.5 + 0.5) * w;
         const sy = (Math.cos(i * 456.78) * 0.5 + 0.5) * h;
-        const size = (Math.sin(i + time * 0.001) * 0.5 + 0.5) * 1.2;
-        ctx.fillStyle = `rgba(255,255,255,${0.3 + size * 0.5})`;
-        ctx.fillRect(sx, sy, size, size);
+        const brightness = (Math.sin(i + time * 0.0012) * 0.5 + 0.5);
+        const baseAlpha = 0.2 + brightness * 0.6;
+        
+        // Star Aura (Glow)
+        if (i % 5 === 0) {
+          const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 4);
+          glow.addColorStop(0, `rgba(255,255,255,${baseAlpha * 0.3})`);
+          glow.addColorStop(1, 'transparent');
+          ctx.fillStyle = glow;
+          ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI * 2); ctx.fill();
+        }
+
+        ctx.fillStyle = `rgba(255,255,255,${baseAlpha})`;
+        const s = i % 3 === 0 ? 1.5 : 0.8;
+        ctx.fillRect(sx, sy, s, s);
       }
 
       if (comets.current.length < 10) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx; c.y += c.vy; c.rot += c.rv;
-        c.alpha = Math.min(c.alpha + 0.01, 0.4);
+        c.alpha = Math.min(c.alpha + 0.015, 0.5);
         
         c.history.unshift({x: c.x, y: c.y});
-        if (c.history.length > 8) c.history.pop();
+        if (c.history.length > 15) c.history.pop();
 
-        if (c.x < -200 || c.x > w + 200 || c.y < -200 || c.y > h + 200) {
+        if (c.x < -300 || c.x > w + 300 || c.y < -300 || c.y > h + 300) {
           comets.current[idx] = createComet(w, h);
           return;
         }
 
-        // Draw Trail
+        // Trail
         if (c.history.length > 1) {
-          ctx.beginPath();
-          ctx.moveTo(c.history[0].x, c.history[0].y);
-          for (let p = 1; p < c.history.length; p++) {
-            ctx.lineTo(c.history[p].x, c.history[p].y);
+          for (let p = 0; p < c.history.length - 1; p++) {
+            const ratio = 1 - (p / c.history.length);
+            ctx.beginPath();
+            ctx.moveTo(c.history[p].x, c.history[p].y);
+            ctx.lineTo(c.history[p+1].x, c.history[p+1].y);
+            ctx.strokeStyle = `rgba(0,180,180,${c.alpha * ratio * 0.4})`; 
+            ctx.lineWidth = c.size * 0.5 * ratio;
+            ctx.lineCap = 'round';
+            ctx.stroke();
           }
-          ctx.strokeStyle = c.type === 'pacifier' ? `rgba(0,155,155,${c.alpha * 0.3})` : `rgba(255,255,255,${c.alpha * 0.2})`;
-          ctx.lineWidth = c.size * 0.4;
-          ctx.lineCap = 'round';
-          ctx.stroke();
         }
 
         ctx.save();
         ctx.translate(c.x, c.y);
         ctx.rotate(c.rot);
         ctx.globalAlpha = c.alpha;
-        if (c.type === 'pacifier') drawPhilipsPacifier(ctx, c.size * 0.5);
-        else drawPhilipsTeat(ctx, c.size * 0.5);
+        drawPhilipsPacifier(ctx, c.size * 0.6);
         ctx.restore();
       });
       ctx.globalAlpha = 1.0;
@@ -250,27 +244,23 @@ const GlobalApp: React.FC = () => {
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      // Ocean with depth gradient
       const ocean = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean;
       ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // Landmasses
       ctx.beginPath();
       path(geoDataRef.current);
       ctx.fillStyle = COLORS.LAND;
       ctx.fill();
 
-      // Atmosphere glow
       const atmosphere = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.08);
       atmosphere.addColorStop(0, COLORS.ATMOSPHERE);
       atmosphere.addColorStop(1, 'transparent');
       ctx.fillStyle = atmosphere;
       ctx.beginPath(); ctx.arc(cx, cy, radius * 1.08, 0, Math.PI * 2); ctx.fill();
 
-      // Country Flashes
       const now = Date.now();
       activeFlashes.current.forEach((flashTime, id) => {
         const feature = geoDataRef.current.features.find((f: any) => f.id === id || f.properties.name === id || f.id === id.substring(0,3));
@@ -290,7 +280,6 @@ const GlobalApp: React.FC = () => {
         }
       });
 
-      // Subtle border for high-res look
       ctx.beginPath();
       path(geoDataRef.current);
       ctx.strokeStyle = 'rgba(255,255,255,0.04)';
@@ -316,52 +305,60 @@ const GlobalApp: React.FC = () => {
             <span className="text-white">&</span>
             <span className="text-white">CC</span>
           </div>
-          <div className="w-full h-[2px] bg-sky-500 mt-1 opacity-70 shadow-[0_0_8px_rgba(14,165,233,0.5)]"></div>
+          <div className="w-full h-[2.5px] bg-sky-500 mt-1 opacity-70 shadow-[0_0_12px_rgba(14,165,233,0.6)]"></div>
         </div>
       </div>
 
       {/* Stats Dashboard - Left Aligned */}
-      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[600px]">
-        <div className="flex flex-col items-start">
+      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[700px]">
+        <div className="flex flex-col items-start w-full">
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-sky-400 font-bold uppercase tracking-[0.4em] text-xs md:text-sm drop-shadow-md">Global birth count today</span>
+            <span className="text-sky-400 font-bold uppercase tracking-[0.4em] text-xs md:text-sm drop-shadow-lg">Global birth count today</span>
           </div>
           
-          <div className="mb-10">
-            <span className="text-[10vw] md:text-[92px] font-black leading-none tabular-nums" 
+          <div className="mb-4">
+            <span className="text-[10vw] md:text-[108px] font-black leading-none tabular-nums" 
               style={{ 
                 fontFamily: "'Anton', sans-serif", 
                 color: COLORS.GOLD_SOLID,
-                textShadow: `0 4px 0 #854d0e, 0 10px 40px rgba(0,0,0,0.9)`
+                textShadow: `0 5px 0 #854d0e, 0 15px 50px rgba(0,0,0,0.9)`
               }}>
               {total.toLocaleString('en-US').replace(/,/g, '.')}
             </span>
           </div>
 
-          <div className="w-full relative pr-12">
-            <div className="flex justify-between items-end mb-3">
-              <span className="text-sky-400 font-bold uppercase tracking-[0.2em] text-[10px]">Daily Progress</span>
-              <span className="text-white/50 font-mono text-[10px] tabular-nums">{Math.floor(timeState.pct)}%</span>
+          {/* Progress Section */}
+          <div className="w-[65%] relative">
+            <div className="flex justify-between items-end mb-2 relative h-4">
+              <span className="text-sky-400 font-bold uppercase tracking-[0.2em] text-[10px] opacity-70">Daily Progress</span>
+              <span className="text-white/40 font-mono text-[10px] tabular-nums">{Math.floor(timeState.pct)}%</span>
             </div>
-            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden shadow-inner">
-              <div className="h-full rounded-full transition-all duration-1000 ease-linear"
+
+            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5">
+              <div className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(250,204,21,0.4)]"
                 style={{ width: `${timeState.pct}%`, background: COLORS.GOLD_SOLID }} />
             </div>
-            {/* Time positioned directly under progress bar */}
-            <div className="mt-4 flex flex-col items-start gap-1">
-              <span className="text-[10px] text-sky-400/60 uppercase font-bold tracking-widest">Current Time</span>
-              <span className="font-mono text-xl font-black tracking-[0.1em] text-white tabular-nums">
-                {timeState.label}
-              </span>
+
+            {/* Time Floating Indicator - Now positioned BELOW the bar */}
+            <div 
+              className="absolute top-4 transition-all duration-1000 ease-linear"
+              style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
+            >
+              <div className="flex flex-col items-center">
+                <div className="w-[1.5px] h-3 bg-white/50 mb-1"></div>
+                <span className="font-mono text-xl font-black tracking-[0.1em] text-white tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                  {timeState.label}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Dashboard Overlays for Cinematic Feel */}
-      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
-      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/60 to-transparent z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-60 bg-gradient-to-t from-black/60 to-transparent z-10 pointer-events-none" />
+      {/* Cinematic Overlays */}
+      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/85 via-black/20 to-transparent" />
+      <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-black/60 to-transparent z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-72 bg-gradient-to-t from-black/60 to-transparent z-10 pointer-events-none" />
     </div>
   );
 };
