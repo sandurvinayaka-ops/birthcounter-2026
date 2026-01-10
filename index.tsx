@@ -17,7 +17,7 @@ const COLORS = {
   ATMOSPHERE: 'rgba(56, 189, 248, 0.15)',
   PACIFIER_SHIELD: '#c0dbd5', // Light mint/teal
   PACIFIER_CENTER: '#e9f5f1', // Off-white/mint
-  PACIFIER_HANDLE: 'rgba(192, 219, 213, 0.6)',
+  PACIFIER_HANDLE: 'rgba(192, 219, 213, 0.8)', // Boosted handle visibility
 };
 
 /**
@@ -116,11 +116,11 @@ const GlobalApp: React.FC = () => {
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 2.5,
-      vy: (Math.random() - 0.5) * 2.5,
+      vx: (Math.random() - 0.5) * 3.5, // Faster movement for TV presence
+      vy: (Math.random() - 0.5) * 3.5,
       rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 0.03,
-      size: 35 + Math.random() * 25,
+      rv: (Math.random() - 0.5) * 0.04,
+      size: 50 + Math.random() * 40, // Larger size
       alpha: 0,
       history: []
     });
@@ -131,42 +131,48 @@ const GlobalApp: React.FC = () => {
 
       // Shield shape (curvy butterfly-like)
       ctx.beginPath();
-      const sw = size * 1.2;
-      const sh = size * 0.8;
+      const sw = size * 1.3;
+      const sh = size * 0.9;
       ctx.moveTo(-sw * 0.5, -sh * 0.2);
       ctx.bezierCurveTo(-sw * 0.8, -sh * 0.8, sw * 0.8, -sh * 0.8, sw * 0.5, -sh * 0.2);
-      ctx.bezierCurveTo(sw * 1.1, sh * 0.2, sw * 0.8, sh * 0.9, 0, sh * 0.6);
-      ctx.bezierCurveTo(-sw * 0.8, sh * 0.9, -sw * 1.1, sh * 0.2, -sw * 0.5, -sh * 0.2);
+      ctx.bezierCurveTo(sw * 1.2, sh * 0.2, sw * 0.9, sh * 1.0, 0, sh * 0.7);
+      ctx.bezierCurveTo(-sw * 0.9, sh * 1.0, -sw * 1.2, sh * 0.2, -sw * 0.5, -sh * 0.2);
       
       const shieldGrad = ctx.createLinearGradient(0, -sh, 0, sh);
-      shieldGrad.addColorStop(0, '#d8ede8');
-      shieldGrad.addColorStop(1, '#aecbc4');
+      shieldGrad.addColorStop(0, '#e8f7f4');
+      shieldGrad.addColorStop(0.5, '#c0dbd5');
+      shieldGrad.addColorStop(1, '#98b7b1');
       ctx.fillStyle = shieldGrad;
       ctx.fill();
 
+      // Outline for punchiness on TV
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
       // Ventilation holes
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
       ctx.beginPath();
-      ctx.arc(-sw * 0.4, 0, size * 0.15, 0, Math.PI * 2);
+      ctx.arc(-sw * 0.4, 0, size * 0.18, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(sw * 0.4, 0, size * 0.15, 0, Math.PI * 2);
+      ctx.arc(sw * 0.4, 0, size * 0.18, 0, Math.PI * 2);
       ctx.fill();
 
       // Center button
       ctx.beginPath();
-      ctx.ellipse(0, 0, size * 0.45, size * 0.38, 0, 0, Math.PI * 2);
-      const buttonGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.45);
-      buttonGrad.addColorStop(0, '#f2faf8');
+      ctx.ellipse(0, 0, size * 0.48, size * 0.4, 0, 0, Math.PI * 2);
+      const buttonGrad = ctx.createRadialGradient(0, -size * 0.1, 0, 0, 0, size * 0.48);
+      buttonGrad.addColorStop(0, '#ffffff');
       buttonGrad.addColorStop(1, '#d5e9e4');
       ctx.fillStyle = buttonGrad;
       ctx.fill();
 
-      // Star icon (Simplified)
+      // Star icon (High Contrast)
       ctx.beginPath();
-      ctx.fillStyle = '#73a9ff';
-      const rOuter = size * 0.15;
-      const rInner = size * 0.07;
+      ctx.fillStyle = '#4a90ff';
+      const rOuter = size * 0.18;
+      const rInner = size * 0.08;
       for (let i = 0; i < 5; i++) {
         const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
         ctx.lineTo(Math.cos(angle) * rOuter, Math.sin(angle) * rOuter);
@@ -176,11 +182,11 @@ const GlobalApp: React.FC = () => {
       ctx.closePath();
       ctx.fill();
 
-      // Handle (Translucent arc)
+      // Handle (Translucent arc, made thicker)
       ctx.beginPath();
-      ctx.arc(0, size * 0.2, size * 0.55, 0.1 * Math.PI, 0.9 * Math.PI);
+      ctx.arc(0, size * 0.25, size * 0.6, 0.1 * Math.PI, 0.9 * Math.PI);
       ctx.strokeStyle = COLORS.PACIFIER_HANDLE;
-      ctx.lineWidth = size * 0.12;
+      ctx.lineWidth = size * 0.15;
       ctx.lineCap = 'round';
       ctx.stroke();
 
@@ -222,21 +228,21 @@ const GlobalApp: React.FC = () => {
         ctx.fillRect(sx - sz/2, sy - sz/2, sz, sz);
       }
 
-      // Comet Logic
-      if (comets.current.length < 10) comets.current.push(createComet(w, h));
+      // Comet Logic (Boosted Visibility)
+      if (comets.current.length < 12) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx; c.y += c.vy; c.rot += c.rv;
-        c.alpha = Math.min(c.alpha + 0.01, 0.5);
+        c.alpha = Math.min(c.alpha + 0.012, 0.9); // Higher alpha for TV
         
         c.history.unshift({x: c.x, y: c.y});
-        if (c.history.length > 20) c.history.pop();
+        if (c.history.length > 25) c.history.pop();
 
-        if (c.x < -300 || c.x > w + 300 || c.y < -300 || c.y > h + 300) {
+        if (c.x < -500 || c.x > w + 500 || c.y < -500 || c.y > h + 500) {
           comets.current[idx] = createComet(w, h);
           return;
         }
 
-        // Draw Trail
+        // Draw Glow Trail (More intense)
         if (c.history.length > 1) {
           ctx.save();
           for (let p = 0; p < c.history.length - 1; p++) {
@@ -244,9 +250,17 @@ const GlobalApp: React.FC = () => {
             ctx.beginPath();
             ctx.moveTo(c.history[p].x, c.history[p].y);
             ctx.lineTo(c.history[p+1].x, c.history[p+1].y);
-            ctx.strokeStyle = `rgba(180, 220, 210, ${c.alpha * r * 0.3})`; 
-            ctx.lineWidth = c.size * 0.5 * r;
+            ctx.strokeStyle = `rgba(200, 240, 230, ${c.alpha * r * 0.4})`; 
+            ctx.lineWidth = c.size * 0.6 * r;
             ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Core trail line
+            ctx.beginPath();
+            ctx.moveTo(c.history[p].x, c.history[p].y);
+            ctx.lineTo(c.history[p+1].x, c.history[p+1].y);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${c.alpha * r * 0.6})`; 
+            ctx.lineWidth = c.size * 0.15 * r;
             ctx.stroke();
           }
           ctx.restore();
@@ -255,7 +269,7 @@ const GlobalApp: React.FC = () => {
         ctx.save();
         ctx.translate(c.x, c.y);
         ctx.rotate(c.rot);
-        drawPhilipsPacifier(ctx, c.size * 0.45, c.alpha);
+        drawPhilipsPacifier(ctx, c.size * 0.5, c.alpha);
         ctx.restore();
       });
 
@@ -346,37 +360,37 @@ const GlobalApp: React.FC = () => {
           </div>
           
           <div className="mb-2">
-            <span className="text-[7vw] md:text-[76px] font-black leading-none tabular-nums" 
+            <span className="text-[7vw] md:text-[88px] font-black leading-none tabular-nums" 
               style={{ 
                 fontFamily: "'Anton', sans-serif", 
                 color: COLORS.GOLD_SOLID,
-                textShadow: `0 3px 0 #854d0e, 0 8px 30px rgba(0,0,0,0.9)`
+                textShadow: `0 3px 0 #854d0e, 0 10px 40px rgba(0,0,0,0.9)`
               }}>
               {total.toLocaleString('en-US').replace(/,/g, '.')}
             </span>
           </div>
 
-          {/* Progress Section - Precision 31% Width */}
-          <div className="w-[31%] relative">
-            <div className="flex justify-between items-end mb-1.5 relative h-4">
-              <span className="text-sky-400 font-bold uppercase tracking-[0.2em] text-[7.2px] opacity-60">Daily Progress</span>
-              <span className="text-white/30 font-mono text-[7.2px] tabular-nums">{Math.floor(timeState.pct)}%</span>
+          {/* Progress Section - Increased Width (36%) and Scale */}
+          <div className="w-[36%] relative mt-4">
+            <div className="flex justify-between items-end mb-2 relative h-6">
+              <span className="text-sky-400 font-bold uppercase tracking-[0.25em] text-[10px] md:text-[12px] opacity-70">Daily Progress</span>
+              <span className="text-white/40 font-mono text-[10px] md:text-[12px] tabular-nums font-black">{Math.floor(timeState.pct)}%</span>
             </div>
 
-            {/* Thicker progress bar: h-[6px] instead of h-[2px] */}
-            <div className="h-[6px] w-full bg-white/10 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5">
-              <div className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_12px_rgba(250,204,21,0.8)]"
+            {/* Thicker progress bar: h-[10px] */}
+            <div className="h-[10px] w-full bg-white/10 rounded-full overflow-hidden shadow-inner ring-1 ring-white/10">
+              <div className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(250,204,21,0.9)]"
                 style={{ width: `${timeState.pct}%`, background: COLORS.GOLD_SOLID }} />
             </div>
 
-            {/* Time Floating Indicator */}
+            {/* Time Floating Indicator - Scaled Up */}
             <div 
-              className="absolute top-4 transition-all duration-1000 ease-linear"
+              className="absolute top-6 transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
-                <div className="w-[1px] h-5 bg-white/40 mb-1"></div>
-                <span className="font-mono text-[1.1rem] font-black tracking-[0.05em] text-white tabular-nums drop-shadow-[0_2.5px_5px_rgba(0,0,0,1)]">
+                <div className="w-[2px] h-6 bg-white/50 mb-1"></div>
+                <span className="font-mono text-[1.5rem] font-black tracking-[0.08em] text-white tabular-nums drop-shadow-[0_4px_8px_rgba(0,0,0,1)]">
                   {timeState.label}
                 </span>
               </div>
@@ -386,9 +400,9 @@ const GlobalApp: React.FC = () => {
       </div>
 
       {/* Cinematic Overlays */}
-      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/90 via-black/25 to-transparent" />
-      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/60 to-transparent z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/60 to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/95 via-black/20 to-transparent" />
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/70 to-transparent z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/70 to-transparent z-10 pointer-events-none" />
     </div>
   );
 };
