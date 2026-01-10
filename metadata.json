@@ -1,5 +1,5 @@
 {
-  "name": "M&CC | Global Live Birth Pulse",
-  "description": "A high-performance cinematic visualization of live global births optimized for television displays.",
+  "name": "M&CC | Global Birth Count Today",
+  "description": "A high-performance cinematic dashboard tracking global births with Philips-inspired comet visuals, optimized for smooth rotation on large television displays.",
   "requestFramePermissions": []
 }
