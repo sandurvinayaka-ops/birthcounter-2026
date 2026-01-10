@@ -116,11 +116,11 @@ const GlobalApp: React.FC = () => {
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 3.5, // Faster movement for TV presence
+      vx: (Math.random() - 0.5) * 3.5, 
       vy: (Math.random() - 0.5) * 3.5,
       rot: Math.random() * Math.PI * 2,
       rv: (Math.random() - 0.5) * 0.04,
-      size: 50 + Math.random() * 40, // Larger size
+      size: 15 + Math.random() * 12, // Reduced size to 30% of previous (was 50-90)
       alpha: 0,
       history: []
     });
@@ -129,7 +129,7 @@ const GlobalApp: React.FC = () => {
       ctx.save();
       ctx.globalAlpha = alpha;
 
-      // Shield shape (curvy butterfly-like)
+      // Shield shape
       ctx.beginPath();
       const sw = size * 1.3;
       const sh = size * 0.9;
@@ -145,13 +145,13 @@ const GlobalApp: React.FC = () => {
       ctx.fillStyle = shieldGrad;
       ctx.fill();
 
-      // Outline for punchiness on TV
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      // High contrast outline
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
       // Ventilation holes
-      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.beginPath();
       ctx.arc(-sw * 0.4, 0, size * 0.18, 0, Math.PI * 2);
       ctx.fill();
@@ -168,11 +168,11 @@ const GlobalApp: React.FC = () => {
       ctx.fillStyle = buttonGrad;
       ctx.fill();
 
-      // Star icon (High Contrast)
+      // Star icon
       ctx.beginPath();
       ctx.fillStyle = '#4a90ff';
-      const rOuter = size * 0.18;
-      const rInner = size * 0.08;
+      const rOuter = size * 0.2;
+      const rInner = size * 0.09;
       for (let i = 0; i < 5; i++) {
         const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
         ctx.lineTo(Math.cos(angle) * rOuter, Math.sin(angle) * rOuter);
@@ -182,11 +182,11 @@ const GlobalApp: React.FC = () => {
       ctx.closePath();
       ctx.fill();
 
-      // Handle (Translucent arc, made thicker)
+      // Handle
       ctx.beginPath();
       ctx.arc(0, size * 0.25, size * 0.6, 0.1 * Math.PI, 0.9 * Math.PI);
       ctx.strokeStyle = COLORS.PACIFIER_HANDLE;
-      ctx.lineWidth = size * 0.15;
+      ctx.lineWidth = size * 0.18;
       ctx.lineCap = 'round';
       ctx.stroke();
 
@@ -228,11 +228,11 @@ const GlobalApp: React.FC = () => {
         ctx.fillRect(sx - sz/2, sy - sz/2, sz, sz);
       }
 
-      // Comet Logic (Boosted Visibility)
+      // Comet Logic
       if (comets.current.length < 12) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx; c.y += c.vy; c.rot += c.rv;
-        c.alpha = Math.min(c.alpha + 0.012, 0.9); // Higher alpha for TV
+        c.alpha = Math.min(c.alpha + 0.012, 0.95);
         
         c.history.unshift({x: c.x, y: c.y});
         if (c.history.length > 25) c.history.pop();
@@ -242,7 +242,7 @@ const GlobalApp: React.FC = () => {
           return;
         }
 
-        // Draw Glow Trail (More intense)
+        // Draw Glow Trail
         if (c.history.length > 1) {
           ctx.save();
           for (let p = 0; p < c.history.length - 1; p++) {
@@ -250,17 +250,16 @@ const GlobalApp: React.FC = () => {
             ctx.beginPath();
             ctx.moveTo(c.history[p].x, c.history[p].y);
             ctx.lineTo(c.history[p+1].x, c.history[p+1].y);
-            ctx.strokeStyle = `rgba(200, 240, 230, ${c.alpha * r * 0.4})`; 
-            ctx.lineWidth = c.size * 0.6 * r;
+            ctx.strokeStyle = `rgba(200, 240, 230, ${c.alpha * r * 0.5})`; 
+            ctx.lineWidth = c.size * 0.8 * r;
             ctx.lineCap = 'round';
             ctx.stroke();
 
-            // Core trail line
             ctx.beginPath();
             ctx.moveTo(c.history[p].x, c.history[p].y);
             ctx.lineTo(c.history[p+1].x, c.history[p+1].y);
-            ctx.strokeStyle = `rgba(255, 255, 255, ${c.alpha * r * 0.6})`; 
-            ctx.lineWidth = c.size * 0.15 * r;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${c.alpha * r * 0.7})`; 
+            ctx.lineWidth = c.size * 0.2 * r;
             ctx.stroke();
           }
           ctx.restore();
@@ -269,7 +268,7 @@ const GlobalApp: React.FC = () => {
         ctx.save();
         ctx.translate(c.x, c.y);
         ctx.rotate(c.rot);
-        drawPhilipsPacifier(ctx, c.size * 0.5, c.alpha);
+        drawPhilipsPacifier(ctx, c.size * 0.7, c.alpha);
         ctx.restore();
       });
 
@@ -370,27 +369,26 @@ const GlobalApp: React.FC = () => {
             </span>
           </div>
 
-          {/* Progress Section - Increased Width (36%) and Scale */}
+          {/* Progress Section - Precision 36% Width */}
           <div className="w-[36%] relative mt-4">
             <div className="flex justify-between items-end mb-2 relative h-6">
               <span className="text-sky-400 font-bold uppercase tracking-[0.25em] text-[10px] md:text-[12px] opacity-70">Daily Progress</span>
               <span className="text-white/40 font-mono text-[10px] md:text-[12px] tabular-nums font-black">{Math.floor(timeState.pct)}%</span>
             </div>
 
-            {/* Thicker progress bar: h-[10px] */}
             <div className="h-[10px] w-full bg-white/10 rounded-full overflow-hidden shadow-inner ring-1 ring-white/10">
               <div className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(250,204,21,0.9)]"
                 style={{ width: `${timeState.pct}%`, background: COLORS.GOLD_SOLID }} />
             </div>
 
-            {/* Time Floating Indicator - Scaled Up */}
+            {/* Time Floating Indicator - HH:MM size reduced to 60% of 1.5rem = 0.9rem */}
             <div 
               className="absolute top-6 transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
                 <div className="w-[2px] h-6 bg-white/50 mb-1"></div>
-                <span className="font-mono text-[1.5rem] font-black tracking-[0.08em] text-white tabular-nums drop-shadow-[0_4px_8px_rgba(0,0,0,1)]">
+                <span className="font-mono text-[0.9rem] font-black tracking-[0.08em] text-white tabular-nums drop-shadow-[0_4px_8px_rgba(0,0,0,1)]">
                   {timeState.label}
                 </span>
               </div>
