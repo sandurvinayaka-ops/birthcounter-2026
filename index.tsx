@@ -18,30 +18,166 @@ const COLORS = {
   GOLD_SOLID: '#facc15',
   GOLD_DEEP: '#a16207',
   ATMOSPHERE_INNER: 'rgba(56, 189, 248, 0.4)',
+  ATMOSPHERE_OUTER: 'rgba(56, 189, 248, 0.1)',
+  PACIFIER_TEAL: '#009b9b',
+  PACIFIER_BEIGE: '#f5e6cc',
 };
 
-// --- Helper for TV-Safe Globe Placement ---
+/**
+ * TV Safe Zone Logic
+ * We want the globe centered and large, but slightly away from the absolute edges
+ * to account for overscan common on many television screens.
+ */
 const getGlobePosition = (w: number, h: number) => {
-  const isLarge = w > 1024;
-  
-  // Significantly reduced scale to ensure full visibility even with overscan
-  const hScale = isLarge ? 0.24 : 0.22;
-  const radius = h * hScale;
-  
-  // Reserved width for the counter text panel
-  const panelWidth = isLarge ? w * 0.38 : 0;
-  
-  // Center the globe in the remaining space on the right
-  let cx = isLarge ? panelWidth + (w - panelWidth) / 2 : w / 2;
-  
-  // Apply a strict 10% safety margin from the right edge
-  const rightSafetyLimit = w - radius - (w * 0.08);
-  if (cx > rightSafetyLimit) cx = rightSafetyLimit;
-
-  // Center vertically for TV balance
+  const minDim = Math.min(w, h);
+  // 0.45 radius means 0.90 diameter. This leaves a 5% margin on top and bottom.
+  // This is well within the "Action Safe" zone for television (90% area).
+  const radius = minDim * 0.45; 
+  const cx = w / 2;
   const cy = h / 2; 
-  
   return { cx, cy, radius };
+};
+
+// --- Pacifier Comet Logic ---
+interface Comet {
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  rotation: number;
+  rv: number;
+  size: number;
+  opacity: number;
+  history: {x: number, y: number}[];
+}
+
+const PacifierComets: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cometsRef = useRef<Comet[]>([]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    let animId: number;
+
+    const createComet = (w: number, h: number): Comet => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      z: Math.random() * 0.5 + 0.5,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      rotation: Math.random() * Math.PI * 2,
+      rv: (Math.random() - 0.5) * 0.05,
+      size: 15 + Math.random() * 20,
+      opacity: 0,
+      history: []
+    });
+
+    const drawPacifier = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, rotation: number) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.scale(scale, scale);
+
+      ctx.beginPath();
+      ctx.moveTo(-10, -8);
+      ctx.bezierCurveTo(-18, -12, -22, 0, -18, 10);
+      ctx.bezierCurveTo(-14, 16, -4, 12, 0, 8);
+      ctx.bezierCurveTo(4, 12, 14, 16, 18, 10);
+      ctx.bezierCurveTo(22, 0, 18, -12, 10, -8);
+      ctx.closePath();
+      
+      const shieldGrad = ctx.createLinearGradient(-20, -10, 20, 10);
+      shieldGrad.addColorStop(0, COLORS.PACIFIER_TEAL);
+      shieldGrad.addColorStop(1, '#006d6d');
+      ctx.fillStyle = shieldGrad;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = COLORS.PACIFIER_TEAL;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 11, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS.PACIFIER_BEIGE;
+      ctx.shadowBlur = 0;
+      ctx.fill();
+      
+      ctx.strokeStyle = 'rgba(0, 155, 155, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(-3, -1, 2, 0, Math.PI);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(3, -1, 2, 0, Math.PI);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 10, 12, Math.PI * 0.2, Math.PI * 0.8);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      ctx.restore();
+    };
+
+    const render = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      if (cometsRef.current.length < 12) {
+        cometsRef.current.push(createComet(w, h));
+      }
+
+      ctx?.clearRect(0, 0, w, h);
+      if (!ctx) return;
+
+      cometsRef.current.forEach((c, i) => {
+        c.x += c.vx;
+        c.y += c.vy;
+        c.rotation += c.rv;
+        c.opacity = Math.min(c.opacity + 0.01, 0.7);
+
+        c.history.unshift({x: c.x, y: c.y});
+        if (c.history.length > 20) c.history.pop();
+
+        if (c.history.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(c.history[0].x, c.history[0].y);
+          for(let j = 1; j < c.history.length; j++) {
+            ctx.lineTo(c.history[j].x, c.history[j].y);
+          }
+          const trailGrad = ctx.createLinearGradient(c.history[0].x, c.history[0].y, c.history[c.history.length-1].x, c.history[c.history.length-1].y);
+          trailGrad.addColorStop(0, `rgba(0, 155, 155, ${c.opacity * 0.4})`);
+          trailGrad.addColorStop(1, 'transparent');
+          ctx.strokeStyle = trailGrad;
+          ctx.lineWidth = c.size * 0.4;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        }
+
+        drawPacifier(ctx, c.x, c.y, (c.size / 40) * c.z, c.rotation);
+
+        if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
+          cometsRef.current[i] = createComet(w, h);
+        }
+      });
+
+      animId = requestAnimationFrame(render);
+    };
+
+    render();
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 z-[5] pointer-events-none opacity-40" />;
 };
 
 // --- Space & Globe Master Component ---
@@ -122,20 +258,19 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      // Atmosphere Aura
-      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.12);
+      // Enhance atmosphere for TV visibility (more glow)
+      const aura = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.15);
       aura.addColorStop(0, COLORS.ATMOSPHERE_INNER);
+      aura.addColorStop(0.5, COLORS.ATMOSPHERE_OUTER);
       aura.addColorStop(1, 'transparent');
-      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(cx, cy, radius * 1.15, 0, Math.PI * 2); ctx.fill();
 
-      // Ocean
       const ocean = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
       ocean.addColorStop(0.6, COLORS.OCEAN_SHALLOW);
       ocean.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = ocean; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // Land
       const now = Date.now();
       geoDataRef.current.features.forEach((d: any) => {
         const centroid = d3.geoCentroid(d);
@@ -149,7 +284,7 @@ const GlobalCanvas: React.FC<{ lastFlashId: string | null }> = ({ lastFlashId })
             else {
               const t = elapsed / 2000;
               ctx.fillStyle = d3.interpolateRgb(COLORS.GOLD_SOLID, COLORS.LAND)(t);
-              ctx.shadowBlur = 30 * (1 - t); ctx.shadowColor = COLORS.GOLD_SOLID;
+              ctx.shadowBlur = 40 * (1 - t); ctx.shadowColor = COLORS.GOLD_SOLID;
             }
           } else {
             const shading = 1 - Math.pow(distance / (Math.PI / 1.5), 1.2);
@@ -257,10 +392,11 @@ const App: React.FC = () => {
   return (
     <div className="relative w-full h-full select-none overflow-hidden bg-black flex flex-col font-sans">
       <SpaceBackground />
+      <PacifierComets />
       <GlobalCanvas lastFlashId={pureFlashId} />
-      
-      {/* Increased padding for TV Safe Zone */}
-      <div className="absolute top-12 left-12 md:top-16 md:left-20 z-40 pointer-events-none">
+
+      {/* Title Safe Area Margins for UI (Padded more for TV) */}
+      <div className="absolute top-12 left-12 md:top-20 md:left-20 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-xl md:text-2xl lg:text-3xl leading-none">
             <span className="text-white">M</span>
@@ -271,24 +407,23 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Optimized info column for TV Dashboards */}
-      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[340px]">
+      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-12 md:pl-20 pointer-events-none w-full max-w-[400px]">
         <div className="flex flex-col items-start">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)] animate-pulse"></div>
             <span className="text-sky-400 font-bold uppercase tracking-[0.3em] text-[10px] md:text-sm opacity-90">Live Global Births</span>
           </div>
           <div className="flex items-baseline mb-8">
-            <span className="text-[7vw] md:text-[64px] font-black leading-none tabular-nums" 
+            <span className="text-[7vw] md:text-[72px] font-black leading-none tabular-nums" 
               style={{ 
                 fontFamily: "'Anton', sans-serif", 
                 color: COLORS.GOLD_SOLID,
-                textShadow: `0 3px 0 ${COLORS.GOLD_DEEP}, 0 8px 24px rgba(0,0,0,0.95), 0 0 12px rgba(250,204,21,0.25)`
+                textShadow: `0 3px 0 ${COLORS.GOLD_DEEP}, 0 8px 32px rgba(0,0,0,1), 0 0 16px rgba(250,204,21,0.3)`
               }}>
               {total.toLocaleString('en-US').replace(/,/g, '.')}
             </span>
           </div>
-          <div className="w-full relative pr-4">
+          <div className="w-full relative pr-8">
             <div className="flex justify-between items-end mb-2">
               <span className="text-sky-400 font-black uppercase tracking-[0.15em] text-[10px]">Day Progress</span>
               <span className="text-white/40 font-mono text-[10px] tabular-nums">{Math.floor(timeState.pct)}%</span>
