@@ -5,9 +5,9 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 14.0; // Slightly faster for smoother perception
+const AUTO_ROTATION_SPEED = 14.0; 
 const INITIAL_PHI = -15;
-const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 2.0); // Allow higher resolution
+const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 2.0); 
 
 const COLORS = {
   LAND: '#546a8c', 
@@ -62,6 +62,9 @@ const GlobalApp: React.FC = () => {
   const comets = useRef<Comet[]>([]);
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
+  
+  // High-performance projection cache
+  const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
 
   // Load GeoJSON
   useEffect(() => {
@@ -134,6 +137,10 @@ const GlobalApp: React.FC = () => {
         }
       }
 
+      // Update projection scales only on resize
+      const { cx, cy, radius } = getGlobePosition(w, h);
+      projectionRef.current.scale(radius).translate([cx, cy]);
+
       // Pre-render bright stars
       const sCanvas = document.createElement('canvas');
       sCanvas.width = w * MAX_DPR;
@@ -144,7 +151,6 @@ const GlobalApp: React.FC = () => {
         sCtx.fillStyle = '#010208';
         sCtx.fillRect(0, 0, w, h);
         
-        // Distant Nebula Dust (Dull)
         for (let i = 0; i < 600; i++) {
           const sx = Math.random() * w;
           const sy = Math.random() * h;
@@ -152,21 +158,19 @@ const GlobalApp: React.FC = () => {
           sCtx.fillRect(sx, sy, 1, 1);
         }
 
-        // Standard Stars (Brighter)
         for (let i = 0; i < 400; i++) {
           const sx = Math.random() * w;
           const sy = Math.random() * h;
           const sz = Math.random() > 0.9 ? 1.5 : 0.8;
-          const op = 0.4 + Math.random() * 0.5; // Bumped opacity
+          const op = 0.4 + Math.random() * 0.5;
           const colorType = Math.random();
           let color = `rgba(255, 255, 255, ${op})`;
-          if (colorType > 0.95) color = `rgba(186, 218, 255, ${op})`; // Blue tint
-          else if (colorType > 0.9) color = `rgba(255, 244, 214, ${op})`; // Gold tint
+          if (colorType > 0.95) color = `rgba(186, 218, 255, ${op})`;
+          else if (colorType > 0.9) color = `rgba(255, 244, 214, ${op})`;
           
           sCtx.fillStyle = color;
           sCtx.fillRect(sx, sy, sz, sz);
           
-          // Added subtle glow for super stars
           if (sz > 1.4) {
              sCtx.shadowBlur = 4;
              sCtx.shadowColor = 'white';
@@ -179,7 +183,7 @@ const GlobalApp: React.FC = () => {
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize(); // Initial call
+    handleResize(); 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -192,11 +196,13 @@ const GlobalApp: React.FC = () => {
 
     let animId: number;
     const graticule = d3.geoGraticule10();
+    const projection = projectionRef.current;
+    const path = d3.geoPath(projection, ctx);
 
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 220, // Increased speed
+      vx: (Math.random() - 0.5) * 220, 
       vy: (Math.random() - 0.5) * 220,
       rot: Math.random() * Math.PI * 2,
       rv: (Math.random() - 0.5) * 0.6,
@@ -257,7 +263,7 @@ const GlobalApp: React.FC = () => {
         ctx.fillRect(0, 0, w, h);
       }
 
-      // Render Comets
+      // Render Comets with smooth physics
       if (comets.current.length < 12) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * safeDelta;
@@ -281,13 +287,9 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
+      // Liquid Smooth Rotation Logic
       const rotation = (time / 1000 * AUTO_ROTATION_SPEED) % 360;
-      const projection = d3.geoOrthographic()
-        .scale(radius)
-        .translate([cx, cy])
-        .rotate([rotation, INITIAL_PHI, 0])
-        .clipAngle(90);
-      const path = d3.geoPath(projection, ctx);
+      projection.rotate([rotation, INITIAL_PHI, 0]);
 
       // Ocean Background
       const og = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
@@ -303,7 +305,7 @@ const GlobalApp: React.FC = () => {
       ctx.lineWidth = 0.5;
       ctx.stroke();
 
-      // Land Rendering
+      // Land Rendering (Optimized with cached projection)
       ctx.beginPath();
       path(geoDataRef.current);
       ctx.fillStyle = COLORS.LAND;
@@ -398,7 +400,8 @@ const GlobalApp: React.FC = () => {
           </div>
           
           <div className="mb-5 relative">
-            <span className="text-[9vw] md:text-[124px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
+            {/* Rescaled Counter: 7.2vw / 100px (80% of original) */}
+            <span className="text-[7.2vw] md:text-[100px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
               style={{ 
                 fontFamily: "'Bebas Neue', cursive",
                 filter: `drop-shadow(0 0 30px rgba(250, 204, 21, 0.15))`
