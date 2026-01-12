@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 14.0; 
+const AUTO_ROTATION_SPEED = 48.0; // Higher speed for a more cinematic "Live" effect
 const INITIAL_PHI = -15;
 const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 2.0); 
 
@@ -57,7 +57,9 @@ const GlobalApp: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const starsCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const geoDataRef = useRef<any>(null);
+  const featuresMapRef = useRef<Map<string, any>>(new Map());
   const lastTimeRef = useRef<number>(0);
+  const rotationAngleRef = useRef<number>(0);
   const activeFlashes = useRef<Map<string, number>>(new Map());
   const comets = useRef<Comet[]>([]);
   const countRef = useRef(0);
@@ -66,13 +68,19 @@ const GlobalApp: React.FC = () => {
   // High-performance projection cache
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
 
-  // Load GeoJSON
+  // Load GeoJSON and index features for O(1) lookup
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
       .then(data => {
         if (data && data.features) {
-          data.features.forEach((f: any) => { f.centroid = d3.geoCentroid(f); });
+          const map = new Map();
+          data.features.forEach((f: any) => { 
+            f.centroid = d3.geoCentroid(f);
+            const id = f.id || f.properties.name || f.properties.ISO_A3;
+            map.set(id, f);
+          });
+          featuresMapRef.current = map;
           geoDataRef.current = data;
         }
       })
@@ -107,6 +115,7 @@ const GlobalApp: React.FC = () => {
         countRef.current += 1; 
         setTotal(countRef.current);
         if (geoDataRef.current) {
+          // Select from common country IDs
           const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS'];
           const target = countries[Math.floor(Math.random() * countries.length)];
           activeFlashes.current.set(target, Date.now());
@@ -141,7 +150,7 @@ const GlobalApp: React.FC = () => {
       const { cx, cy, radius } = getGlobePosition(w, h);
       projectionRef.current.scale(radius).translate([cx, cy]);
 
-      // Pre-render bright stars
+      // Pre-render bright stars for zero-cost static background
       const sCanvas = document.createElement('canvas');
       sCanvas.width = w * MAX_DPR;
       sCanvas.height = h * MAX_DPR;
@@ -151,6 +160,7 @@ const GlobalApp: React.FC = () => {
         sCtx.fillStyle = '#010208';
         sCtx.fillRect(0, 0, w, h);
         
+        // Nebula Dust
         for (let i = 0; i < 600; i++) {
           const sx = Math.random() * w;
           const sy = Math.random() * h;
@@ -158,6 +168,7 @@ const GlobalApp: React.FC = () => {
           sCtx.fillRect(sx, sy, 1, 1);
         }
 
+        // Starfield
         for (let i = 0; i < 400; i++) {
           const sx = Math.random() * w;
           const sy = Math.random() * h;
@@ -251,7 +262,9 @@ const GlobalApp: React.FC = () => {
       if (!lastTimeRef.current) lastTimeRef.current = time;
       const deltaTime = (time - lastTimeRef.current) / 1000;
       lastTimeRef.current = time;
-      const safeDelta = Math.min(deltaTime, 0.033);
+      
+      // Cap delta to prevent massive jumps after tab focus
+      const safeDelta = Math.min(deltaTime, 0.05);
 
       const { w, h } = dimensionsRef.current;
       const { cx, cy, radius } = getGlobePosition(w, h);
@@ -263,7 +276,7 @@ const GlobalApp: React.FC = () => {
         ctx.fillRect(0, 0, w, h);
       }
 
-      // Render Comets with smooth physics
+      // Render Comets
       if (comets.current.length < 12) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * safeDelta;
@@ -287,11 +300,12 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
-      // Liquid Smooth Rotation Logic
-      const rotation = (time / 1000 * AUTO_ROTATION_SPEED) % 360;
+      // Jitter-free Rotation Accumulation
+      rotationAngleRef.current = (rotationAngleRef.current + AUTO_ROTATION_SPEED * safeDelta) % 360;
+      const rotation = rotationAngleRef.current;
       projection.rotate([rotation, INITIAL_PHI, 0]);
 
-      // Ocean Background
+      // Ocean Glow
       const og = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       og.addColorStop(0, COLORS.OCEAN_BRIGHT);
       og.addColorStop(1, COLORS.OCEAN_DEEP);
@@ -305,13 +319,13 @@ const GlobalApp: React.FC = () => {
       ctx.lineWidth = 0.5;
       ctx.stroke();
 
-      // Land Rendering (Optimized with cached projection)
+      // Land
       ctx.beginPath();
       path(geoDataRef.current);
       ctx.fillStyle = COLORS.LAND;
       ctx.fill();
 
-      // Shading overlay
+      // Shading
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
       const landLight = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
@@ -329,7 +343,7 @@ const GlobalApp: React.FC = () => {
       ctx.lineWidth = 0.6;
       ctx.stroke();
 
-      // Atmosphere
+      // Atmosphere Aura
       ctx.beginPath();
       const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
       atmo.addColorStop(0, COLORS.ATMOSPHERE);
@@ -338,17 +352,16 @@ const GlobalApp: React.FC = () => {
       ctx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
       ctx.fill();
 
-      // Flashes
+      // Country Flashes with optimized lookup
       const timeNow = Date.now();
       activeFlashes.current.forEach((flashTime, id) => {
-        const feature = geoDataRef.current.features.find((f: any) => 
-          f.id === id || f.properties.name === id || (f.id && f.id.toString().substring(0,3) === id)
-        );
+        const feature = featuresMapRef.current.get(id);
         if (feature) {
           const t = Math.min((timeNow - flashTime) / 1500, 1);
           if (t >= 1) {
             activeFlashes.current.delete(id);
           } else {
+            // Check if feature is on the visible side
             const distance = d3.geoDistance(feature.centroid, [-rotation, -INITIAL_PHI]);
             if (distance < 1.57) {
               ctx.beginPath();
@@ -365,7 +378,6 @@ const GlobalApp: React.FC = () => {
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  // Helper to render total with round dots
   const renderFormattedTotal = (val: number) => {
     const str = val.toLocaleString('en-US').replace(/,/g, '.');
     return str.split('').map((char, i) => {
@@ -380,7 +392,7 @@ const GlobalApp: React.FC = () => {
     <div className="relative w-full h-full overflow-hidden bg-black flex flex-col font-sans select-none">
       <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ opacity: 0.95 }} />
 
-      {/* Brand Header */}
+      {/* Branding */}
       <div className="absolute top-10 left-10 md:top-14 md:left-20 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-[0.8rem] md:text-[2.2rem] leading-none">
@@ -392,7 +404,7 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Main UI Console */}
+      {/* Telemetry Console */}
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[900px]">
         <div className="flex flex-col items-start w-full">
           <div className="mb-4">
@@ -400,7 +412,6 @@ const GlobalApp: React.FC = () => {
           </div>
           
           <div className="mb-5 relative">
-            {/* Rescaled Counter: 7.2vw / 100px (80% of original) */}
             <span className="text-[7.2vw] md:text-[100px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
               style={{ 
                 fontFamily: "'Bebas Neue', cursive",
@@ -442,12 +453,6 @@ const GlobalApp: React.FC = () => {
                     </span>
                 </div>
               </div>
-            </div>
-
-            <div className="absolute top-[10px] w-full flex justify-between px-1 opacity-10 pointer-events-none">
-                {[...Array(11)].map((_, i) => (
-                    <div key={i} className="w-[1px] h-3 bg-yellow-50"></div>
-                ))}
             </div>
           </div>
         </div>
