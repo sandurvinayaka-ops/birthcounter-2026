@@ -5,9 +5,9 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 12.0; 
+const AUTO_ROTATION_SPEED = 14.0; // Slightly faster for smoother perception
 const INITIAL_PHI = -15;
-const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 1.5); 
+const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 2.0); // Allow higher resolution
 
 const COLORS = {
   LAND: '#546a8c', 
@@ -61,6 +61,7 @@ const GlobalApp: React.FC = () => {
   const activeFlashes = useRef<Map<string, number>>(new Map());
   const comets = useRef<Comet[]>([]);
   const countRef = useRef(0);
+  const dimensionsRef = useRef({ w: 0, h: 0 });
 
   // Load GeoJSON
   useEffect(() => {
@@ -115,6 +116,73 @@ const GlobalApp: React.FC = () => {
     return () => { clearInterval(clockInterval); clearTimeout(spawnTimeoutId); };
   }, []);
 
+  // Window Resize & Pre-rendering
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      dimensionsRef.current = { w, h };
+      
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = Math.floor(w * MAX_DPR);
+        canvas.height = Math.floor(h * MAX_DPR);
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(MAX_DPR, MAX_DPR);
+        }
+      }
+
+      // Pre-render bright stars
+      const sCanvas = document.createElement('canvas');
+      sCanvas.width = w * MAX_DPR;
+      sCanvas.height = h * MAX_DPR;
+      const sCtx = sCanvas.getContext('2d');
+      if (sCtx) {
+        sCtx.scale(MAX_DPR, MAX_DPR);
+        sCtx.fillStyle = '#010208';
+        sCtx.fillRect(0, 0, w, h);
+        
+        // Distant Nebula Dust (Dull)
+        for (let i = 0; i < 600; i++) {
+          const sx = Math.random() * w;
+          const sy = Math.random() * h;
+          sCtx.fillStyle = `rgba(100, 140, 255, ${Math.random() * 0.15})`;
+          sCtx.fillRect(sx, sy, 1, 1);
+        }
+
+        // Standard Stars (Brighter)
+        for (let i = 0; i < 400; i++) {
+          const sx = Math.random() * w;
+          const sy = Math.random() * h;
+          const sz = Math.random() > 0.9 ? 1.5 : 0.8;
+          const op = 0.4 + Math.random() * 0.5; // Bumped opacity
+          const colorType = Math.random();
+          let color = `rgba(255, 255, 255, ${op})`;
+          if (colorType > 0.95) color = `rgba(186, 218, 255, ${op})`; // Blue tint
+          else if (colorType > 0.9) color = `rgba(255, 244, 214, ${op})`; // Gold tint
+          
+          sCtx.fillStyle = color;
+          sCtx.fillRect(sx, sy, sz, sz);
+          
+          // Added subtle glow for super stars
+          if (sz > 1.4) {
+             sCtx.shadowBlur = 4;
+             sCtx.shadowColor = 'white';
+             sCtx.fillRect(sx, sy, sz, sz);
+             sCtx.shadowBlur = 0;
+          }
+        }
+      }
+      starsCanvasRef.current = sCanvas;
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial call
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Rendering Loop
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -123,48 +191,27 @@ const GlobalApp: React.FC = () => {
     if (!ctx) return;
 
     let animId: number;
-    const dpr = MAX_DPR;
     const graticule = d3.geoGraticule10();
 
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 180,
-      vy: (Math.random() - 0.5) * 180,
+      vx: (Math.random() - 0.5) * 220, // Increased speed
+      vy: (Math.random() - 0.5) * 220,
       rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 0.4,
+      rv: (Math.random() - 0.5) * 0.6,
       wobblePhase: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.6 + Math.random() * 0.8,
-      size: 5 + Math.random() * 4,
+      wobbleSpeed: 0.8 + Math.random() * 1.2,
+      size: 5 + Math.random() * 5,
       alpha: 0
     });
-
-    const preRenderStars = (w: number, h: number) => {
-      const sCanvas = document.createElement('canvas');
-      sCanvas.width = w * dpr;
-      sCanvas.height = h * dpr;
-      const sCtx = sCanvas.getContext('2d');
-      if (!sCtx) return null;
-      sCtx.scale(dpr, dpr);
-      sCtx.fillStyle = '#010208';
-      sCtx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 400; i++) {
-        const sx = Math.random() * w;
-        const sy = Math.random() * h;
-        const sz = Math.random() > 0.95 ? 1.4 : 0.6;
-        const op = 0.1 + Math.random() * 0.7;
-        sCtx.fillStyle = `rgba(255, 255, 255, ${op})`;
-        sCtx.fillRect(sx, sy, sz, sz);
-      }
-      return sCanvas;
-    };
 
     const drawGlowingPacifier = (ctx: CanvasRenderingContext2D, comet: Comet) => {
       const { size, alpha, wobblePhase } = comet;
       ctx.save();
       ctx.globalAlpha = alpha;
       const pulse = Math.sin(wobblePhase) * 0.5 + 0.5;
-      const glowIntensity = 15 + (pulse * 10);
+      const glowIntensity = 20 + (pulse * 15);
       ctx.shadowBlur = glowIntensity;
       ctx.shadowColor = COLORS.PACIFIER_GLOW;
       const sw = size * 1.3;
@@ -200,17 +247,8 @@ const GlobalApp: React.FC = () => {
       lastTimeRef.current = time;
       const safeDelta = Math.min(deltaTime, 0.033);
 
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const { w, h } = dimensionsRef.current;
       const { cx, cy, radius } = getGlobePosition(w, h);
-
-      if (canvas.width !== Math.floor(w * dpr)) {
-        canvas.width = Math.floor(w * dpr);
-        canvas.height = Math.floor(h * dpr);
-        ctx.setTransform(1, 0, 0, 1, 0, 0); 
-        ctx.scale(dpr, dpr);
-        starsCanvasRef.current = preRenderStars(w, h);
-      }
 
       if (starsCanvasRef.current) {
         ctx.drawImage(starsCanvasRef.current, 0, 0, w, h);
@@ -220,13 +258,13 @@ const GlobalApp: React.FC = () => {
       }
 
       // Render Comets
-      if (comets.current.length < 10) comets.current.push(createComet(w, h));
+      if (comets.current.length < 12) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * safeDelta;
         c.y += c.vy * safeDelta;
         c.rot += c.rv * safeDelta;
         c.wobblePhase += c.wobbleSpeed * safeDelta;
-        c.alpha = Math.min(c.alpha + 0.4 * safeDelta, 0.85);
+        c.alpha = Math.min(c.alpha + 0.6 * safeDelta, 0.9);
         if (c.x < -300 || c.x > w + 300 || c.y < -300 || c.y > h + 300) {
           comets.current[idx] = createComet(w, h);
           return;
@@ -330,7 +368,6 @@ const GlobalApp: React.FC = () => {
     const str = val.toLocaleString('en-US').replace(/,/g, '.');
     return str.split('').map((char, i) => {
       if (char === '.') {
-        // Use standard sans-serif for the period to ensure it's a circle
         return <span key={i} className="font-sans align-baseline inline-block px-[1px]" style={{ verticalAlign: 'baseline' }}>.</span>;
       }
       return char;
@@ -361,7 +398,6 @@ const GlobalApp: React.FC = () => {
           </div>
           
           <div className="mb-5 relative">
-            {/* Luminous Flat Premium Yellow Numbers with Bebas Neue font and round sans-serif dots */}
             <span className="text-[9vw] md:text-[124px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
               style={{ 
                 fontFamily: "'Bebas Neue', cursive",
