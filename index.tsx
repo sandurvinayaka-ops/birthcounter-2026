@@ -7,7 +7,8 @@ import * as d3 from 'd3';
 const BIRTHS_PER_SECOND = 4.352;
 const AUTO_ROTATION_SPEED = 0.012; 
 const INITIAL_PHI = -15;
-const MAX_DPR = window.devicePixelRatio || 1.0; 
+// Cap DPR at 1.5 for performance on large TV displays (1080p/4K)
+const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 1.5); 
 
 const COLORS = {
   LAND: '#3d4f66', 
@@ -15,19 +16,20 @@ const COLORS = {
   OCEAN_BRIGHT: '#142a66',
   GOLD_SOLID: '#facc15',
   GOLD_BRIGHT: '#fde047',
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.15)',
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.12)',
   PACIFIER_SHIELD: '#c0dbd5',
   PACIFIER_CENTER: '#e9f5f1',
   PACIFIER_HANDLE: 'rgba(192, 219, 213, 0.8)',
-  GLOW: 'rgba(250, 204, 21, 0.4)', // Warm gold glow
+  GLOW: 'rgba(250, 204, 21, 0.4)',
   PROGRESS_BG: 'rgba(15, 23, 42, 0.6)',
   PROGRESS_ACCENT: '#facc15', 
 };
 
+// Adjusted for 40" TV visibility: Center moved inward (0.62) and radius reduced (0.40)
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  const radius = minDim * 0.44;
-  const cx = w > 768 ? w * 0.68 : w / 2;
+  const radius = minDim * 0.40; 
+  const cx = w > 768 ? w * 0.62 : w / 2;
   const cy = h / 2;
   return { cx, cy, radius };
 };
@@ -50,13 +52,14 @@ const GlobalApp: React.FC = () => {
   const [timeState, setTimeState] = useState({ label: "00:00", pct: 0 });
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const starsCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const geoDataRef = useRef<any>(null);
-  const startTimeRef = useRef<number>(performance.now());
   const lastTimeRef = useRef<number>(performance.now());
   const activeFlashes = useRef<Map<string, number>>(new Map());
   const comets = useRef<Comet[]>([]);
   const countRef = useRef(0);
 
+  // Load GeoJSON
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
@@ -66,6 +69,7 @@ const GlobalApp: React.FC = () => {
       });
   }, []);
 
+  // Time & Counter Logic
   useEffect(() => {
     const updateProgress = () => {
       const d = new Date();
@@ -104,6 +108,7 @@ const GlobalApp: React.FC = () => {
     return () => { clearInterval(clockInterval); clearTimeout(spawnTimeoutId); };
   }, []);
 
+  // Rendering Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -116,21 +121,40 @@ const GlobalApp: React.FC = () => {
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 120,
-      vy: (Math.random() - 0.5) * 120,
+      vx: (Math.random() - 0.5) * 140,
+      vy: (Math.random() - 0.5) * 140,
       rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 1.0,
+      rv: (Math.random() - 0.5) * 0.8,
       wobblePhase: Math.random() * Math.PI * 2,
-      wobbleSpeed: 2 + Math.random() * 2,
-      size: 5 + Math.random() * 5,
+      wobbleSpeed: 1.5 + Math.random() * 2,
+      size: 4 + Math.random() * 5,
       alpha: 0
     });
+
+    const preRenderStars = (w: number, h: number) => {
+      const sCanvas = document.createElement('canvas');
+      sCanvas.width = w * dpr;
+      sCanvas.height = h * dpr;
+      const sCtx = sCanvas.getContext('2d');
+      if (!sCtx) return null;
+      sCtx.scale(dpr, dpr);
+      sCtx.fillStyle = '#010208';
+      sCtx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 400; i++) {
+        const sx = Math.random() * w;
+        const sy = Math.random() * h;
+        const sz = Math.random() > 0.95 ? 1.8 : 0.8;
+        const op = 0.2 + Math.random() * 0.6;
+        sCtx.fillStyle = `rgba(255, 255, 255, ${op})`;
+        sCtx.fillRect(sx, sy, sz, sz);
+      }
+      return sCanvas;
+    };
 
     const drawPhilipsPacifier = (ctx: CanvasRenderingContext2D, size: number, alpha: number) => {
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = 'rgba(125, 211, 252, 0.6)';
+      // Shadow removed for performance on TV hardware
       const sw = size * 1.3;
       const sh = size * 0.9;
       ctx.beginPath();
@@ -140,25 +164,17 @@ const GlobalApp: React.FC = () => {
       ctx.bezierCurveTo(-sw * 0.9, sh * 1.0, -sw * 1.2, sh * 0.2, -sw * 0.5, -sh * 0.2);
       const shieldGrad = ctx.createLinearGradient(0, -sh, 0, sh);
       shieldGrad.addColorStop(0, '#e8f7f4');
-      shieldGrad.addColorStop(0.5, '#c0dbd5');
       shieldGrad.addColorStop(1, '#98b7b1');
       ctx.fillStyle = shieldGrad;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-      ctx.shadowBlur = 4;
       ctx.beginPath();
       ctx.ellipse(0, 0, size * 0.48, size * 0.4, 0, 0, Math.PI * 2);
-      const buttonGrad = ctx.createRadialGradient(0, -size * 0.1, 0, 0, 0, size * 0.48);
-      buttonGrad.addColorStop(0, '#ffffff');
-      buttonGrad.addColorStop(1, '#d5e9e4');
-      ctx.fillStyle = buttonGrad;
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.beginPath();
       ctx.arc(0, size * 0.25, size * 0.6, 0.1 * Math.PI, 0.9 * Math.PI);
       ctx.strokeStyle = 'rgba(192, 219, 213, 0.8)';
-      ctx.lineWidth = size * 0.18;
+      ctx.lineWidth = size * 0.15;
       ctx.lineCap = 'round';
       ctx.stroke();
       ctx.restore();
@@ -177,54 +193,40 @@ const GlobalApp: React.FC = () => {
         canvas.width = Math.floor(w * dpr);
         canvas.height = Math.floor(h * dpr);
         ctx.scale(dpr, dpr);
-        ctx.imageSmoothingEnabled = true;
+        starsCanvasRef.current = preRenderStars(w, h);
       }
 
-      ctx.fillStyle = '#010208';
-      ctx.fillRect(0, 0, w, h);
-
-      // Enhanced Stars that "Shine" and "Twinkle"
-      for (let i = 0; i < 300; i++) {
-        const sx = (Math.sin(i * 123.45) * 0.5 + 0.5) * w;
-        const sy = (Math.cos(i * 456.78) * 0.5 + 0.5) * h;
-        
-        // Individual twinkle speed per star
-        const twinkleSpeed = 0.0008 + (i % 8) * 0.0004;
-        const brightness = (Math.sin(i + time * twinkleSpeed) * 0.5 + 0.5);
-        const baseAlpha = 0.15 + brightness * 0.85;
-        
-        const isGlowing = i % 25 === 0;
-        const isBlueShift = i % 33 === 0;
-        
-        ctx.save();
-        if (isGlowing) {
-          ctx.shadowBlur = 4 + brightness * 8;
-          ctx.shadowColor = '#fff';
-        }
-        
-        ctx.fillStyle = isBlueShift 
-          ? `rgba(186, 230, 253, ${baseAlpha})` 
-          : `rgba(255, 255, 255, ${baseAlpha})`;
-          
-        const sz = isGlowing ? 2.5 : (i % 12 === 0 ? 1.4 : 0.7);
-        ctx.fillRect(sx - sz/2, sy - sz/2, sz, sz);
-        ctx.restore();
+      // 1. Draw Static Background
+      if (starsCanvasRef.current) {
+        ctx.drawImage(starsCanvasRef.current, 0, 0, w, h);
+      } else {
+        ctx.fillStyle = '#010208';
+        ctx.fillRect(0, 0, w, h);
       }
 
-      if (comets.current.length < 24) comets.current.push(createComet(w, h));
+      // 2. Draw Twinkling Layer (Minimal)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      for (let i = 0; i < 20; i++) {
+          if (Math.sin(time * 0.005 + i) > 0.8) {
+              ctx.fillRect((i * 123.45) % w, (i * 456.78) % h, 2, 2);
+          }
+      }
+
+      // 3. Comets
+      if (comets.current.length < 18) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * deltaTime;
         c.y += c.vy * deltaTime;
         c.rot += c.rv * deltaTime;
         c.wobblePhase += c.wobbleSpeed * deltaTime;
-        c.alpha = Math.min(c.alpha + 0.5 * deltaTime, 0.9);
+        c.alpha = Math.min(c.alpha + 0.5 * deltaTime, 0.85);
         if (c.x < -200 || c.x > w + 200 || c.y < -200 || c.y > h + 200) {
           comets.current[idx] = createComet(w, h);
           return;
         }
         ctx.save();
         ctx.translate(c.x, c.y);
-        ctx.rotate(c.rot + Math.sin(c.wobblePhase) * 0.15);
+        ctx.rotate(c.rot + Math.sin(c.wobblePhase) * 0.1);
         drawPhilipsPacifier(ctx, c.size, c.alpha);
         ctx.restore();
       });
@@ -234,35 +236,41 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
+      // 4. Globe Rendering
       const rotX = (time * AUTO_ROTATION_SPEED) % 360;
       const projection = d3.geoOrthographic()
         .scale(radius)
         .translate([cx, cy])
         .rotate([rotX, INITIAL_PHI, 0])
-        .precision(0.1)
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      const og = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
+      // Ocean
+      const og = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       og.addColorStop(0, COLORS.OCEAN_BRIGHT);
       og.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = og;
       ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
+      // Land
       ctx.beginPath(); path(geoDataRef.current); ctx.fillStyle = COLORS.LAND; ctx.fill();
-      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.5; ctx.stroke();
 
-      const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.08);
+      // Atmosphere (Simpler Gradient)
+      ctx.beginPath();
+      const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.06);
       atmo.addColorStop(0, COLORS.ATMOSPHERE);
-      atmo.addColorStop(1, 'transparent');
+      atmo.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = atmo;
-      ctx.beginPath(); ctx.arc(cx, cy, radius * 1.08, 0, Math.PI * 2); ctx.fill();
+      ctx.arc(cx, cy, radius * 1.06, 0, Math.PI * 2);
+      ctx.fill();
 
+      // Flashes
       const timeNow = Date.now();
       activeFlashes.current.forEach((flashTime, id) => {
         const feature = geoDataRef.current.features.find((f: any) => f.id === id || f.properties.name === id || f.id === id.substring(0,3));
         if (feature) {
-          const t = Math.min((timeNow - flashTime) / 1800, 1);
+          const t = Math.min((timeNow - flashTime) / 1600, 1);
           if (t >= 1) {
             activeFlashes.current.delete(id);
           } else {
@@ -272,8 +280,6 @@ const GlobalApp: React.FC = () => {
               path(feature);
               ctx.fillStyle = d3.interpolateRgb(COLORS.GOLD_SOLID, COLORS.LAND)(t);
               ctx.fill();
-              ctx.strokeStyle = `rgba(255,255,255,${0.7 * (1 - t)})`;
-              ctx.stroke();
             }
           }
         }
@@ -322,9 +328,7 @@ const GlobalApp: React.FC = () => {
               <span className="text-amber-200/50 font-mono text-[10px] md:text-[12px] tabular-nums font-black tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
 
-            {/* Thinner Progress Bar (8px) with Solar Gold Color Scheme */}
             <div className="h-[8px] w-full bg-amber-950/40 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)] ring-1 ring-amber-500/20 relative backdrop-blur-md">
-              {/* Solar Gold Gradient Fill */}
               <div 
                 className="h-full rounded-full transition-all duration-1000 ease-linear relative overflow-hidden"
                 style={{ 
@@ -333,15 +337,11 @@ const GlobalApp: React.FC = () => {
                     boxShadow: `0 0 15px rgba(245, 158, 11, 0.3)`
                 }} 
               >
-                {/* Internal High-gloss Shine Line */}
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-white/20" />
-                
-                {/* Advanced Scanning Shimmer */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent w-[30%] skew-x-[-35deg]" style={{ animation: 'shimmer 4s infinite ease-in-out' }} />
               </div>
             </div>
 
-            {/* Precision Instrument Marker */}
             <div 
               className="absolute top-5 transition-all duration-1000 ease-linear z-50"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
@@ -356,7 +356,6 @@ const GlobalApp: React.FC = () => {
               </div>
             </div>
 
-            {/* Tick Marks with recalibrated spacing */}
             <div className="absolute top-[8px] w-full flex justify-between px-1 opacity-10 pointer-events-none">
                 {[...Array(11)].map((_, i) => (
                     <div key={i} className="w-[0.5px] h-1.5 bg-amber-200"></div>
