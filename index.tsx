@@ -27,14 +27,15 @@ const COLORS = {
 
 /**
  * TV SAFE ZONE CALIBRATION (40-inch Display):
- * - cx: 0.70w (Shifted to the right third of the screen)
- * - radius: 0.33 of min dimension (Prevents top/bottom clipping)
+ * - cx: 0.76w (Shifted right to avoid progress bar overlap)
+ * - cy: 0.38h (Shifted up by ~5cm to balance with bottom-left UI)
+ * - radius: 0.31 of min dimension (Prevents clipping during rotation)
  */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  const radius = minDim * 0.33; 
-  const cx = w > 768 ? w * 0.70 : w / 2;
-  const cy = h / 2;
+  const radius = minDim * 0.31; 
+  const cx = w > 768 ? w * 0.76 : w / 2;
+  const cy = w > 768 ? h * 0.38 : h / 2;
   return { cx, cy, radius };
 };
 
@@ -129,13 +130,13 @@ const GlobalApp: React.FC = () => {
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 160,
-      vy: (Math.random() - 0.5) * 160,
+      vx: (Math.random() - 0.5) * 180,
+      vy: (Math.random() - 0.5) * 180,
       rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 0.5,
+      rv: (Math.random() - 0.5) * 0.4,
       wobblePhase: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.8 + Math.random() * 1.0,
-      size: 4 + Math.random() * 4,
+      wobbleSpeed: 0.6 + Math.random() * 0.8,
+      size: 4 + Math.random() * 3,
       alpha: 0
     });
 
@@ -148,11 +149,11 @@ const GlobalApp: React.FC = () => {
       sCtx.scale(dpr, dpr);
       sCtx.fillStyle = '#010208';
       sCtx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 350; i++) {
+      for (let i = 0; i < 300; i++) {
         const sx = Math.random() * w;
         const sy = Math.random() * h;
-        const sz = Math.random() > 0.94 ? 1.4 : 0.6;
-        const op = 0.1 + Math.random() * 0.7;
+        const sz = Math.random() > 0.95 ? 1.4 : 0.6;
+        const op = 0.1 + Math.random() * 0.6;
         sCtx.fillStyle = `rgba(255, 255, 255, ${op})`;
         sCtx.fillRect(sx, sy, sz, sz);
       }
@@ -180,8 +181,8 @@ const GlobalApp: React.FC = () => {
       ctx.fill();
       ctx.beginPath();
       ctx.arc(0, size * 0.25, size * 0.6, 0.1 * Math.PI, 0.9 * Math.PI);
-      ctx.strokeStyle = 'rgba(192, 219, 213, 0.6)';
-      ctx.lineWidth = size * 0.1;
+      ctx.strokeStyle = 'rgba(192, 219, 213, 0.5)';
+      ctx.lineWidth = size * 0.08;
       ctx.lineCap = 'round';
       ctx.stroke();
       ctx.restore();
@@ -192,8 +193,8 @@ const GlobalApp: React.FC = () => {
       const deltaTime = (time - lastTimeRef.current) / 1000;
       lastTimeRef.current = time;
 
-      // Smoother delta cap for TV refresh rates
-      const safeDelta = Math.min(deltaTime, 0.04);
+      // Tight delta cap for butter-smooth movement on high refresh screens
+      const safeDelta = Math.min(deltaTime, 0.033);
 
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -207,7 +208,7 @@ const GlobalApp: React.FC = () => {
         starsCanvasRef.current = preRenderStars(w, h);
       }
 
-      // 1. Draw Static Atmosphere
+      // 1. Draw Space Backdrop
       if (starsCanvasRef.current) {
         ctx.drawImage(starsCanvasRef.current, 0, 0, w, h);
       } else {
@@ -215,14 +216,14 @@ const GlobalApp: React.FC = () => {
         ctx.fillRect(0, 0, w, h);
       }
 
-      // 2. Comets Physics Update (Reduced count for TV stability)
+      // 2. Comet Physics (Reduced count for maximum frame stability)
       if (comets.current.length < 8) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * safeDelta;
         c.y += c.vy * safeDelta;
         c.rot += c.rv * safeDelta;
         c.wobblePhase += c.wobbleSpeed * safeDelta;
-        c.alpha = Math.min(c.alpha + 0.3 * safeDelta, 0.7);
+        c.alpha = Math.min(c.alpha + 0.3 * safeDelta, 0.65);
         
         if (c.x < -300 || c.x > w + 300 || c.y < -300 || c.y > h + 300) {
           comets.current[idx] = createComet(w, h);
@@ -230,7 +231,7 @@ const GlobalApp: React.FC = () => {
         }
         ctx.save();
         ctx.translate(c.x, c.y);
-        ctx.rotate(c.rot + Math.sin(c.wobblePhase) * 0.05);
+        ctx.rotate(c.rot + Math.sin(c.wobblePhase) * 0.04);
         drawPhilipsPacifier(ctx, c.size, c.alpha);
         ctx.restore();
       });
@@ -240,7 +241,7 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
-      // 3. Increment Earth Rotation based on actual Delta Time
+      // 3. Increment Earth Rotation (Physics-based)
       rotationRef.current = (rotationRef.current + AUTO_ROTATION_SPEED * safeDelta) % 360;
 
       const projection = d3.geoOrthographic()
@@ -250,34 +251,34 @@ const GlobalApp: React.FC = () => {
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      // Sphere Background
-      const og = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
+      // Deep Space Spherical Gradient
+      const og = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       og.addColorStop(0, COLORS.OCEAN_BRIGHT);
       og.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = og;
       ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // Landmasses
+      // Landmass Rendering
       ctx.beginPath(); path(geoDataRef.current); ctx.fillStyle = COLORS.LAND; ctx.fill();
-      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.4; ctx.stroke();
+      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.4; ctx.stroke();
 
-      // Atmospheric Glow
+      // High-Precision Atmosphere
       ctx.beginPath();
-      const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.04);
+      const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
       atmo.addColorStop(0, COLORS.ATMOSPHERE);
       atmo.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = atmo;
-      ctx.arc(cx, cy, radius * 1.04, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
       ctx.fill();
 
-      // Country Flash Events
+      // Flash Events
       const timeNow = Date.now();
       activeFlashes.current.forEach((flashTime, id) => {
         const feature = geoDataRef.current.features.find((f: any) => 
           f.id === id || f.properties.name === id || (f.id && f.id.toString().substring(0,3) === id)
         );
         if (feature) {
-          const t = Math.min((timeNow - flashTime) / 1400, 1);
+          const t = Math.min((timeNow - flashTime) / 1500, 1);
           if (t >= 1) {
             activeFlashes.current.delete(id);
           } else {
@@ -299,7 +300,7 @@ const GlobalApp: React.FC = () => {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black flex flex-col font-sans select-none">
-      <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'contents' }} />
+      <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ opacity: 0.95 }} />
 
       {/* Brand Header */}
       <div className="absolute top-10 left-10 md:top-14 md:left-20 z-40 pointer-events-none">
@@ -313,7 +314,7 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Primary Analytics HUD */}
+      {/* Main UI Console */}
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[900px]">
         <div className="flex flex-col items-start w-full">
           <div className="mb-4">
@@ -331,13 +332,13 @@ const GlobalApp: React.FC = () => {
             </span>
           </div>
 
-          <div className="w-[48%] md:w-[44%] relative mt-12">
+          <div className="w-[45%] md:w-[42%] relative mt-12">
             <div className="flex justify-between items-end mb-4 relative h-6">
               <span className="text-amber-400 font-bold uppercase tracking-[0.45em] text-[0.55rem] md:text-[0.85rem] opacity-80">Daily Progress</span>
               <span className="text-amber-200/40 font-mono text-[11px] md:text-[15px] tabular-nums font-black tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
 
-            {/* Tactical Progress Meter */}
+            {/* Tactical Meter */}
             <div className="h-[10px] w-full bg-amber-950/20 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] ring-1 ring-amber-500/10 relative backdrop-blur-sm">
               <div 
                 className="h-full rounded-full transition-all duration-1000 ease-linear relative overflow-hidden"
@@ -352,7 +353,7 @@ const GlobalApp: React.FC = () => {
               </div>
             </div>
 
-            {/* Time Reference Marker */}
+            {/* Time Ref Marker */}
             <div 
               className="absolute top-6 transition-all duration-1000 ease-linear z-50"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
@@ -369,7 +370,7 @@ const GlobalApp: React.FC = () => {
 
             {/* Calibration Grid */}
             <div className="absolute top-[10px] w-full flex justify-between px-1 opacity-10 pointer-events-none">
-                {[...Array(13)].map((_, i) => (
+                {[...Array(11)].map((_, i) => (
                     <div key={i} className="w-[1px] h-3 bg-amber-50"></div>
                 ))}
             </div>
@@ -377,7 +378,7 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Depth & Lighting Overlays */}
+      {/* Cinematic Overlays */}
       <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/90 via-black/10 to-transparent" />
       <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/70 to-transparent z-10 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-60 bg-gradient-to-t from-black/70 to-transparent z-10 pointer-events-none" />
