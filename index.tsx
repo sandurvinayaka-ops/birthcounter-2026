@@ -27,15 +27,15 @@ const COLORS = {
 
 /**
  * TV SAFE ZONE CALIBRATION (40-inch Display):
- * - cx: 0.76w (Shifted right to avoid progress bar overlap)
- * - cy: 0.38h (Shifted up by ~5cm to balance with bottom-left UI)
- * - radius: 0.31 of min dimension (Prevents clipping during rotation)
+ * - cx: 0.82w (Shifted right significantly to clear HUD and progress bar)
+ * - cy: 0.30h (Shifted up significantly to clear vertical center overlap)
+ * - radius: 0.30 of min dimension (Slightly reduced for better framing)
  */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  const radius = minDim * 0.31; 
-  const cx = w > 768 ? w * 0.76 : w / 2;
-  const cy = w > 768 ? h * 0.38 : h / 2;
+  const radius = minDim * 0.30; 
+  const cx = w > 768 ? w * 0.82 : w / 2;
+  const cy = w > 768 ? h * 0.30 : h / 2;
   return { cx, cy, radius };
 };
 
@@ -216,7 +216,7 @@ const GlobalApp: React.FC = () => {
         ctx.fillRect(0, 0, w, h);
       }
 
-      // 2. Comet Physics (Reduced count for maximum frame stability)
+      // 2. Comet Physics
       if (comets.current.length < 8) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * safeDelta;
