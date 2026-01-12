@@ -5,9 +5,9 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 12.5; // Degrees per second for smooth rotation
+const AUTO_ROTATION_SPEED = 12.5; // Degrees per second
 const INITIAL_PHI = -15;
-// TV Optimization: Cap DPR at 1.2 to ensure high FPS on large display panels
+// TV Optimization: Cap DPR slightly to ensure high FPS on large display panels
 const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 1.2); 
 
 const COLORS = {
@@ -23,19 +23,20 @@ const COLORS = {
   GLOW: 'rgba(250, 204, 21, 0.3)',
   PROGRESS_BG: 'rgba(15, 23, 42, 0.6)',
   PROGRESS_ACCENT: '#facc15', 
+  HEADER_BLUE: '#60a5fa', // High-visibility blue for header
 };
 
 /**
- * TV SAFE ZONE CALIBRATION (40-inch Display):
- * - cx: 0.60w (Shifted left to sit immediately next to the progress bar/HUD area)
- * - cy: 0.30h (Maintained high vertical position to clear progress bar overlap)
+ * TV SAFE ZONE CALIBRATION:
+ * - cx: 0.60w (Positioned next to HUD)
+ * - cy: 0.36h (Adjusted down by ~1cm/6% from previous 0.30h)
  * - radius: 0.30 of min dimension
  */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
   const radius = minDim * 0.30; 
   const cx = w > 768 ? w * 0.60 : w / 2;
-  const cy = w > 768 ? h * 0.30 : h / 2;
+  const cy = w > 768 ? h * 0.36 : h / 2;
   return { cx, cy, radius };
 };
 
@@ -193,7 +194,7 @@ const GlobalApp: React.FC = () => {
       const deltaTime = (time - lastTimeRef.current) / 1000;
       lastTimeRef.current = time;
 
-      // Tight delta cap for butter-smooth movement on high refresh screens
+      // Tight delta cap for comet physics
       const safeDelta = Math.min(deltaTime, 0.033);
 
       const w = window.innerWidth;
@@ -241,13 +242,16 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
-      // 3. Increment Earth Rotation (Physics-based)
-      rotationRef.current = (rotationRef.current + AUTO_ROTATION_SPEED * safeDelta) % 360;
+      // 3. JERK-FREE Earth Rotation
+      // Using absolute time (time / 1000) instead of accumulating deltas 
+      // ensures the rotation is perfectly linear and decoupled from frame-rate fluctuations.
+      const rotation = (time / 1000 * AUTO_ROTATION_SPEED) % 360;
+      rotationRef.current = rotation; // Store for flash visibility calculation
 
       const projection = d3.geoOrthographic()
         .scale(radius)
         .translate([cx, cy])
-        .rotate([rotationRef.current, INITIAL_PHI, 0])
+        .rotate([rotation, INITIAL_PHI, 0])
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
@@ -282,7 +286,7 @@ const GlobalApp: React.FC = () => {
           if (t >= 1) {
             activeFlashes.current.delete(id);
           } else {
-            const distance = d3.geoDistance(feature.centroid, [-rotationRef.current, -INITIAL_PHI]);
+            const distance = d3.geoDistance(feature.centroid, [-rotation, -INITIAL_PHI]);
             if (distance < 1.57) {
               ctx.beginPath();
               path(feature);
@@ -318,7 +322,7 @@ const GlobalApp: React.FC = () => {
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[900px]">
         <div className="flex flex-col items-start w-full">
           <div className="mb-4">
-            <span className="text-white font-bold uppercase tracking-[0.45em] text-[0.6rem] md:text-[0.9rem] opacity-80 drop-shadow-md">Global birth count today</span>
+            <span className="font-bold uppercase tracking-[0.45em] text-[0.6rem] md:text-[0.9rem] opacity-90 drop-shadow-md" style={{ color: COLORS.HEADER_BLUE }}>Global birth count today</span>
           </div>
           
           <div className="mb-5">
