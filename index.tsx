@@ -27,14 +27,14 @@ const COLORS = {
 
 /**
  * TV SAFE ZONE CALIBRATION (40-inch Display):
- * - cx: 0.82w (Shifted right significantly to clear HUD and progress bar)
- * - cy: 0.30h (Shifted up significantly to clear vertical center overlap)
- * - radius: 0.30 of min dimension (Slightly reduced for better framing)
+ * - cx: 0.73w (Shifted left by ~3cm from previous position to center slightly more while keeping right-side priority)
+ * - cy: 0.30h (Maintained high vertical position to clear progress bar)
+ * - radius: 0.30 of min dimension
  */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
   const radius = minDim * 0.30; 
-  const cx = w > 768 ? w * 0.82 : w / 2;
+  const cx = w > 768 ? w * 0.73 : w / 2;
   const cy = w > 768 ? h * 0.30 : h / 2;
   return { cx, cy, radius };
 };
