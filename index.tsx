@@ -5,22 +5,23 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 12.5; // Degrees per second
+const AUTO_ROTATION_SPEED = 12.0; // Slightly adjusted for cinematic smoothness
 const INITIAL_PHI = -15;
-const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 1.2); 
+const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 1.5); 
 
 const COLORS = {
-  LAND: '#3d4f66', 
-  OCEAN_DEEP: '#050c1f',
-  OCEAN_BRIGHT: '#142a66',
+  LAND: '#546a8c', // Brighter, more visible land
+  LAND_BORDER: 'rgba(255, 255, 255, 0.25)',
+  OCEAN_DEEP: '#020617',
+  OCEAN_BRIGHT: '#0f172a',
   GOLD_SOLID: '#facc15',
   GOLD_PREMIUM_TOP: '#fef9c3', 
   GOLD_PREMIUM_MID: '#facc15', 
   GOLD_PREMIUM_BTM: '#a16207', 
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.1)',
-  PROGRESS_ACCENT: '#facc15', 
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.15)',
   HEADER_BLUE: '#60a5fa',
-  PACIFIER_GLOW: 'rgba(165, 243, 252, 0.8)', // Cyan/Teal glow for high contrast
+  PACIFIER_GLOW: 'rgba(165, 243, 252, 0.8)',
+  GRATICULE: 'rgba(148, 163, 184, 0.1)', // Subtle grid color
 };
 
 /**
@@ -123,6 +124,7 @@ const GlobalApp: React.FC = () => {
 
     let animId: number;
     const dpr = MAX_DPR;
+    const graticule = d3.geoGraticule10();
 
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
@@ -146,11 +148,11 @@ const GlobalApp: React.FC = () => {
       sCtx.scale(dpr, dpr);
       sCtx.fillStyle = '#010208';
       sCtx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 300; i++) {
+      for (let i = 0; i < 400; i++) {
         const sx = Math.random() * w;
         const sy = Math.random() * h;
         const sz = Math.random() > 0.95 ? 1.4 : 0.6;
-        const op = 0.1 + Math.random() * 0.6;
+        const op = 0.1 + Math.random() * 0.7;
         sCtx.fillStyle = `rgba(255, 255, 255, ${op})`;
         sCtx.fillRect(sx, sy, sz, sz);
       }
@@ -161,49 +163,34 @@ const GlobalApp: React.FC = () => {
       const { size, alpha, wobblePhase } = comet;
       ctx.save();
       ctx.globalAlpha = alpha;
-      
-      // Dynamic Pulse logic
       const pulse = Math.sin(wobblePhase) * 0.5 + 0.5;
       const glowIntensity = 15 + (pulse * 10);
-      
-      // Shadow Glow (Bloom)
       ctx.shadowBlur = glowIntensity;
       ctx.shadowColor = COLORS.PACIFIER_GLOW;
-
       const sw = size * 1.3;
       const sh = size * 0.9;
-      
-      // Shield
       ctx.beginPath();
       ctx.moveTo(-sw * 0.5, -sh * 0.2);
       ctx.bezierCurveTo(-sw * 0.8, -sh * 0.8, sw * 0.8, -sh * 0.8, sw * 0.5, -sh * 0.2);
       ctx.bezierCurveTo(sw * 1.2, sh * 0.2, sw * 0.9, sh * 1.0, 0, sh * 0.7);
       ctx.bezierCurveTo(-sw * 0.9, sh * 1.0, -sw * 1.2, sh * 0.2, -sw * 0.5, -sh * 0.2);
-      
       const shieldGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, sw);
       shieldGrad.addColorStop(0, '#ffffff');
       shieldGrad.addColorStop(0.3, '#cffafe');
       shieldGrad.addColorStop(1, '#67e8f9');
       ctx.fillStyle = shieldGrad;
       ctx.fill();
-
-      // Clear shadows for details to avoid blurring internal parts too much
       ctx.shadowBlur = 0;
-
-      // Handle/Ring
       ctx.beginPath();
       ctx.arc(0, size * 0.25, size * 0.6, 0.1 * Math.PI, 0.9 * Math.PI);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.lineWidth = size * 0.1;
       ctx.lineCap = 'round';
       ctx.stroke();
-
-      // Central Hub Glow
       ctx.beginPath();
       ctx.ellipse(0, 0, size * 0.35, size * 0.3, 0, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
-      
       ctx.restore();
     };
 
@@ -232,6 +219,7 @@ const GlobalApp: React.FC = () => {
         ctx.fillRect(0, 0, w, h);
       }
 
+      // Render Comets
       if (comets.current.length < 10) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * safeDelta;
@@ -255,6 +243,7 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
+      // JERK-FREE Earth Rotation
       const rotation = (time / 1000 * AUTO_ROTATION_SPEED) % 360;
       const projection = d3.geoOrthographic()
         .scale(radius)
@@ -263,15 +252,45 @@ const GlobalApp: React.FC = () => {
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
+      // Ocean Background
       const og = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
       og.addColorStop(0, COLORS.OCEAN_BRIGHT);
       og.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = og;
       ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      ctx.beginPath(); path(geoDataRef.current); ctx.fillStyle = COLORS.LAND; ctx.fill();
-      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.4; ctx.stroke();
+      // Graticule (Grid) for better rotation perception
+      ctx.beginPath();
+      path(graticule);
+      ctx.strokeStyle = COLORS.GRATICULE;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
 
+      // Land Rendering with Directional Shading
+      ctx.beginPath();
+      path(geoDataRef.current);
+      ctx.fillStyle = COLORS.LAND;
+      ctx.fill();
+
+      // Subtle topographic light overlay
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      const landLight = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+      landLight.addColorStop(0, 'rgba(255,255,255,0.08)');
+      landLight.addColorStop(0.5, 'rgba(0,0,0,0)');
+      landLight.addColorStop(1, 'rgba(0,0,0,0.3)');
+      ctx.fillStyle = landLight;
+      ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
+      ctx.restore();
+
+      // Land Borders
+      ctx.beginPath();
+      path(geoDataRef.current);
+      ctx.strokeStyle = COLORS.LAND_BORDER;
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+
+      // Atmosphere Glow
       ctx.beginPath();
       const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
       atmo.addColorStop(0, COLORS.ATMOSPHERE);
@@ -280,6 +299,7 @@ const GlobalApp: React.FC = () => {
       ctx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
       ctx.fill();
 
+      // Flash Events
       const timeNow = Date.now();
       activeFlashes.current.forEach((flashTime, id) => {
         const feature = geoDataRef.current.features.find((f: any) => 
