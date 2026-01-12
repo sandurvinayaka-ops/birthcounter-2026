@@ -5,19 +5,23 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 0.015; 
+const AUTO_ROTATION_SPEED = 0.012; 
 const INITIAL_PHI = -15;
-const MAX_DPR = 1.0; 
+const MAX_DPR = window.devicePixelRatio || 1.0; 
 
 const COLORS = {
   LAND: '#3d4f66', 
   OCEAN_DEEP: '#050c1f',
   OCEAN_BRIGHT: '#142a66',
   GOLD_SOLID: '#facc15',
+  GOLD_BRIGHT: '#fde047',
   ATMOSPHERE: 'rgba(56, 189, 248, 0.15)',
   PACIFIER_SHIELD: '#c0dbd5',
   PACIFIER_CENTER: '#e9f5f1',
   PACIFIER_HANDLE: 'rgba(192, 219, 213, 0.8)',
+  GLOW: 'rgba(250, 204, 21, 0.4)', // Warm gold glow
+  PROGRESS_BG: 'rgba(15, 23, 42, 0.6)',
+  PROGRESS_ACCENT: '#facc15', 
 };
 
 const getGlobePosition = (w: number, h: number) => {
@@ -112,23 +116,23 @@ const GlobalApp: React.FC = () => {
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 180, 
-      vy: (Math.random() - 0.5) * 180,
+      vx: (Math.random() - 0.5) * 120,
+      vy: (Math.random() - 0.5) * 120,
       rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 1.2,
+      rv: (Math.random() - 0.5) * 1.0,
       wobblePhase: Math.random() * Math.PI * 2,
-      wobbleSpeed: 3 + Math.random() * 4,
-      size: 14 + Math.random() * 10,
+      wobbleSpeed: 2 + Math.random() * 2,
+      size: 5 + Math.random() * 5,
       alpha: 0
     });
 
     const drawPhilipsPacifier = (ctx: CanvasRenderingContext2D, size: number, alpha: number) => {
       ctx.save();
       ctx.globalAlpha = alpha;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = 'rgba(125, 211, 252, 0.6)';
       const sw = size * 1.3;
       const sh = size * 0.9;
-      
-      // Shield
       ctx.beginPath();
       ctx.moveTo(-sw * 0.5, -sh * 0.2);
       ctx.bezierCurveTo(-sw * 0.8, -sh * 0.8, sw * 0.8, -sh * 0.8, sw * 0.5, -sh * 0.2);
@@ -140,16 +144,10 @@ const GlobalApp: React.FC = () => {
       shieldGrad.addColorStop(1, '#98b7b1');
       ctx.fillStyle = shieldGrad;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 0.5;
       ctx.stroke();
-
-      // Ventilation
-      ctx.fillStyle = 'rgba(0,0,0,0.2)';
-      ctx.beginPath(); ctx.arc(-sw * 0.4, 0, size * 0.18, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(sw * 0.4, 0, size * 0.18, 0, Math.PI * 2); ctx.fill();
-
-      // Button
+      ctx.shadowBlur = 4;
       ctx.beginPath();
       ctx.ellipse(0, 0, size * 0.48, size * 0.4, 0, 0, Math.PI * 2);
       const buttonGrad = ctx.createRadialGradient(0, -size * 0.1, 0, 0, 0, size * 0.48);
@@ -157,25 +155,9 @@ const GlobalApp: React.FC = () => {
       buttonGrad.addColorStop(1, '#d5e9e4');
       ctx.fillStyle = buttonGrad;
       ctx.fill();
-
-      // Icon
-      ctx.beginPath();
-      ctx.fillStyle = '#4a90ff';
-      const rOuter = size * 0.2;
-      const rInner = size * 0.09;
-      for (let i = 0; i < 5; i++) {
-        const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
-        ctx.lineTo(Math.cos(angle) * rOuter, Math.sin(angle) * rOuter);
-        const innerAngle = angle + (Math.PI * 2) / 10;
-        ctx.lineTo(Math.cos(innerAngle) * rInner, Math.sin(innerAngle) * rInner);
-      }
-      ctx.closePath();
-      ctx.fill();
-
-      // Handle
       ctx.beginPath();
       ctx.arc(0, size * 0.25, size * 0.6, 0.1 * Math.PI, 0.9 * Math.PI);
-      ctx.strokeStyle = COLORS.PACIFIER_HANDLE;
+      ctx.strokeStyle = 'rgba(192, 219, 213, 0.8)';
       ctx.lineWidth = size * 0.18;
       ctx.lineCap = 'round';
       ctx.stroke();
@@ -195,48 +177,55 @@ const GlobalApp: React.FC = () => {
         canvas.width = Math.floor(w * dpr);
         canvas.height = Math.floor(h * dpr);
         ctx.scale(dpr, dpr);
+        ctx.imageSmoothingEnabled = true;
       }
 
       ctx.fillStyle = '#010208';
       ctx.fillRect(0, 0, w, h);
 
-      // Starfield
-      for (let i = 0; i < 280; i++) {
+      // Enhanced Stars that "Shine" and "Twinkle"
+      for (let i = 0; i < 300; i++) {
         const sx = (Math.sin(i * 123.45) * 0.5 + 0.5) * w;
         const sy = (Math.cos(i * 456.78) * 0.5 + 0.5) * h;
-        const brightness = (Math.sin(i + time * 0.0013) * 0.5 + 0.5);
-        const baseAlpha = 0.35 + brightness * 0.65;
-        if (i % 6 === 0) {
-          const auraSize = 7 + (i % 9);
-          const ag = ctx.createRadialGradient(sx, sy, 0, sx, sy, auraSize);
-          ag.addColorStop(0, `rgba(255, 255, 255, ${baseAlpha * 0.3})`);
-          ag.addColorStop(1, 'transparent');
-          ctx.fillStyle = ag;
-          ctx.beginPath(); ctx.arc(sx, sy, auraSize, 0, Math.PI * 2); ctx.fill();
+        
+        // Individual twinkle speed per star
+        const twinkleSpeed = 0.0008 + (i % 8) * 0.0004;
+        const brightness = (Math.sin(i + time * twinkleSpeed) * 0.5 + 0.5);
+        const baseAlpha = 0.15 + brightness * 0.85;
+        
+        const isGlowing = i % 25 === 0;
+        const isBlueShift = i % 33 === 0;
+        
+        ctx.save();
+        if (isGlowing) {
+          ctx.shadowBlur = 4 + brightness * 8;
+          ctx.shadowColor = '#fff';
         }
-        ctx.fillStyle = `rgba(255, 255, 255, ${baseAlpha})`;
-        const sz = i % 12 === 0 ? 3.0 : (i % 4 === 0 ? 1.8 : 1.0);
+        
+        ctx.fillStyle = isBlueShift 
+          ? `rgba(186, 230, 253, ${baseAlpha})` 
+          : `rgba(255, 255, 255, ${baseAlpha})`;
+          
+        const sz = isGlowing ? 2.5 : (i % 12 === 0 ? 1.4 : 0.7);
         ctx.fillRect(sx - sz/2, sy - sz/2, sz, sz);
+        ctx.restore();
       }
 
-      // Comet Physics
-      if (comets.current.length < 12) comets.current.push(createComet(w, h));
+      if (comets.current.length < 24) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * deltaTime;
         c.y += c.vy * deltaTime;
         c.rot += c.rv * deltaTime;
         c.wobblePhase += c.wobbleSpeed * deltaTime;
-        c.alpha = Math.min(c.alpha + 0.8 * deltaTime, 0.95);
-        
-        if (c.x < -500 || c.x > w + 500 || c.y < -500 || c.y > h + 500) {
+        c.alpha = Math.min(c.alpha + 0.5 * deltaTime, 0.9);
+        if (c.x < -200 || c.x > w + 200 || c.y < -200 || c.y > h + 200) {
           comets.current[idx] = createComet(w, h);
           return;
         }
-
         ctx.save();
         ctx.translate(c.x, c.y);
-        ctx.rotate(c.rot + Math.sin(c.wobblePhase) * 0.12);
-        drawPhilipsPacifier(ctx, c.size * 0.7, c.alpha);
+        ctx.rotate(c.rot + Math.sin(c.wobblePhase) * 0.15);
+        drawPhilipsPacifier(ctx, c.size, c.alpha);
         ctx.restore();
       });
 
@@ -245,14 +234,12 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
-      // Globe
-      const elapsedTotal = time - startTimeRef.current;
-      const rotX = (elapsedTotal * AUTO_ROTATION_SPEED) % 360;
+      const rotX = (time * AUTO_ROTATION_SPEED) % 360;
       const projection = d3.geoOrthographic()
         .scale(radius)
         .translate([cx, cy])
         .rotate([rotX, INITIAL_PHI, 0])
-        .precision(2.0)
+        .precision(0.1)
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
@@ -263,7 +250,7 @@ const GlobalApp: React.FC = () => {
       ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
       ctx.beginPath(); path(geoDataRef.current); ctx.fillStyle = COLORS.LAND; ctx.fill();
-      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 0.8; ctx.stroke();
+      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 0.5; ctx.stroke();
 
       const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.08);
       atmo.addColorStop(0, COLORS.ATMOSPHERE);
@@ -285,16 +272,14 @@ const GlobalApp: React.FC = () => {
               path(feature);
               ctx.fillStyle = d3.interpolateRgb(COLORS.GOLD_SOLID, COLORS.LAND)(t);
               ctx.fill();
-              ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+              ctx.strokeStyle = `rgba(255,255,255,${0.7 * (1 - t)})`;
               ctx.stroke();
             }
           }
         }
       });
-
       animId = requestAnimationFrame(render);
     };
-
     animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
   }, []);
@@ -310,14 +295,14 @@ const GlobalApp: React.FC = () => {
             <span className="text-white">&</span>
             <span className="text-white">CC</span>
           </div>
-          <div className="w-full h-[1.5px] bg-sky-500 mt-0.5 opacity-70 shadow-[0_0_8px_rgba(14,165,233,0.6)]"></div>
+          <div className="w-full h-[1.5px] bg-amber-500 mt-0.5 opacity-70 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></div>
         </div>
       </div>
 
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-8 md:pl-14 pointer-events-none w-full max-w-[800px]">
         <div className="flex flex-col items-start w-full">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-sky-400 font-bold uppercase tracking-[0.4em] text-[0.55rem] md:text-[0.75rem] drop-shadow-lg opacity-90">Global birth count today</span>
+            <span className="text-white font-bold uppercase tracking-[0.4em] text-[0.55rem] md:text-[0.75rem] drop-shadow-lg opacity-90">Global birth count today</span>
           </div>
           
           <div className="mb-2">
@@ -331,27 +316,51 @@ const GlobalApp: React.FC = () => {
             </span>
           </div>
 
-          <div className="w-[36%] relative mt-6">
-            <div className="flex justify-between items-end mb-2 relative h-6">
-              <span className="text-sky-400 font-bold uppercase tracking-[0.25em] text-[10px] md:text-[12px] opacity-70">Daily Progress</span>
-              <span className="text-white/40 font-mono text-[10px] md:text-[12px] tabular-nums font-black">{Math.floor(timeState.pct)}%</span>
+          <div className="w-[42%] md:w-[38%] relative mt-8">
+            <div className="flex justify-between items-end mb-2 relative h-5">
+              <span className="text-amber-400 font-bold uppercase tracking-[0.4em] text-[0.55rem] md:text-[0.75rem] opacity-70 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]">Daily Progress</span>
+              <span className="text-amber-200/50 font-mono text-[10px] md:text-[12px] tabular-nums font-black tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
 
-            <div className="h-[10px] w-full bg-white/10 rounded-full overflow-hidden shadow-inner ring-1 ring-white/10">
-              <div className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(250,204,21,0.9)]"
-                style={{ width: `${timeState.pct}%`, background: COLORS.GOLD_SOLID }} />
+            {/* Thinner Progress Bar (8px) with Solar Gold Color Scheme */}
+            <div className="h-[8px] w-full bg-amber-950/40 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)] ring-1 ring-amber-500/20 relative backdrop-blur-md">
+              {/* Solar Gold Gradient Fill */}
+              <div 
+                className="h-full rounded-full transition-all duration-1000 ease-linear relative overflow-hidden"
+                style={{ 
+                    width: `${timeState.pct}%`, 
+                    background: `linear-gradient(90deg, #78350f 0%, #d97706 35%, #facc15 85%, #fef3c7 100%)`,
+                    boxShadow: `0 0 15px rgba(245, 158, 11, 0.3)`
+                }} 
+              >
+                {/* Internal High-gloss Shine Line */}
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-white/20" />
+                
+                {/* Advanced Scanning Shimmer */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent w-[30%] skew-x-[-35deg]" style={{ animation: 'shimmer 4s infinite ease-in-out' }} />
+              </div>
             </div>
 
+            {/* Precision Instrument Marker */}
             <div 
-              className="absolute top-6 transition-all duration-1000 ease-linear"
+              className="absolute top-5 transition-all duration-1000 ease-linear z-50"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
-                <div className="w-[2px] h-6 bg-white/50 mb-1"></div>
-                <span className="font-mono text-[0.9rem] font-black tracking-[0.08em] text-white tabular-nums drop-shadow-[0_4px_8px_rgba(0,0,0,1)]">
-                  {timeState.label}
-                </span>
+                <div className="w-[1px] h-6 bg-gradient-to-b from-amber-400 to-transparent mb-1 opacity-60"></div>
+                <div className="px-2 py-0.5 bg-black/95 backdrop-blur-md border border-amber-500/20 rounded shadow-2xl flex items-center justify-center">
+                    <span className="font-mono text-[0.7rem] md:text-[0.8rem] font-bold tracking-[0.15em] text-amber-50 tabular-nums">
+                    {timeState.label}
+                    </span>
+                </div>
               </div>
+            </div>
+
+            {/* Tick Marks with recalibrated spacing */}
+            <div className="absolute top-[8px] w-full flex justify-between px-1 opacity-10 pointer-events-none">
+                {[...Array(11)].map((_, i) => (
+                    <div key={i} className="w-[0.5px] h-1.5 bg-amber-200"></div>
+                ))}
             </div>
           </div>
         </div>
@@ -360,6 +369,13 @@ const GlobalApp: React.FC = () => {
       <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/95 via-black/20 to-transparent" />
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/70 to-transparent z-10 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/70 to-transparent z-10 pointer-events-none" />
+
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-250%) skewX(-35deg); }
+          100% { transform: translateX(500%) skewX(-35deg); }
+        }
+      `}</style>
     </div>
   );
 };
