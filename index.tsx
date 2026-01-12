@@ -7,8 +7,8 @@ import * as d3 from 'd3';
 const BIRTHS_PER_SECOND = 4.352;
 const AUTO_ROTATION_SPEED = 0.012; 
 const INITIAL_PHI = -15;
-// Cap DPR at 1.5 for performance on large TV displays (1080p/4K)
-const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 1.5); 
+// Cap DPR for stability on high-res large screens (TV hardware often has limited GPU fill-rate)
+const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 1.25); 
 
 const COLORS = {
   LAND: '#3d4f66', 
@@ -25,11 +25,15 @@ const COLORS = {
   PROGRESS_ACCENT: '#facc15', 
 };
 
-// Adjusted for 40" TV visibility: Center moved inward (0.62) and radius reduced (0.40)
+/**
+ * Optimized for 40" TV visibility:
+ * - Radius reduced to 0.35 to ensure top/bottom clearance.
+ * - Center X moved to 0.55 to avoid right-edge clipping while keeping room for UI on the left.
+ */
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  const radius = minDim * 0.40; 
-  const cx = w > 768 ? w * 0.62 : w / 2;
+  const radius = minDim * 0.35; 
+  const cx = w > 768 ? w * 0.55 : w / 2;
   const cy = h / 2;
   return { cx, cy, radius };
 };
@@ -121,13 +125,13 @@ const GlobalApp: React.FC = () => {
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 140,
-      vy: (Math.random() - 0.5) * 140,
+      vx: (Math.random() - 0.5) * 150,
+      vy: (Math.random() - 0.5) * 150,
       rot: Math.random() * Math.PI * 2,
       rv: (Math.random() - 0.5) * 0.8,
       wobblePhase: Math.random() * Math.PI * 2,
-      wobbleSpeed: 1.5 + Math.random() * 2,
-      size: 4 + Math.random() * 5,
+      wobbleSpeed: 1.2 + Math.random() * 1.5,
+      size: 5 + Math.random() * 6,
       alpha: 0
     });
 
@@ -140,11 +144,11 @@ const GlobalApp: React.FC = () => {
       sCtx.scale(dpr, dpr);
       sCtx.fillStyle = '#010208';
       sCtx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 400; i++) {
+      for (let i = 0; i < 450; i++) {
         const sx = Math.random() * w;
         const sy = Math.random() * h;
-        const sz = Math.random() > 0.95 ? 1.8 : 0.8;
-        const op = 0.2 + Math.random() * 0.6;
+        const sz = Math.random() > 0.96 ? 1.6 : 0.6;
+        const op = 0.1 + Math.random() * 0.7;
         sCtx.fillStyle = `rgba(255, 255, 255, ${op})`;
         sCtx.fillRect(sx, sy, sz, sz);
       }
@@ -154,7 +158,6 @@ const GlobalApp: React.FC = () => {
     const drawPhilipsPacifier = (ctx: CanvasRenderingContext2D, size: number, alpha: number) => {
       ctx.save();
       ctx.globalAlpha = alpha;
-      // Shadow removed for performance on TV hardware
       const sw = size * 1.3;
       const sh = size * 0.9;
       ctx.beginPath();
@@ -163,8 +166,8 @@ const GlobalApp: React.FC = () => {
       ctx.bezierCurveTo(sw * 1.2, sh * 0.2, sw * 0.9, sh * 1.0, 0, sh * 0.7);
       ctx.bezierCurveTo(-sw * 0.9, sh * 1.0, -sw * 1.2, sh * 0.2, -sw * 0.5, -sh * 0.2);
       const shieldGrad = ctx.createLinearGradient(0, -sh, 0, sh);
-      shieldGrad.addColorStop(0, '#e8f7f4');
-      shieldGrad.addColorStop(1, '#98b7b1');
+      shieldGrad.addColorStop(0, '#f0faf8');
+      shieldGrad.addColorStop(1, '#a8c7c1');
       ctx.fillStyle = shieldGrad;
       ctx.fill();
       ctx.beginPath();
@@ -173,8 +176,8 @@ const GlobalApp: React.FC = () => {
       ctx.fill();
       ctx.beginPath();
       ctx.arc(0, size * 0.25, size * 0.6, 0.1 * Math.PI, 0.9 * Math.PI);
-      ctx.strokeStyle = 'rgba(192, 219, 213, 0.8)';
-      ctx.lineWidth = size * 0.15;
+      ctx.strokeStyle = 'rgba(192, 219, 213, 0.7)';
+      ctx.lineWidth = size * 0.12;
       ctx.lineCap = 'round';
       ctx.stroke();
       ctx.restore();
@@ -182,7 +185,7 @@ const GlobalApp: React.FC = () => {
 
     const render = (time: number) => {
       const now = performance.now();
-      const deltaTime = Math.min((now - lastTimeRef.current) / 1000, 0.1); 
+      const deltaTime = Math.min((now - lastTimeRef.current) / 1000, 0.05); // Tighter cap for smoother motion
       lastTimeRef.current = now;
 
       const w = window.innerWidth;
@@ -196,7 +199,7 @@ const GlobalApp: React.FC = () => {
         starsCanvasRef.current = preRenderStars(w, h);
       }
 
-      // 1. Draw Static Background
+      // Background
       if (starsCanvasRef.current) {
         ctx.drawImage(starsCanvasRef.current, 0, 0, w, h);
       } else {
@@ -204,29 +207,30 @@ const GlobalApp: React.FC = () => {
         ctx.fillRect(0, 0, w, h);
       }
 
-      // 2. Draw Twinkling Layer (Minimal)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      for (let i = 0; i < 20; i++) {
-          if (Math.sin(time * 0.005 + i) > 0.8) {
-              ctx.fillRect((i * 123.45) % w, (i * 456.78) % h, 2, 2);
+      // Dynamic Twinkle (Small portion of stars)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      for (let i = 0; i < 15; i++) {
+          const intensity = Math.sin(time * 0.003 + i * 1.5);
+          if (intensity > 0.7) {
+              ctx.fillRect((i * 234.56) % w, (i * 789.01) % h, 2, 2);
           }
       }
 
-      // 3. Comets
-      if (comets.current.length < 18) comets.current.push(createComet(w, h));
+      // Comets
+      if (comets.current.length < 15) comets.current.push(createComet(w, h));
       comets.current.forEach((c, idx) => {
         c.x += c.vx * deltaTime;
         c.y += c.vy * deltaTime;
         c.rot += c.rv * deltaTime;
         c.wobblePhase += c.wobbleSpeed * deltaTime;
-        c.alpha = Math.min(c.alpha + 0.5 * deltaTime, 0.85);
+        c.alpha = Math.min(c.alpha + 0.4 * deltaTime, 0.8);
         if (c.x < -200 || c.x > w + 200 || c.y < -200 || c.y > h + 200) {
           comets.current[idx] = createComet(w, h);
           return;
         }
         ctx.save();
         ctx.translate(c.x, c.y);
-        ctx.rotate(c.rot + Math.sin(c.wobblePhase) * 0.1);
+        ctx.rotate(c.rot + Math.sin(c.wobblePhase) * 0.08);
         drawPhilipsPacifier(ctx, c.size, c.alpha);
         ctx.restore();
       });
@@ -236,7 +240,7 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
-      // 4. Globe Rendering
+      // Globe
       const rotX = (time * AUTO_ROTATION_SPEED) % 360;
       const projection = d3.geoOrthographic()
         .scale(radius)
@@ -245,36 +249,37 @@ const GlobalApp: React.FC = () => {
         .clipAngle(90);
       const path = d3.geoPath(projection, ctx);
 
-      // Ocean
+      // Deep Space Ocean
       const og = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, 0, cx, cy, radius);
       og.addColorStop(0, COLORS.OCEAN_BRIGHT);
       og.addColorStop(1, COLORS.OCEAN_DEEP);
       ctx.fillStyle = og;
       ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // Land
+      // Continents
       ctx.beginPath(); path(geoDataRef.current); ctx.fillStyle = COLORS.LAND; ctx.fill();
-      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.beginPath(); path(geoDataRef.current); ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.5; ctx.stroke();
 
-      // Atmosphere (Simpler Gradient)
+      // Atmospheric Glow (Outer)
       ctx.beginPath();
-      const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.06);
+      const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
       atmo.addColorStop(0, COLORS.ATMOSPHERE);
       atmo.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = atmo;
-      ctx.arc(cx, cy, radius * 1.06, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
       ctx.fill();
 
-      // Flashes
+      // Active Country Flashes
       const timeNow = Date.now();
       activeFlashes.current.forEach((flashTime, id) => {
         const feature = geoDataRef.current.features.find((f: any) => f.id === id || f.properties.name === id || f.id === id.substring(0,3));
         if (feature) {
-          const t = Math.min((timeNow - flashTime) / 1600, 1);
+          const t = Math.min((timeNow - flashTime) / 1400, 1);
           if (t >= 1) {
             activeFlashes.current.delete(id);
           } else {
             const distance = d3.geoDistance(feature.centroid, [-rotX, -INITIAL_PHI]);
+            // Only draw if on the visible hemisphere
             if (distance < 1.57) {
               ctx.beginPath();
               path(feature);
@@ -294,6 +299,7 @@ const GlobalApp: React.FC = () => {
     <div className="relative w-full h-full overflow-hidden bg-black flex flex-col font-sans">
       <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ willChange: 'contents' }} />
 
+      {/* Brand Header */}
       <div className="absolute top-8 left-8 md:top-14 md:left-14 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-[0.7rem] md:text-[2.1rem] leading-none">
@@ -305,6 +311,7 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
+      {/* Main UI Console */}
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-8 md:pl-14 pointer-events-none w-full max-w-[800px]">
         <div className="flex flex-col items-start w-full">
           <div className="flex items-center gap-3 mb-2">
@@ -312,7 +319,7 @@ const GlobalApp: React.FC = () => {
           </div>
           
           <div className="mb-2">
-            <span className="text-[5.7vw] md:text-[69px] font-black leading-none tabular-nums" 
+            <span className="text-[5.7vw] md:text-[72px] font-black leading-none tabular-nums" 
               style={{ 
                 fontFamily: "'Anton', sans-serif", 
                 color: COLORS.GOLD_SOLID,
@@ -322,12 +329,13 @@ const GlobalApp: React.FC = () => {
             </span>
           </div>
 
-          <div className="w-[42%] md:w-[38%] relative mt-8">
+          <div className="w-[45%] md:w-[40%] relative mt-10">
             <div className="flex justify-between items-end mb-2 relative h-5">
               <span className="text-amber-400 font-bold uppercase tracking-[0.4em] text-[0.55rem] md:text-[0.75rem] opacity-70 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]">Daily Progress</span>
               <span className="text-amber-200/50 font-mono text-[10px] md:text-[12px] tabular-nums font-black tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
 
+            {/* Precision Progress Slider */}
             <div className="h-[8px] w-full bg-amber-950/40 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)] ring-1 ring-amber-500/20 relative backdrop-blur-md">
               <div 
                 className="h-full rounded-full transition-all duration-1000 ease-linear relative overflow-hidden"
@@ -342,6 +350,7 @@ const GlobalApp: React.FC = () => {
               </div>
             </div>
 
+            {/* Time Indicator Marker */}
             <div 
               className="absolute top-5 transition-all duration-1000 ease-linear z-50"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
@@ -349,22 +358,24 @@ const GlobalApp: React.FC = () => {
               <div className="flex flex-col items-center">
                 <div className="w-[1px] h-6 bg-gradient-to-b from-amber-400 to-transparent mb-1 opacity-60"></div>
                 <div className="px-2 py-0.5 bg-black/95 backdrop-blur-md border border-amber-500/20 rounded shadow-2xl flex items-center justify-center">
-                    <span className="font-mono text-[0.7rem] md:text-[0.8rem] font-bold tracking-[0.15em] text-amber-50 tabular-nums">
+                    <span className="font-mono text-[0.7rem] md:text-[0.85rem] font-bold tracking-[0.15em] text-amber-50 tabular-nums">
                     {timeState.label}
                     </span>
                 </div>
               </div>
             </div>
 
+            {/* Measurement Ticks */}
             <div className="absolute top-[8px] w-full flex justify-between px-1 opacity-10 pointer-events-none">
-                {[...Array(11)].map((_, i) => (
-                    <div key={i} className="w-[0.5px] h-1.5 bg-amber-200"></div>
+                {[...Array(13)].map((_, i) => (
+                    <div key={i} className="w-[0.5px] h-2 bg-amber-200"></div>
                 ))}
             </div>
           </div>
         </div>
       </div>
 
+      {/* Cinematic Overlays */}
       <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/95 via-black/20 to-transparent" />
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/70 to-transparent z-10 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/70 to-transparent z-10 pointer-events-none" />
