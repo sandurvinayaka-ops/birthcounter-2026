@@ -5,23 +5,23 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 12.0; // Slightly adjusted for cinematic smoothness
+const AUTO_ROTATION_SPEED = 12.0; 
 const INITIAL_PHI = -15;
 const MAX_DPR = Math.min(window.devicePixelRatio || 1.0, 1.5); 
 
 const COLORS = {
-  LAND: '#546a8c', // Brighter, more visible land
+  LAND: '#546a8c', 
   LAND_BORDER: 'rgba(255, 255, 255, 0.25)',
   OCEAN_DEEP: '#020617',
   OCEAN_BRIGHT: '#0f172a',
-  GOLD_SOLID: '#facc15',
-  GOLD_PREMIUM_TOP: '#fef9c3', 
-  GOLD_PREMIUM_MID: '#facc15', 
-  GOLD_PREMIUM_BTM: '#a16207', 
+  YELLOW_SOLID: '#facc15',
+  YELLOW_PREMIUM_TOP: '#fef9c3', 
+  YELLOW_PREMIUM_MID: '#facc15', 
+  YELLOW_PREMIUM_BTM: '#854d0e',
   ATMOSPHERE: 'rgba(56, 189, 248, 0.15)',
   HEADER_BLUE: '#60a5fa',
   PACIFIER_GLOW: 'rgba(165, 243, 252, 0.8)',
-  GRATICULE: 'rgba(148, 163, 184, 0.1)', // Subtle grid color
+  GRATICULE: 'rgba(148, 163, 184, 0.1)', 
 };
 
 /**
@@ -243,7 +243,6 @@ const GlobalApp: React.FC = () => {
         return;
       }
 
-      // JERK-FREE Earth Rotation
       const rotation = (time / 1000 * AUTO_ROTATION_SPEED) % 360;
       const projection = d3.geoOrthographic()
         .scale(radius)
@@ -259,26 +258,26 @@ const GlobalApp: React.FC = () => {
       ctx.fillStyle = og;
       ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
 
-      // Graticule (Grid) for better rotation perception
+      // Graticule
       ctx.beginPath();
       path(graticule);
       ctx.strokeStyle = COLORS.GRATICULE;
       ctx.lineWidth = 0.5;
       ctx.stroke();
 
-      // Land Rendering with Directional Shading
+      // Land Rendering
       ctx.beginPath();
       path(geoDataRef.current);
       ctx.fillStyle = COLORS.LAND;
       ctx.fill();
 
-      // Subtle topographic light overlay
+      // Shading overlay
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
       const landLight = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
       landLight.addColorStop(0, 'rgba(255,255,255,0.08)');
       landLight.addColorStop(0.5, 'rgba(0,0,0,0)');
-      landLight.addColorStop(1, 'rgba(0,0,0,0.3)');
+      landLight.addColorStop(1, 'rgba(0,0,0,0.25)');
       ctx.fillStyle = landLight;
       ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
       ctx.restore();
@@ -290,7 +289,7 @@ const GlobalApp: React.FC = () => {
       ctx.lineWidth = 0.6;
       ctx.stroke();
 
-      // Atmosphere Glow
+      // Atmosphere
       ctx.beginPath();
       const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
       atmo.addColorStop(0, COLORS.ATMOSPHERE);
@@ -299,7 +298,7 @@ const GlobalApp: React.FC = () => {
       ctx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
       ctx.fill();
 
-      // Flash Events
+      // Flashes
       const timeNow = Date.now();
       activeFlashes.current.forEach((flashTime, id) => {
         const feature = geoDataRef.current.features.find((f: any) => 
@@ -314,7 +313,7 @@ const GlobalApp: React.FC = () => {
             if (distance < 1.57) {
               ctx.beginPath();
               path(feature);
-              ctx.fillStyle = d3.interpolateRgb(COLORS.GOLD_SOLID, COLORS.LAND)(t);
+              ctx.fillStyle = d3.interpolateRgb(COLORS.YELLOW_SOLID, COLORS.LAND)(t);
               ctx.fill();
             }
           }
@@ -325,6 +324,18 @@ const GlobalApp: React.FC = () => {
     animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
   }, []);
+
+  // Helper to render total with round dots
+  const renderFormattedTotal = (val: number) => {
+    const str = val.toLocaleString('en-US').replace(/,/g, '.');
+    return str.split('').map((char, i) => {
+      if (char === '.') {
+        // Use standard sans-serif for the period to ensure it's a circle
+        return <span key={i} className="font-sans align-baseline inline-block px-[1px]" style={{ verticalAlign: 'baseline' }}>.</span>;
+      }
+      return char;
+    });
+  };
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black flex flex-col font-sans select-none">
@@ -338,7 +349,7 @@ const GlobalApp: React.FC = () => {
             <span className="text-white">&</span>
             <span className="text-white">CC</span>
           </div>
-          <div className="w-full h-[1.5px] bg-amber-500 mt-1 opacity-60 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
+          <div className="w-full h-[1.5px] bg-yellow-500 mt-1 opacity-60 shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
         </div>
       </div>
 
@@ -350,32 +361,33 @@ const GlobalApp: React.FC = () => {
           </div>
           
           <div className="mb-5 relative">
-            <span className="text-[6.5vw] md:text-[92px] font-black leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#a16207]" 
+            {/* Luminous Flat Premium Yellow Numbers with Bebas Neue font and round sans-serif dots */}
+            <span className="text-[9vw] md:text-[124px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
               style={{ 
-                fontFamily: "'Anton', sans-serif",
-                filter: `drop-shadow(0 4px 0 #78350f) drop-shadow(0 15px 30px rgba(0,0,0,0.8)) drop-shadow(0 0 10px rgba(250, 204, 21, 0.2))`
+                fontFamily: "'Bebas Neue', cursive",
+                filter: `drop-shadow(0 0 30px rgba(250, 204, 21, 0.15))`
               }}>
-              {total.toLocaleString('en-US').replace(/,/g, '.')}
+              {renderFormattedTotal(total)}
             </span>
           </div>
 
           <div className="w-[45%] md:w-[42%] relative mt-12">
             <div className="flex justify-between items-end mb-4 relative h-6">
-              <span className="text-amber-400 font-bold uppercase tracking-[0.45em] text-[0.55rem] md:text-[0.85rem] opacity-80">Daily Progress</span>
-              <span className="text-amber-200/40 font-mono text-[11px] md:text-[15px] tabular-nums font-black tracking-widest">{Math.floor(timeState.pct)}%</span>
+              <span className="text-yellow-400 font-bold uppercase tracking-[0.45em] text-[0.55rem] md:text-[0.85rem] opacity-80">Daily Progress</span>
+              <span className="text-yellow-200/40 font-mono text-[11px] md:text-[15px] tabular-nums font-black tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
 
-            <div className="h-[10px] w-full bg-amber-950/20 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] ring-1 ring-amber-500/10 relative backdrop-blur-sm">
+            <div className="h-[10px] w-full bg-yellow-950/20 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] ring-1 ring-yellow-500/10 relative backdrop-blur-sm">
               <div 
                 className="h-full rounded-full transition-all duration-1000 ease-linear relative overflow-hidden"
                 style={{ 
                     width: `${timeState.pct}%`, 
-                    background: `linear-gradient(90deg, #78350f 0%, #d97706 40%, #facc15 90%, #fff 100%)`,
-                    boxShadow: `0 0 20px rgba(245, 158, 11, 0.2)`
+                    background: `linear-gradient(90deg, #ca8a04 0%, #facc15 50%, #fef9c3 100%)`,
+                    boxShadow: `0 0 20px rgba(250, 204, 21, 0.4)`
                 }} 
               >
                 <div className="absolute top-0 left-0 w-full h-[1.5px] bg-white/10" />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent w-[30%] skew-x-[-35deg]" style={{ animation: 'shimmer 4.5s infinite ease-in-out' }} />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent w-[30%] skew-x-[-35deg]" style={{ animation: 'shimmer 4.5s infinite ease-in-out' }} />
               </div>
             </div>
 
@@ -384,9 +396,9 @@ const GlobalApp: React.FC = () => {
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
-                <div className="w-[1.5px] h-10 bg-gradient-to-b from-amber-400 to-transparent mb-1.5 opacity-40"></div>
-                <div className="px-4 py-1.5 bg-black/90 backdrop-blur-xl border border-amber-500/10 rounded shadow-2xl flex items-center justify-center">
-                    <span className="font-mono text-[0.8rem] md:text-[1rem] font-bold tracking-[0.25em] text-amber-50 tabular-nums">
+                <div className="w-[1.5px] h-10 bg-gradient-to-b from-yellow-400 to-transparent mb-1.5 opacity-40"></div>
+                <div className="px-4 py-1.5 bg-black/90 backdrop-blur-xl border border-yellow-500/20 rounded shadow-2xl flex items-center justify-center">
+                    <span className="font-mono text-[0.8rem] md:text-[1rem] font-bold tracking-[0.25em] text-yellow-50 tabular-nums">
                     {timeState.label}
                     </span>
                 </div>
@@ -395,7 +407,7 @@ const GlobalApp: React.FC = () => {
 
             <div className="absolute top-[10px] w-full flex justify-between px-1 opacity-10 pointer-events-none">
                 {[...Array(11)].map((_, i) => (
-                    <div key={i} className="w-[1px] h-3 bg-amber-50"></div>
+                    <div key={i} className="w-[1px] h-3 bg-yellow-50"></div>
                 ))}
             </div>
           </div>
