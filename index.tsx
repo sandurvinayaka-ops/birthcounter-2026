@@ -21,7 +21,7 @@ const COLORS = {
   YELLOW_PEAK: '#fff700', 
   ATMOSPHERE: 'rgba(56, 189, 248, 0.35)', 
   SPECULAR: 'rgba(255, 255, 255, 0.12)', 
-  HEADER_BLUE: '#3b82f6', 
+  HEADER_PURPLE: '#a855f7', // Changed from blue to purple
   PACIFIER_GLOW: '#60a5fa',
   PACIFIER_CORE: '#ffffff',
   COMET_GLOW: '#93c5fd',
@@ -436,8 +436,8 @@ const GlobalApp: React.FC = () => {
       {/* Brand Logo */}
       <div className="absolute top-8 left-8 md:top-12 md:left-16 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
-          <div className="flex items-baseline font-black tracking-tighter text-[1rem] md:text-[2rem] leading-none" style={{ color: COLORS.HEADER_BLUE }}>
-            M&CC
+          <div className="font-bold tracking-tight text-[0.6rem] md:text-[1.2rem] leading-[1.1] uppercase" style={{ color: COLORS.HEADER_PURPLE, fontFamily: "'Inter', sans-serif" }}>
+            Mother & Child Care — Women's Health
           </div>
           <div className="w-full h-[2px] md:h-[4px] mt-1" style={{ backgroundColor: COLORS.YELLOW_VIBRANT }}></div>
         </div>
