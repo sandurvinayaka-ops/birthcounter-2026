@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 30.0; 
+const AUTO_ROTATION_SPEED = 12.0; 
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
@@ -13,14 +13,15 @@ const MAX_HEIGHT = 1080;
 const GLOBE_RENDER_SCALE = 1.0; 
 
 const COLORS = {
-  LAND: '#e2e8f0', // Increased brightness for visibility
+  LAND: '#cbd5e1', 
   LAND_BRIGHT: '#ffffff',
   OCEAN_DEEP: '#010409',
   OCEAN_BRIGHT: '#0f172a', 
   YELLOW_SOLID: '#facc15',
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.2)',
-  SPECULAR: 'rgba(255, 255, 255, 0.1)',
-  HEADER_BLUE: '#3b82f6', // Richer blue for branding
+  FLASH_PEAK: '#ffffff', 
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.45)', 
+  SPECULAR: 'rgba(255, 255, 255, 0.2)', 
+  HEADER_BLUE: '#3b82f6', 
   PACIFIER_GLOW: '#60a5fa',
 };
 
@@ -82,14 +83,12 @@ const GlobalApp: React.FC = () => {
       sCtx.shadowBlur = 25;
       sCtx.shadowColor = COLORS.PACIFIER_GLOW;
 
-      // Handle (Ring)
       sCtx.beginPath();
       sCtx.arc(0, 14, 10, 0, Math.PI * 2);
       sCtx.strokeStyle = '#fff';
       sCtx.lineWidth = 4;
       sCtx.stroke();
 
-      // Disc (Guard)
       sCtx.beginPath();
       sCtx.ellipse(0, 0, 18, 8, 0, 0, Math.PI * 2);
       sCtx.fillStyle = COLORS.PACIFIER_GLOW;
@@ -98,7 +97,6 @@ const GlobalApp: React.FC = () => {
       sCtx.lineWidth = 1.5;
       sCtx.stroke();
 
-      // Nipple
       sCtx.beginPath();
       sCtx.arc(0, -10, 9, 0, Math.PI * 2);
       sCtx.fillStyle = 'rgba(255, 255, 255, 1.0)';
@@ -165,7 +163,7 @@ const GlobalApp: React.FC = () => {
         countRef.current += 1; 
         setTotal(countRef.current);
         if (geoDataRef.current) {
-          const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS'];
+          const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS', 'VNM', 'TUR', 'THA', 'FRA', 'DEU', 'GBR'];
           const target = countries[Math.floor(Math.random() * countries.length)];
           activeFlashes.current.set(target, Date.now());
         }
@@ -196,8 +194,7 @@ const GlobalApp: React.FC = () => {
       const cy = (h / 2) * GLOBE_RENDER_SCALE;
 
       fCtx.clearRect(0, 0, w, h);
-      // No stars drawn on overlay
-
+      
       // Rendering glowing pacifiers
       if (pacifierSpriteRef.current) {
         if (pacifiers.current.length < 5) {
@@ -227,10 +224,11 @@ const GlobalApp: React.FC = () => {
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
 
-        // Clean black background for the globe area
+        // Background
         gCtx.fillStyle = '#000000';
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
 
+        // 1. Ocean Shading
         if (!gradients.current.ocean) {
           gradients.current.ocean = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx, cy, r);
           gradients.current.ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -239,49 +237,73 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.ocean!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // Visible Countries
+        // 2. Graticule REMOVED for clean appearance
+
+        // 3. Landmass Rendering
         gCtx.beginPath(); path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND; 
         gCtx.fill();
-        gCtx.strokeStyle = "rgba(255,255,255,0.3)"; // Clearer stroke for borders
-        gCtx.lineWidth = 0.8;
+        gCtx.strokeStyle = "rgba(255,255,255,0.2)";
+        gCtx.lineWidth = 0.5;
         gCtx.stroke();
 
+        // 4. Rim Shadow
+        if (!gradients.current.rimShadow) {
+          gradients.current.rimShadow = gCtx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r);
+          gradients.current.rimShadow.addColorStop(0, 'rgba(0,0,0,0)');
+          gradients.current.rimShadow.addColorStop(1, 'rgba(0,0,0,0.6)');
+        }
+        gCtx.fillStyle = gradients.current.rimShadow!;
+        gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
+
+        // 5. Flash Logic (Enhanced for Visibility)
         const timeNow = Date.now();
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
           if (feature) {
-            const t = Math.min((timeNow - flashTime) / 1000, 1);
+            const duration = 1500; // Increased duration
+            const t = Math.min((timeNow - flashTime) / duration, 1);
             if (t >= 1) { activeFlashes.current.delete(id); }
             else {
               const distance = d3.geoDistance(feature.centroid, [-rotation, -INITIAL_PHI]);
               if (distance < 1.57) { 
                 gCtx.beginPath(); path(feature);
-                gCtx.fillStyle = d3.interpolateRgb(COLORS.YELLOW_SOLID, COLORS.LAND)(t);
+                // Sharp peak, then slow fade
+                const intensity = Math.pow(1 - t, 0.6);
+                const flashColor = d3.interpolateRgb(
+                    d3.interpolateRgb(COLORS.FLASH_PEAK, COLORS.YELLOW_SOLID)(t * 1.5),
+                    COLORS.LAND
+                )(t);
+                gCtx.fillStyle = flashColor;
                 gCtx.fill();
-                gCtx.strokeStyle = "rgba(255,255,255,0.8)";
-                gCtx.lineWidth = 1;
+                
+                // Brighter, thick stroke for clarity
+                gCtx.strokeStyle = `rgba(255, 255, 255, ${intensity})`;
+                gCtx.lineWidth = 3 * intensity; 
                 gCtx.stroke();
               }
             }
           }
         });
 
+        // 6. Specular Highlight
         if (!gradients.current.spec) {
-          gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.5, cy - r * 0.5, 0, cx - r * 0.5, cy - r * 0.5, r * 1.6);
+          gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx - r * 0.4, cy - r * 0.4, r * 1.5);
           gradients.current.spec.addColorStop(0, COLORS.SPECULAR);
           gradients.current.spec.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.spec!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
+        // 7. Atmospheric Glow
         if (!gradients.current.atmo) {
-          gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.18);
+          gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.15);
           gradients.current.atmo.addColorStop(0, COLORS.ATMOSPHERE);
+          gradients.current.atmo.addColorStop(0.3, 'rgba(56, 189, 248, 0.15)');
           gradients.current.atmo.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.atmo!;
-        gCtx.beginPath(); gCtx.arc(cx, cy, r * 1.18, 0, Math.PI * 2); gCtx.fill();
+        gCtx.beginPath(); gCtx.arc(cx, cy, r * 1.15, 0, Math.PI * 2); gCtx.fill();
       }
       animId = requestAnimationFrame(render);
     };
@@ -312,7 +334,7 @@ const GlobalApp: React.FC = () => {
       
       <canvas ref={fxCanvasRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none mix-blend-screen" />
 
-      {/* Brand Logo: Blue text with Yellow underline */}
+      {/* Brand Logo */}
       <div className="absolute top-8 left-8 md:top-12 md:left-16 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
           <div className="flex items-baseline font-black tracking-tighter text-[1rem] md:text-[2rem] leading-none" style={{ color: COLORS.HEADER_BLUE }}>
@@ -322,7 +344,7 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Data HUD: Updated text colors to Yellow */}
+      {/* Data HUD */}
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[900px]">
         <div className="flex flex-col items-start w-full translate-y-[-5%]">
           <div className="mb-0.5">
