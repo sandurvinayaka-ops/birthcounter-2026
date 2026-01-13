@@ -13,13 +13,13 @@ const MAX_HEIGHT = 1080;
 const GLOBE_RENDER_SCALE = 1.2; 
 
 const COLORS = {
-  LAND_BASE: '#2a3a4d', 
-  LAND_BORDER: 'rgba(255, 255, 255, 0.15)',
+  LAND_BASE: '#c084fc', // Changed to light purple (Tailwind purple-400)
+  LAND_BORDER: 'rgba(255, 255, 255, 0.5)', // Increased opacity for clearly visible country borders
   OCEAN_DEEP: '#020617',
   OCEAN_BRIGHT: '#111827', 
   YELLOW_VIBRANT: '#fbbf24', 
   YELLOW_PEAK: '#fff700', 
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.35)', 
+  ATMOSPHERE: 'rgba(168, 85, 247, 0.25)', // Adjusted to a purple-ish tint to match theme
   SPECULAR: 'rgba(255, 255, 255, 0.12)', 
   HEADER_PURPLE: '#a855f7', 
   PACIFIER_GLOW: '#60a5fa',
@@ -240,7 +240,6 @@ const GlobalApp: React.FC = () => {
       // Update & Draw Comets
       if (comets.current.length < 5 && Math.random() < 0.02) {
         const angle = Math.random() * Math.PI * 2;
-        // Increased comet speed by 30% from (2+5) to (2.6+6.5)
         const speed = (2 + Math.random() * 5) * 1.3; 
         comets.current.push({
           x: Math.random() * w,
@@ -297,11 +296,9 @@ const GlobalApp: React.FC = () => {
           pacifiers.current.push({
             x: Math.random() * w, 
             y: Math.random() * h,
-            // Doubled pacifier movement speed (from 60 to 120)
             vx: (Math.random() - 0.5) * 120, 
             vy: (Math.random() - 0.5) * 120,
             rot: Math.random() * Math.PI * 2, 
-            // Doubled rotation speed too for consistent energy (from 0.03 to 0.06)
             rv: (Math.random() - 0.5) * 0.06,
             size: 30 + Math.random() * 25,
             alpha: 0
@@ -346,11 +343,12 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.ocean!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
+        // Draw landmasses
         gCtx.beginPath(); path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND_BASE; 
         gCtx.fill();
         gCtx.strokeStyle = COLORS.LAND_BORDER;
-        gCtx.lineWidth = 1.0;
+        gCtx.lineWidth = 1.2; // Slightly thicker for better visibility
         gCtx.stroke();
 
         if (!gradients.current.rimShadow) {
@@ -399,7 +397,7 @@ const GlobalApp: React.FC = () => {
         if (!gradients.current.atmo) {
           gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.15);
           gradients.current.atmo.addColorStop(0, COLORS.ATMOSPHERE);
-          gradients.current.atmo.addColorStop(0.3, 'rgba(56, 189, 248, 0.12)');
+          gradients.current.atmo.addColorStop(0.3, 'rgba(168, 85, 247, 0.08)');
           gradients.current.atmo.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.atmo!;
