@@ -5,24 +5,25 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 12.0; 
+const AUTO_ROTATION_SPEED = 14.0; 
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1080;
-const GLOBE_RENDER_SCALE = 1.0; 
+const GLOBE_RENDER_SCALE = 1.2; // Slightly higher resolution
 
 const COLORS = {
-  LAND: '#cbd5e1', 
-  LAND_BRIGHT: '#ffffff',
-  OCEAN_DEEP: '#010409',
-  OCEAN_BRIGHT: '#0f172a', 
-  YELLOW_SOLID: '#facc15',
-  FLASH_PEAK: '#fff9e6', // Brighter yellow for the initial peak
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.45)', 
-  SPECULAR: 'rgba(255, 255, 255, 0.2)', 
+  LAND_BASE: '#334155', // Deeper slate for better contrast
+  LAND_BORDER: 'rgba(255, 255, 255, 0.25)',
+  OCEAN_DEEP: '#020617',
+  OCEAN_BRIGHT: '#1e293b', 
+  YELLOW_VIBRANT: '#fbbf24', // Amber/Yellow
+  YELLOW_PEAK: '#fffbeb', // Near white yellow
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.4)', 
+  SPECULAR: 'rgba(255, 255, 255, 0.15)', 
   HEADER_BLUE: '#3b82f6', 
   PACIFIER_GLOW: '#60a5fa',
+  PACIFIER_CORE: '#ffffff',
 };
 
 interface Star {
@@ -66,13 +67,13 @@ const GlobalApp: React.FC = () => {
   useEffect(() => {
     // Generate static stars
     const stars: Star[] = [];
-    for (let i = 0; i < 400; i++) {
+    for (let i = 0; i < 500; i++) {
       stars.push({
         x: Math.random(),
         y: Math.random(),
         size: Math.random() * 2,
         opacity: Math.random(),
-        twinkle: Math.random() * 0.02
+        twinkle: Math.random() * 0.015
       });
     }
     starsRef.current = stars;
@@ -94,35 +95,46 @@ const GlobalApp: React.FC = () => {
       .catch(err => console.error("GeoJSON load failed", err));
   }, []);
 
-  // Generate ultra-glowing Pacifier Sprite
+  // Generate enhanced glowing Pacifier Sprite
   useEffect(() => {
     const pSprite = document.createElement('canvas');
     const size = 64;
-    pSprite.width = size * 2; pSprite.height = size * 2;
+    pSprite.width = size * 2; 
+    pSprite.height = size * 2;
     const sCtx = pSprite.getContext('2d');
     if (sCtx) {
       sCtx.translate(size, size);
-      sCtx.shadowBlur = 25;
+      
+      // Multi-layered glow
+      sCtx.shadowBlur = 40;
       sCtx.shadowColor = COLORS.PACIFIER_GLOW;
 
+      // Handle/Ring
       sCtx.beginPath();
-      sCtx.arc(0, 14, 10, 0, Math.PI * 2);
-      sCtx.strokeStyle = '#fff';
-      sCtx.lineWidth = 4;
+      sCtx.arc(0, 14, 12, 0, Math.PI * 2);
+      sCtx.strokeStyle = COLORS.PACIFIER_CORE;
+      sCtx.lineWidth = 5;
       sCtx.stroke();
 
+      // Shield/Plate
       sCtx.beginPath();
-      sCtx.ellipse(0, 0, 18, 8, 0, 0, Math.PI * 2);
+      sCtx.ellipse(0, 0, 22, 10, 0, 0, Math.PI * 2);
       sCtx.fillStyle = COLORS.PACIFIER_GLOW;
       sCtx.fill();
-      sCtx.strokeStyle = '#fff';
-      sCtx.lineWidth = 1.5;
+      sCtx.strokeStyle = COLORS.PACIFIER_CORE;
+      sCtx.lineWidth = 2;
       sCtx.stroke();
 
+      // Bulb
       sCtx.beginPath();
-      sCtx.arc(0, -10, 9, 0, Math.PI * 2);
-      sCtx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+      sCtx.arc(0, -12, 10, 0, Math.PI * 2);
+      sCtx.fillStyle = COLORS.PACIFIER_CORE;
       sCtx.fill();
+      
+      // Extra inner glow
+      sCtx.shadowBlur = 15;
+      sCtx.shadowColor = '#fff';
+      sCtx.stroke();
     }
     pacifierSpriteRef.current = pSprite;
   }, []);
@@ -149,7 +161,7 @@ const GlobalApp: React.FC = () => {
       }
 
       const minDim = Math.min(w, h);
-      const radius = minDim * 0.33; 
+      const radius = minDim * 0.35; 
       const cx = w > 768 ? w * 0.65 : w / 2;
       const cy = h / 2;
 
@@ -187,8 +199,7 @@ const GlobalApp: React.FC = () => {
         if (geoDataRef.current) {
           const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS', 'VNM', 'TUR', 'THA', 'FRA', 'DEU', 'GBR'];
           const target = countries[Math.floor(Math.random() * countries.length)];
-          const now = Date.now();
-          activeFlashes.current.set(target, now);
+          activeFlashes.current.set(target, Date.now());
         }
         spawn();
       }, nextDelay);
@@ -212,33 +223,37 @@ const GlobalApp: React.FC = () => {
     const render = (time: number) => {
       const { w, h } = dimensionsRef.current;
       const minDim = Math.min(w, h);
-      const r = (minDim * 0.33) * GLOBE_RENDER_SCALE;
+      const r = (minDim * 0.35) * GLOBE_RENDER_SCALE;
       const cx = (w > 768 ? w * 0.65 : w / 2) * GLOBE_RENDER_SCALE;
       const cy = (h / 2) * GLOBE_RENDER_SCALE;
       const timeNow = Date.now();
 
       fCtx.clearRect(0, 0, w, h);
       
-      // Rendering glowing pacifiers
+      // Rendering high-glow pacifiers on FX layer
       if (pacifierSpriteRef.current) {
-        if (pacifiers.current.length < 5) {
+        if (pacifiers.current.length < 6) {
           pacifiers.current.push({
-            x: Math.random() * w, y: Math.random() * h,
-            vx: (Math.random() - 0.5) * 104, vy: (Math.random() - 0.5) * 104,
-            rot: Math.random() * Math.PI * 2, rv: (Math.random() - 0.5) * 0.05,
-            size: 20 + Math.random() * 16,
+            x: Math.random() * w, 
+            y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 80, 
+            vy: (Math.random() - 0.5) * 80,
+            rot: Math.random() * Math.PI * 2, 
+            rv: (Math.random() - 0.5) * 0.04,
+            size: 24 + Math.random() * 20,
             alpha: 0
           });
         }
         pacifiers.current.forEach((p, idx) => {
           p.x += p.vx * 0.016; p.y += p.vy * 0.016; p.rot += p.rv;
-          p.alpha = Math.min(p.alpha + 0.02, 0.4);
-          if (p.x < -200 || p.x > w + 200 || p.y < -200 || p.y > h + 200) {
+          p.alpha = Math.min(p.alpha + 0.01, 0.7);
+          if (p.x < -300 || p.x > w + 300 || p.y < -300 || p.y > h + 300) {
             pacifiers.current.splice(idx, 1); return;
           }
           fCtx.save();
           fCtx.globalAlpha = p.alpha;
-          fCtx.translate(p.x, p.y); fCtx.rotate(p.rot);
+          fCtx.translate(p.x, p.y); 
+          fCtx.rotate(p.rot);
           fCtx.drawImage(pacifierSpriteRef.current!, -p.size, -p.size, p.size * 2, p.size * 2);
           fCtx.restore();
         });
@@ -255,7 +270,7 @@ const GlobalApp: React.FC = () => {
         // Draw Stars (only on space background)
         starsRef.current.forEach(s => {
           s.opacity += (Math.random() - 0.5) * s.twinkle;
-          s.opacity = Math.max(0.1, Math.min(0.9, s.opacity));
+          s.opacity = Math.max(0.05, Math.min(0.8, s.opacity));
           gCtx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
           gCtx.beginPath();
           gCtx.arc(s.x * w * GLOBE_RENDER_SCALE, s.y * h * GLOBE_RENDER_SCALE, s.size, 0, Math.PI * 2);
@@ -273,26 +288,28 @@ const GlobalApp: React.FC = () => {
 
         // 2. Landmass Rendering
         gCtx.beginPath(); path(geoDataRef.current);
-        gCtx.fillStyle = COLORS.LAND; 
+        gCtx.fillStyle = COLORS.LAND_BASE; 
         gCtx.fill();
-        gCtx.strokeStyle = "rgba(255,255,255,0.15)";
-        gCtx.lineWidth = 0.5;
+        
+        // Distinct Country Borders
+        gCtx.strokeStyle = COLORS.LAND_BORDER;
+        gCtx.lineWidth = 0.8;
         gCtx.stroke();
 
         // 3. Rim Shadow
         if (!gradients.current.rimShadow) {
-          gradients.current.rimShadow = gCtx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r);
+          gradients.current.rimShadow = gCtx.createRadialGradient(cx, cy, r * 0.75, cx, cy, r);
           gradients.current.rimShadow.addColorStop(0, 'rgba(0,0,0,0)');
-          gradients.current.rimShadow.addColorStop(1, 'rgba(0,0,0,0.7)');
+          gradients.current.rimShadow.addColorStop(1, 'rgba(0,0,0,0.8)');
         }
         gCtx.fillStyle = gradients.current.rimShadow!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 4. Flash Logic (Enhanced Yellow Flash)
+        // 4. Enhanced Yellow Flash Logic
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
           if (feature) {
-            const duration = 2000;
+            const duration = 2400; // Slower fade for impact
             const t = Math.min((timeNow - flashTime) / duration, 1);
             if (t >= 1) { 
               activeFlashes.current.delete(id); 
@@ -302,22 +319,22 @@ const GlobalApp: React.FC = () => {
                 gCtx.save();
                 gCtx.beginPath(); path(feature);
                 
-                const intensity = Math.pow(1 - t, 0.4); 
-                // Flash starts bright yellow and fades to land color through a rich yellow
+                const intensity = Math.pow(1 - t, 0.5); 
+                // Transition: Intense Yellow/White -> Rich Yellow -> Land Color
                 const flashColor = d3.interpolateRgb(
-                    d3.interpolateRgb(COLORS.FLASH_PEAK, COLORS.YELLOW_SOLID)(t * 1.5),
-                    COLORS.LAND
+                    d3.interpolateRgb(COLORS.YELLOW_PEAK, COLORS.YELLOW_VIBRANT)(t * 1.3),
+                    COLORS.LAND_BASE
                 )(t);
 
-                gCtx.shadowBlur = 45 * intensity;
-                gCtx.shadowColor = COLORS.YELLOW_SOLID;
+                gCtx.shadowBlur = 50 * intensity;
+                gCtx.shadowColor = COLORS.YELLOW_VIBRANT;
                 gCtx.fillStyle = flashColor;
                 gCtx.fill();
                 
                 gCtx.shadowBlur = 0;
-                // Yellow stroke that fades out
-                gCtx.strokeStyle = `rgba(250, 204, 21, ${Math.max(0, 1 - t * 1.5)})`;
-                gCtx.lineWidth = 7 * intensity; 
+                // Vibrant Yellow border flare
+                gCtx.strokeStyle = `rgba(251, 191, 36, ${Math.max(0, 1 - t * 2)})`;
+                gCtx.lineWidth = 8 * intensity; 
                 gCtx.stroke();
                 
                 gCtx.restore();
@@ -339,7 +356,7 @@ const GlobalApp: React.FC = () => {
         if (!gradients.current.atmo) {
           gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.15);
           gradients.current.atmo.addColorStop(0, COLORS.ATMOSPHERE);
-          gradients.current.atmo.addColorStop(0.3, 'rgba(56, 189, 248, 0.2)');
+          gradients.current.atmo.addColorStop(0.3, 'rgba(56, 189, 248, 0.15)');
           gradients.current.atmo.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.atmo!;
@@ -380,7 +397,7 @@ const GlobalApp: React.FC = () => {
           <div className="flex items-baseline font-black tracking-tighter text-[1rem] md:text-[2rem] leading-none" style={{ color: COLORS.HEADER_BLUE }}>
             M&CC
           </div>
-          <div className="w-full h-[2px] md:h-[4px] mt-1" style={{ backgroundColor: COLORS.YELLOW_SOLID }}></div>
+          <div className="w-full h-[2px] md:h-[4px] mt-1" style={{ backgroundColor: COLORS.YELLOW_VIBRANT }}></div>
         </div>
       </div>
 
@@ -388,26 +405,26 @@ const GlobalApp: React.FC = () => {
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[900px]">
         <div className="flex flex-col items-start w-full translate-y-[-5%]">
           <div className="mb-0.5">
-            <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.6rem] opacity-90" style={{ color: COLORS.YELLOW_SOLID }}>Global birth count today</span>
+            <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.6rem] opacity-90" style={{ color: COLORS.YELLOW_VIBRANT }}>Global birth count today</span>
           </div>
           
           <div className="mb-2 relative">
             <span className="text-[6vw] md:text-[88px] font-normal leading-none tabular-nums tracking-[0.02em]" 
-              style={{ fontFamily: "'Bebas Neue', cursive", color: COLORS.YELLOW_SOLID, filter: `drop-shadow(0 0 15px rgba(250, 204, 21, 0.4))` }}>
+              style={{ fontFamily: "'Bebas Neue', cursive", color: COLORS.YELLOW_VIBRANT, filter: `drop-shadow(0 0 15px rgba(250, 204, 21, 0.4))` }}>
               {renderFormattedTotal(total)}
             </span>
           </div>
 
           <div className="w-[35%] md:w-[32%] relative mt-4">
             <div className="flex justify-between items-end mb-2 relative h-4">
-              <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.5rem]" style={{ color: COLORS.YELLOW_SOLID }}>Daily Progress</span>
-              <span className="font-mono text-[9px] md:text-[12px] tabular-nums font-bold tracking-widest" style={{ color: COLORS.YELLOW_SOLID }}>{Math.floor(timeState.pct)}%</span>
+              <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.5rem]" style={{ color: COLORS.YELLOW_VIBRANT }}>Daily Progress</span>
+              <span className="font-mono text-[9px] md:text-[12px] tabular-nums font-bold tracking-widest" style={{ color: COLORS.YELLOW_VIBRANT }}>{Math.floor(timeState.pct)}%</span>
             </div>
 
-            <div className="h-[3px] w-full bg-white/10 rounded-full overflow-hidden relative backdrop-blur-md">
+            <div className="h-[4px] w-full bg-white/10 rounded-full overflow-hidden relative backdrop-blur-md">
               <div 
-                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(250,204,21,0.5)]"
-                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #334155 0%, ${COLORS.YELLOW_SOLID} 100%)` }} 
+                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(251,191,36,0.6)]"
+                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #1e293b 0%, ${COLORS.YELLOW_VIBRANT} 100%)` }} 
               />
             </div>
 
@@ -416,9 +433,9 @@ const GlobalApp: React.FC = () => {
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
-                <div className="w-[1px] h-3 mb-1" style={{ backgroundColor: COLORS.YELLOW_SOLID }}></div>
+                <div className="w-[1px] h-3 mb-1" style={{ backgroundColor: COLORS.YELLOW_VIBRANT }}></div>
                 <div className="px-2.5 py-1 bg-black/60 backdrop-blur-xl border border-white/10 rounded shadow-2xl">
-                    <span className="font-mono text-[0.7rem] md:text-[1rem] font-black tracking-[0.1em] tabular-nums" style={{ color: COLORS.YELLOW_SOLID }}>
+                    <span className="font-mono text-[0.7rem] md:text-[1rem] font-black tracking-[0.1em] tabular-nums" style={{ color: COLORS.YELLOW_VIBRANT }}>
                       {timeState.label}
                     </span>
                 </div>
