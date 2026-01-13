@@ -344,12 +344,6 @@ const GlobalApp: React.FC = () => {
                 gCtx.fillStyle = flashColor;
                 gCtx.fill();
                 
-                gCtx.shadowBlur = 0;
-                // Extra border flare in yellow
-                gCtx.strokeStyle = `rgba(251, 191, 36, ${Math.max(0, 1 - t * 2)})`;
-                gCtx.lineWidth = 10 * intensity; 
-                gCtx.stroke();
-                
                 gCtx.restore();
               }
             }
