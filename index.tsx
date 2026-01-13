@@ -10,17 +10,18 @@ const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1080;
-const GLOBE_RENDER_SCALE = 1.2; // Slightly higher resolution
+const GLOBE_RENDER_SCALE = 1.2; 
 
 const COLORS = {
-  LAND_BASE: '#334155', // Deeper slate for better contrast
-  LAND_BORDER: 'rgba(255, 255, 255, 0.25)',
+  LAND_BASE: '#2a3a4d', 
+  LAND_BORDER: 'rgba(255, 255, 255, 0.15)',
+  GRATICULE: 'rgba(255, 255, 255, 0.04)',
   OCEAN_DEEP: '#020617',
-  OCEAN_BRIGHT: '#1e293b', 
-  YELLOW_VIBRANT: '#fbbf24', // Amber/Yellow
-  YELLOW_PEAK: '#fffbeb', // Near white yellow
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.4)', 
-  SPECULAR: 'rgba(255, 255, 255, 0.15)', 
+  OCEAN_BRIGHT: '#111827', 
+  YELLOW_VIBRANT: '#fbbf24', 
+  YELLOW_PEAK: '#fff700', 
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.35)', 
+  SPECULAR: 'rgba(255, 255, 255, 0.12)', 
   HEADER_BLUE: '#3b82f6', 
   PACIFIER_GLOW: '#60a5fa',
   PACIFIER_CORE: '#ffffff',
@@ -61,19 +62,19 @@ const GlobalApp: React.FC = () => {
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
   
+  const graticule = d3.geoGraticule();
   const gradients = useRef<{ [key: string]: CanvasGradient | null }>({});
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
 
   useEffect(() => {
-    // Generate static stars
     const stars: Star[] = [];
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 600; i++) {
       stars.push({
         x: Math.random(),
         y: Math.random(),
-        size: Math.random() * 2,
+        size: Math.random() * 1.5,
         opacity: Math.random(),
-        twinkle: Math.random() * 0.015
+        twinkle: Math.random() * 0.02
       });
     }
     starsRef.current = stars;
@@ -95,30 +96,37 @@ const GlobalApp: React.FC = () => {
       .catch(err => console.error("GeoJSON load failed", err));
   }, []);
 
-  // Generate enhanced glowing Pacifier Sprite
   useEffect(() => {
     const pSprite = document.createElement('canvas');
-    const size = 64;
+    const size = 128; // Larger sprite for better glow fidelity
     pSprite.width = size * 2; 
     pSprite.height = size * 2;
     const sCtx = pSprite.getContext('2d');
     if (sCtx) {
       sCtx.translate(size, size);
       
-      // Multi-layered glow
-      sCtx.shadowBlur = 40;
+      // Far field soft glow
+      sCtx.shadowBlur = 80;
+      sCtx.shadowColor = 'rgba(96, 165, 250, 0.4)';
+      sCtx.beginPath();
+      sCtx.arc(0, 0, 30, 0, Math.PI * 2);
+      sCtx.fillStyle = 'rgba(96, 165, 250, 0.1)';
+      sCtx.fill();
+
+      // Core bloom
+      sCtx.shadowBlur = 30;
       sCtx.shadowColor = COLORS.PACIFIER_GLOW;
 
-      // Handle/Ring
+      // Ring
       sCtx.beginPath();
-      sCtx.arc(0, 14, 12, 0, Math.PI * 2);
+      sCtx.arc(0, 20, 14, 0, Math.PI * 2);
       sCtx.strokeStyle = COLORS.PACIFIER_CORE;
-      sCtx.lineWidth = 5;
+      sCtx.lineWidth = 6;
       sCtx.stroke();
 
-      // Shield/Plate
+      // Shield
       sCtx.beginPath();
-      sCtx.ellipse(0, 0, 22, 10, 0, 0, Math.PI * 2);
+      sCtx.ellipse(0, 0, 26, 12, 0, 0, Math.PI * 2);
       sCtx.fillStyle = COLORS.PACIFIER_GLOW;
       sCtx.fill();
       sCtx.strokeStyle = COLORS.PACIFIER_CORE;
@@ -127,14 +135,11 @@ const GlobalApp: React.FC = () => {
 
       // Bulb
       sCtx.beginPath();
-      sCtx.arc(0, -12, 10, 0, Math.PI * 2);
+      sCtx.arc(0, -14, 12, 0, Math.PI * 2);
       sCtx.fillStyle = COLORS.PACIFIER_CORE;
-      sCtx.fill();
-      
-      // Extra inner glow
-      sCtx.shadowBlur = 15;
+      sCtx.shadowBlur = 20;
       sCtx.shadowColor = '#fff';
-      sCtx.stroke();
+      sCtx.fill();
     }
     pacifierSpriteRef.current = pSprite;
   }, []);
@@ -161,7 +166,7 @@ const GlobalApp: React.FC = () => {
       }
 
       const minDim = Math.min(w, h);
-      const radius = minDim * 0.35; 
+      const radius = minDim * 0.36; 
       const cx = w > 768 ? w * 0.65 : w / 2;
       const cy = h / 2;
 
@@ -223,30 +228,29 @@ const GlobalApp: React.FC = () => {
     const render = (time: number) => {
       const { w, h } = dimensionsRef.current;
       const minDim = Math.min(w, h);
-      const r = (minDim * 0.35) * GLOBE_RENDER_SCALE;
+      const r = (minDim * 0.36) * GLOBE_RENDER_SCALE;
       const cx = (w > 768 ? w * 0.65 : w / 2) * GLOBE_RENDER_SCALE;
       const cy = (h / 2) * GLOBE_RENDER_SCALE;
       const timeNow = Date.now();
 
       fCtx.clearRect(0, 0, w, h);
       
-      // Rendering high-glow pacifiers on FX layer
       if (pacifierSpriteRef.current) {
-        if (pacifiers.current.length < 6) {
+        if (pacifiers.current.length < 8) {
           pacifiers.current.push({
             x: Math.random() * w, 
             y: Math.random() * h,
-            vx: (Math.random() - 0.5) * 80, 
-            vy: (Math.random() - 0.5) * 80,
+            vx: (Math.random() - 0.5) * 60, 
+            vy: (Math.random() - 0.5) * 60,
             rot: Math.random() * Math.PI * 2, 
-            rv: (Math.random() - 0.5) * 0.04,
-            size: 24 + Math.random() * 20,
+            rv: (Math.random() - 0.5) * 0.03,
+            size: 30 + Math.random() * 25,
             alpha: 0
           });
         }
         pacifiers.current.forEach((p, idx) => {
           p.x += p.vx * 0.016; p.y += p.vy * 0.016; p.rot += p.rv;
-          p.alpha = Math.min(p.alpha + 0.01, 0.7);
+          p.alpha = Math.min(p.alpha + 0.005, 0.8);
           if (p.x < -300 || p.x > w + 300 || p.y < -300 || p.y > h + 300) {
             pacifiers.current.splice(idx, 1); return;
           }
@@ -254,6 +258,8 @@ const GlobalApp: React.FC = () => {
           fCtx.globalAlpha = p.alpha;
           fCtx.translate(p.x, p.y); 
           fCtx.rotate(p.rot);
+          // Stronger glow blend mode
+          fCtx.globalCompositeOperation = 'screen';
           fCtx.drawImage(pacifierSpriteRef.current!, -p.size, -p.size, p.size * 2, p.size * 2);
           fCtx.restore();
         });
@@ -263,21 +269,21 @@ const GlobalApp: React.FC = () => {
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
 
-        // Background (Space with Stars)
+        // Background
         gCtx.fillStyle = '#000000';
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
 
-        // Draw Stars (only on space background)
+        // Stars
         starsRef.current.forEach(s => {
           s.opacity += (Math.random() - 0.5) * s.twinkle;
-          s.opacity = Math.max(0.05, Math.min(0.8, s.opacity));
+          s.opacity = Math.max(0.05, Math.min(0.7, s.opacity));
           gCtx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
           gCtx.beginPath();
           gCtx.arc(s.x * w * GLOBE_RENDER_SCALE, s.y * h * GLOBE_RENDER_SCALE, s.size, 0, Math.PI * 2);
           gCtx.fill();
         });
 
-        // 1. Ocean Shading
+        // 1. Ocean
         if (!gradients.current.ocean) {
           gradients.current.ocean = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx, cy, r);
           gradients.current.ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -286,30 +292,36 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.ocean!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 2. Landmass Rendering
+        // 2. Graticule (Improved Clarity)
+        gCtx.beginPath();
+        path(graticule());
+        gCtx.strokeStyle = COLORS.GRATICULE;
+        gCtx.lineWidth = 0.5;
+        gCtx.stroke();
+
+        // 3. Landmass
         gCtx.beginPath(); path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND_BASE; 
         gCtx.fill();
         
-        // Distinct Country Borders
         gCtx.strokeStyle = COLORS.LAND_BORDER;
-        gCtx.lineWidth = 0.8;
+        gCtx.lineWidth = 1.0;
         gCtx.stroke();
 
-        // 3. Rim Shadow
+        // 4. Rim Shadow
         if (!gradients.current.rimShadow) {
-          gradients.current.rimShadow = gCtx.createRadialGradient(cx, cy, r * 0.75, cx, cy, r);
+          gradients.current.rimShadow = gCtx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r);
           gradients.current.rimShadow.addColorStop(0, 'rgba(0,0,0,0)');
-          gradients.current.rimShadow.addColorStop(1, 'rgba(0,0,0,0.8)');
+          gradients.current.rimShadow.addColorStop(1, 'rgba(0,0,0,0.85)');
         }
         gCtx.fillStyle = gradients.current.rimShadow!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 4. Enhanced Yellow Flash Logic
+        // 5. INTENSE Yellow Country Flash
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
           if (feature) {
-            const duration = 2400; // Slower fade for impact
+            const duration = 2200;
             const t = Math.min((timeNow - flashTime) / duration, 1);
             if (t >= 1) { 
               activeFlashes.current.delete(id); 
@@ -319,22 +331,23 @@ const GlobalApp: React.FC = () => {
                 gCtx.save();
                 gCtx.beginPath(); path(feature);
                 
-                const intensity = Math.pow(1 - t, 0.5); 
-                // Transition: Intense Yellow/White -> Rich Yellow -> Land Color
+                const intensity = Math.pow(1 - t, 0.4); 
+                // Color ramp: Bright Yellow -> Deep Yellow -> Slate
                 const flashColor = d3.interpolateRgb(
-                    d3.interpolateRgb(COLORS.YELLOW_PEAK, COLORS.YELLOW_VIBRANT)(t * 1.3),
+                    d3.interpolateRgb(COLORS.YELLOW_PEAK, COLORS.YELLOW_VIBRANT)(t * 1.5),
                     COLORS.LAND_BASE
                 )(t);
 
-                gCtx.shadowBlur = 50 * intensity;
+                // Full country bloom
+                gCtx.shadowBlur = 60 * intensity;
                 gCtx.shadowColor = COLORS.YELLOW_VIBRANT;
                 gCtx.fillStyle = flashColor;
                 gCtx.fill();
                 
                 gCtx.shadowBlur = 0;
-                // Vibrant Yellow border flare
+                // Extra border flare in yellow
                 gCtx.strokeStyle = `rgba(251, 191, 36, ${Math.max(0, 1 - t * 2)})`;
-                gCtx.lineWidth = 8 * intensity; 
+                gCtx.lineWidth = 10 * intensity; 
                 gCtx.stroke();
                 
                 gCtx.restore();
@@ -343,20 +356,19 @@ const GlobalApp: React.FC = () => {
           }
         });
 
-        // 5. Specular Highlight
+        // 6. Specular & Atmosphere
         if (!gradients.current.spec) {
-          gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx - r * 0.4, cy - r * 0.4, r * 1.5);
+          gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx - r * 0.4, cy - r * 0.4, r * 1.4);
           gradients.current.spec.addColorStop(0, COLORS.SPECULAR);
           gradients.current.spec.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.spec!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 6. Atmospheric Glow
         if (!gradients.current.atmo) {
           gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.15);
           gradients.current.atmo.addColorStop(0, COLORS.ATMOSPHERE);
-          gradients.current.atmo.addColorStop(0.3, 'rgba(56, 189, 248, 0.15)');
+          gradients.current.atmo.addColorStop(0.3, 'rgba(56, 189, 248, 0.12)');
           gradients.current.atmo.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.atmo!;
