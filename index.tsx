@@ -18,12 +18,20 @@ const COLORS = {
   OCEAN_DEEP: '#010409',
   OCEAN_BRIGHT: '#0f172a', 
   YELLOW_SOLID: '#facc15',
-  FLASH_PEAK: '#ffffff', 
+  FLASH_PEAK: '#fff9e6', // Brighter yellow for the initial peak
   ATMOSPHERE: 'rgba(56, 189, 248, 0.45)', 
   SPECULAR: 'rgba(255, 255, 255, 0.2)', 
   HEADER_BLUE: '#3b82f6', 
   PACIFIER_GLOW: '#60a5fa',
 };
+
+interface Star {
+  x: number;
+  y: number;
+  size: number;
+  opacity: number;
+  twinkle: number;
+}
 
 interface Pacifier {
   x: number;
@@ -47,6 +55,7 @@ const GlobalApp: React.FC = () => {
   const geoDataRef = useRef<any>(null);
   const featuresMapRef = useRef<Map<string, any>>(new Map());
   const activeFlashes = useRef<Map<string, number>>(new Map());
+  const starsRef = useRef<Star[]>([]);
   const pacifiers = useRef<Pacifier[]>([]);
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
@@ -55,6 +64,19 @@ const GlobalApp: React.FC = () => {
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
 
   useEffect(() => {
+    // Generate static stars
+    const stars: Star[] = [];
+    for (let i = 0; i < 400; i++) {
+      stars.push({
+        x: Math.random(),
+        y: Math.random(),
+        size: Math.random() * 2,
+        opacity: Math.random(),
+        twinkle: Math.random() * 0.02
+      });
+    }
+    starsRef.current = stars;
+
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
       .then(data => {
@@ -165,7 +187,8 @@ const GlobalApp: React.FC = () => {
         if (geoDataRef.current) {
           const countries = ['IND', 'CHN', 'NGA', 'PAK', 'IDN', 'BRA', 'USA', 'BGD', 'ETH', 'MEX', 'PHL', 'COD', 'EGY', 'RUS', 'VNM', 'TUR', 'THA', 'FRA', 'DEU', 'GBR'];
           const target = countries[Math.floor(Math.random() * countries.length)];
-          activeFlashes.current.set(target, Date.now());
+          const now = Date.now();
+          activeFlashes.current.set(target, now);
         }
         spawn();
       }, nextDelay);
@@ -192,6 +215,7 @@ const GlobalApp: React.FC = () => {
       const r = (minDim * 0.33) * GLOBE_RENDER_SCALE;
       const cx = (w > 768 ? w * 0.65 : w / 2) * GLOBE_RENDER_SCALE;
       const cy = (h / 2) * GLOBE_RENDER_SCALE;
+      const timeNow = Date.now();
 
       fCtx.clearRect(0, 0, w, h);
       
@@ -224,9 +248,19 @@ const GlobalApp: React.FC = () => {
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
 
-        // Background
+        // Background (Space with Stars)
         gCtx.fillStyle = '#000000';
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
+
+        // Draw Stars (only on space background)
+        starsRef.current.forEach(s => {
+          s.opacity += (Math.random() - 0.5) * s.twinkle;
+          s.opacity = Math.max(0.1, Math.min(0.9, s.opacity));
+          gCtx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
+          gCtx.beginPath();
+          gCtx.arc(s.x * w * GLOBE_RENDER_SCALE, s.y * h * GLOBE_RENDER_SCALE, s.size, 0, Math.PI * 2);
+          gCtx.fill();
+        });
 
         // 1. Ocean Shading
         if (!gradients.current.ocean) {
@@ -237,56 +271,62 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.ocean!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 2. Graticule REMOVED for clean appearance
-
-        // 3. Landmass Rendering
+        // 2. Landmass Rendering
         gCtx.beginPath(); path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND; 
         gCtx.fill();
-        gCtx.strokeStyle = "rgba(255,255,255,0.2)";
+        gCtx.strokeStyle = "rgba(255,255,255,0.15)";
         gCtx.lineWidth = 0.5;
         gCtx.stroke();
 
-        // 4. Rim Shadow
+        // 3. Rim Shadow
         if (!gradients.current.rimShadow) {
           gradients.current.rimShadow = gCtx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r);
           gradients.current.rimShadow.addColorStop(0, 'rgba(0,0,0,0)');
-          gradients.current.rimShadow.addColorStop(1, 'rgba(0,0,0,0.6)');
+          gradients.current.rimShadow.addColorStop(1, 'rgba(0,0,0,0.7)');
         }
         gCtx.fillStyle = gradients.current.rimShadow!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 5. Flash Logic (Enhanced for Visibility)
-        const timeNow = Date.now();
+        // 4. Flash Logic (Enhanced Yellow Flash)
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
           if (feature) {
-            const duration = 1500; // Increased duration
+            const duration = 2000;
             const t = Math.min((timeNow - flashTime) / duration, 1);
-            if (t >= 1) { activeFlashes.current.delete(id); }
-            else {
+            if (t >= 1) { 
+              activeFlashes.current.delete(id); 
+            } else {
               const distance = d3.geoDistance(feature.centroid, [-rotation, -INITIAL_PHI]);
               if (distance < 1.57) { 
+                gCtx.save();
                 gCtx.beginPath(); path(feature);
-                // Sharp peak, then slow fade
-                const intensity = Math.pow(1 - t, 0.6);
+                
+                const intensity = Math.pow(1 - t, 0.4); 
+                // Flash starts bright yellow and fades to land color through a rich yellow
                 const flashColor = d3.interpolateRgb(
                     d3.interpolateRgb(COLORS.FLASH_PEAK, COLORS.YELLOW_SOLID)(t * 1.5),
                     COLORS.LAND
                 )(t);
+
+                gCtx.shadowBlur = 45 * intensity;
+                gCtx.shadowColor = COLORS.YELLOW_SOLID;
                 gCtx.fillStyle = flashColor;
                 gCtx.fill();
                 
-                // Brighter, thick stroke for clarity
-                gCtx.strokeStyle = `rgba(255, 255, 255, ${intensity})`;
-                gCtx.lineWidth = 3 * intensity; 
+                gCtx.shadowBlur = 0;
+                // Yellow stroke that fades out
+                gCtx.strokeStyle = `rgba(250, 204, 21, ${Math.max(0, 1 - t * 1.5)})`;
+                gCtx.lineWidth = 7 * intensity; 
                 gCtx.stroke();
+                
+                gCtx.restore();
               }
             }
           }
         });
 
-        // 6. Specular Highlight
+        // 5. Specular Highlight
         if (!gradients.current.spec) {
           gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx - r * 0.4, cy - r * 0.4, r * 1.5);
           gradients.current.spec.addColorStop(0, COLORS.SPECULAR);
@@ -295,11 +335,11 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.spec!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 7. Atmospheric Glow
+        // 6. Atmospheric Glow
         if (!gradients.current.atmo) {
           gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.15);
           gradients.current.atmo.addColorStop(0, COLORS.ATMOSPHERE);
-          gradients.current.atmo.addColorStop(0.3, 'rgba(56, 189, 248, 0.15)');
+          gradients.current.atmo.addColorStop(0.3, 'rgba(56, 189, 248, 0.2)');
           gradients.current.atmo.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.atmo!;
