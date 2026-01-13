@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 14.0; 
+const AUTO_ROTATION_SPEED = 10.0; // Slower, smoother rotation (one step down from 14.0)
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
@@ -15,7 +15,6 @@ const GLOBE_RENDER_SCALE = 1.2;
 const COLORS = {
   LAND_BASE: '#2a3a4d', 
   LAND_BORDER: 'rgba(255, 255, 255, 0.15)',
-  GRATICULE: 'rgba(255, 255, 255, 0.04)',
   OCEAN_DEEP: '#020617',
   OCEAN_BRIGHT: '#111827', 
   YELLOW_VIBRANT: '#fbbf24', 
@@ -62,7 +61,6 @@ const GlobalApp: React.FC = () => {
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
   
-  const graticule = d3.geoGraticule();
   const gradients = useRef<{ [key: string]: CanvasGradient | null }>({});
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
 
@@ -292,14 +290,7 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.ocean!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 2. Graticule (Improved Clarity)
-        gCtx.beginPath();
-        path(graticule());
-        gCtx.strokeStyle = COLORS.GRATICULE;
-        gCtx.lineWidth = 0.5;
-        gCtx.stroke();
-
-        // 3. Landmass
+        // 2. Landmass
         gCtx.beginPath(); path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND_BASE; 
         gCtx.fill();
@@ -308,7 +299,7 @@ const GlobalApp: React.FC = () => {
         gCtx.lineWidth = 1.0;
         gCtx.stroke();
 
-        // 4. Rim Shadow
+        // 3. Rim Shadow
         if (!gradients.current.rimShadow) {
           gradients.current.rimShadow = gCtx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r);
           gradients.current.rimShadow.addColorStop(0, 'rgba(0,0,0,0)');
@@ -317,7 +308,7 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.rimShadow!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 5. INTENSE Yellow Country Flash
+        // 4. INTENSE Yellow Country Flash
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
           if (feature) {
@@ -350,7 +341,7 @@ const GlobalApp: React.FC = () => {
           }
         });
 
-        // 6. Specular & Atmosphere
+        // 5. Specular & Atmosphere
         if (!gradients.current.spec) {
           gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx - r * 0.4, cy - r * 0.4, r * 1.4);
           gradients.current.spec.addColorStop(0, COLORS.SPECULAR);
