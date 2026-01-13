@@ -5,36 +5,33 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 60.0; // Faster, purposeful rotation for cinematic feel
+const AUTO_ROTATION_SPEED = 50.0; 
 const INITIAL_PHI = -15;
 
 /** 
- * TV OPTIMIZATION: 
- * Most TV browsers struggle with high-resolution canvases (4K).
- * We limit DPR to 1.0 on large displays to ensure 60FPS stability.
+ * TV PERFORMANCE CALIBRATION:
+ * We force a max internal resolution of 1080p.
  */
-const getDPR = () => {
-  const baseDPR = window.devicePixelRatio || 1.0;
-  return window.innerWidth > 1280 ? 1.0 : Math.min(baseDPR, 1.5);
-};
+const MAX_WIDTH = 1920;
+const MAX_HEIGHT = 1080;
 
 const COLORS = {
-  LAND: '#546a8c', 
-  LAND_BORDER: 'rgba(255, 255, 255, 0.15)',
+  LAND: '#718eb5', // Brightened land for better visibility
+  LAND_BORDER: 'rgba(255, 255, 255, 0.18)',
   OCEAN_DEEP: '#020617',
-  OCEAN_BRIGHT: '#0f172a',
+  OCEAN_BRIGHT: '#111e36', // Slightly brighter ocean
   YELLOW_SOLID: '#facc15',
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.12)',
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.15)',
   HEADER_BLUE: '#60a5fa',
-  PACIFIER_GLOW: 'rgba(165, 243, 252, 0.6)',
+  PACIFIER_GLOW: 'rgba(165, 243, 252, 0.4)',
   GRATICULE: 'rgba(148, 163, 184, 0.08)', 
 };
 
 const getGlobePosition = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  const radius = minDim * 0.32; 
-  const cx = w > 768 ? w * 0.62 : w / 2;
-  const cy = w > 768 ? h * 0.38 : h / 2;
+  const radius = minDim * 0.35; // Increased radius for better visibility
+  const cx = w > 768 ? w * 0.65 : w / 2; // Shifted slightly right to avoid text overlap
+  const cy = w > 768 ? h * 0.50 : h / 2; // Centered vertically more
   return { cx, cy, radius };
 };
 
@@ -45,8 +42,6 @@ interface Comet {
   vy: number;
   rot: number;
   rv: number;
-  wobblePhase: number;
-  wobbleSpeed: number;
   size: number;
   alpha: number;
 }
@@ -57,16 +52,17 @@ const GlobalApp: React.FC = () => {
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const starsCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cometSpriteRef = useRef<HTMLCanvasElement | null>(null);
   const geoDataRef = useRef<any>(null);
   const featuresMapRef = useRef<Map<string, any>>(new Map());
   const activeFlashes = useRef<Map<string, number>>(new Map());
   const comets = useRef<Comet[]>([]);
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
-  const dprRef = useRef(1);
   
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
 
+  // Initialize GeoData
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
@@ -85,23 +81,94 @@ const GlobalApp: React.FC = () => {
       .catch(err => console.error("GeoJSON load failed", err));
   }, []);
 
+  // Pre-render Sprites for Performance
+  useEffect(() => {
+    const cSprite = document.createElement('canvas');
+    const size = 32;
+    cSprite.width = size * 2;
+    cSprite.height = size * 2;
+    const sCtx = cSprite.getContext('2d');
+    if (sCtx) {
+      sCtx.translate(size, size);
+      const sw = size * 0.8;
+      const sh = size * 0.6;
+      sCtx.beginPath();
+      sCtx.moveTo(-sw * 0.5, -sh * 0.2);
+      sCtx.bezierCurveTo(-sw * 0.8, -sh * 0.8, sw * 0.8, -sh * 0.8, sw * 0.5, -sh * 0.2);
+      sCtx.bezierCurveTo(sw * 1.2, sh * 0.2, sw * 0.9, sh * 1.0, 0, sh * 0.7);
+      sCtx.bezierCurveTo(-sw * 0.9, sh * 1.0, -sw * 1.2, sh * 0.2, -sw * 0.5, -sh * 0.2);
+      sCtx.fillStyle = '#67e8f9';
+      sCtx.fill();
+      sCtx.beginPath();
+      sCtx.ellipse(0, 0, size * 0.2, size * 0.18, 0, 0, Math.PI * 2);
+      sCtx.fillStyle = '#ffffff';
+      sCtx.fill();
+    }
+    cometSpriteRef.current = cSprite;
+  }, []);
+
+  // Handle Resize and Resolution Capping
+  useEffect(() => {
+    const handleResize = () => {
+      let w = window.innerWidth;
+      let h = window.innerHeight;
+      
+      if (w > MAX_WIDTH) {
+        h = (MAX_WIDTH / w) * h;
+        w = MAX_WIDTH;
+      }
+      if (h > MAX_HEIGHT) {
+        w = (MAX_HEIGHT / h) * w;
+        h = MAX_HEIGHT;
+      }
+
+      dimensionsRef.current = { w, h };
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.imageSmoothingEnabled = true;
+      }
+
+      const { cx, cy, radius } = getGlobePosition(w, h);
+      projectionRef.current.scale(radius).translate([cx, cy]);
+
+      const sCanvas = document.createElement('canvas');
+      sCanvas.width = w;
+      sCanvas.height = h;
+      const sCtx = sCanvas.getContext('2d');
+      if (sCtx) {
+        sCtx.fillStyle = '#010208';
+        sCtx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 300; i++) {
+          sCtx.fillStyle = `rgba(255, 255, 255, ${0.1 + Math.random() * 0.3})`;
+          sCtx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
+        }
+      }
+      starsCanvasRef.current = sCanvas;
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); 
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Time & Counter Logic
   useEffect(() => {
     const updateProgress = () => {
       const d = new Date();
       const midnight = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
       const elapsed = (d.getTime() - midnight) / 1000;
       const pct = (elapsed / 86400) * 100;
-      
       const currentBirths = Math.floor(elapsed * BIRTHS_PER_SECOND);
       countRef.current = currentBirths;
       setTotal(currentBirths);
-      
       setTimeState({ 
         label: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), 
         pct 
       });
     };
-    
     updateProgress();
     const clockInterval = setInterval(updateProgress, 1000);
     
@@ -124,55 +191,7 @@ const GlobalApp: React.FC = () => {
     return () => { clearInterval(clockInterval); clearTimeout(spawnTimeoutId); };
   }, []);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const dpr = getDPR();
-      dprRef.current = dpr;
-      dimensionsRef.current = { w, h };
-      
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.width = Math.floor(w * dpr);
-        canvas.height = Math.floor(h * dpr);
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.scale(dpr, dpr);
-            ctx.imageSmoothingEnabled = true;
-        }
-      }
-
-      const { cx, cy, radius } = getGlobePosition(w, h);
-      projectionRef.current.scale(radius).translate([cx, cy]);
-
-      const sCanvas = document.createElement('canvas');
-      sCanvas.width = w * dpr;
-      sCanvas.height = h * dpr;
-      const sCtx = sCanvas.getContext('2d');
-      if (sCtx) {
-        sCtx.scale(dpr, dpr);
-        sCtx.fillStyle = '#010208';
-        sCtx.fillRect(0, 0, w, h);
-        
-        for (let i = 0; i < 400; i++) {
-          const sx = Math.random() * w;
-          const sy = Math.random() * h;
-          const sz = Math.random() > 0.9 ? 1.5 : 0.8;
-          const op = 0.3 + Math.random() * 0.4;
-          sCtx.fillStyle = `rgba(255, 255, 255, ${op})`;
-          sCtx.fillRect(sx, sy, sz, sz);
-        }
-      }
-      starsCanvasRef.current = sCanvas;
-    };
-
-    window.addEventListener('resize', handleResize);
-    handleResize(); 
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
+  // Main Render Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -187,35 +206,13 @@ const GlobalApp: React.FC = () => {
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 180, 
-      vy: (Math.random() - 0.5) * 180,
+      vx: (Math.random() - 0.5) * 120, 
+      vy: (Math.random() - 0.5) * 120,
       rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 0.4,
-      wobblePhase: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.8 + Math.random() * 1.2,
-      size: 4 + Math.random() * 4,
+      rv: (Math.random() - 0.5) * 0.05,
+      size: 15 + Math.random() * 15,
       alpha: 0
     });
-
-    const drawGlowingPacifier = (ctx: CanvasRenderingContext2D, comet: Comet) => {
-      const { size, alpha } = comet;
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      const sw = size * 1.3;
-      const sh = size * 0.9;
-      ctx.beginPath();
-      ctx.moveTo(-sw * 0.5, -sh * 0.2);
-      ctx.bezierCurveTo(-sw * 0.8, -sh * 0.8, sw * 0.8, -sh * 0.8, sw * 0.5, -sh * 0.2);
-      ctx.bezierCurveTo(sw * 1.2, sh * 0.2, sw * 0.9, sh * 1.0, 0, sh * 0.7);
-      ctx.bezierCurveTo(-sw * 0.9, sh * 1.0, -sw * 1.2, sh * 0.2, -sw * 0.5, -sh * 0.2);
-      ctx.fillStyle = '#67e8f9';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(0, 0, size * 0.35, size * 0.3, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.restore();
-    };
 
     const render = (time: number) => {
       const { w, h } = dimensionsRef.current;
@@ -223,53 +220,64 @@ const GlobalApp: React.FC = () => {
 
       // Background
       if (starsCanvasRef.current) {
-        ctx.drawImage(starsCanvasRef.current, 0, 0, w, h);
+        ctx.drawImage(starsCanvasRef.current, 0, 0);
       } else {
         ctx.fillStyle = '#010208';
         ctx.fillRect(0, 0, w, h);
       }
 
-      // Physics (approximate delta for low CPU consumption)
-      const safeDelta = 0.016; 
-      if (comets.current.length < 8) comets.current.push(createComet(w, h));
-      comets.current.forEach((c, idx) => {
-        c.x += c.vx * safeDelta;
-        c.y += c.vy * safeDelta;
-        c.rot += c.rv * safeDelta;
-        c.alpha = Math.min(c.alpha + 0.4 * safeDelta, 0.7);
-        if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
-          comets.current[idx] = createComet(w, h);
-          return;
-        }
-        ctx.save();
-        ctx.translate(c.x, c.y);
-        ctx.rotate(c.rot);
-        drawGlowingPacifier(ctx, c);
-        ctx.restore();
-      });
+      const delta = 0.016; 
+      if (comets.current.length < 10) comets.current.push(createComet(w, h));
+      
+      if (cometSpriteRef.current) {
+        comets.current.forEach((c, idx) => {
+          c.x += c.vx * delta;
+          c.y += c.vy * delta;
+          c.rot += c.rv;
+          c.alpha = Math.min(c.alpha + 0.02, 0.6);
+          if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
+            comets.current[idx] = createComet(w, h);
+            return;
+          }
+          ctx.save();
+          ctx.globalAlpha = c.alpha;
+          ctx.translate(c.x, c.y);
+          ctx.rotate(c.rot);
+          const drawSize = c.size;
+          ctx.drawImage(cometSpriteRef.current, -drawSize, -drawSize, drawSize * 2, drawSize * 2);
+          ctx.restore();
+        });
+      }
 
       if (geoDataRef.current) {
-        /**
-         * DETERMINISTIC ROTATION:
-         * We use the global `time` parameter directly.
-         * This ensures that even if a frame is dropped, the globe is at the exact correct position
-         * for the current moment, eliminating "stepping" or accumulative jerks.
-         */
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
+
+        // Subtle Back Glow
+        ctx.save();
+        const backGlow = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius * 1.3);
+        backGlow.addColorStop(0, 'rgba(56, 189, 248, 0.1)');
+        backGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = backGlow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
 
         // Ocean
         const og = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
         og.addColorStop(0, COLORS.OCEAN_BRIGHT);
         og.addColorStop(1, COLORS.OCEAN_DEEP);
         ctx.fillStyle = og;
-        ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); 
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2); 
+        ctx.fill();
 
         // Graticule
         ctx.beginPath();
         path(graticule);
         ctx.strokeStyle = COLORS.GRATICULE;
-        ctx.lineWidth = 0.5;
+        ctx.lineWidth = 1;
         ctx.stroke();
 
         // Land
@@ -278,31 +286,31 @@ const GlobalApp: React.FC = () => {
         ctx.fillStyle = COLORS.LAND;
         ctx.fill();
 
-        // Atmospheric Edge
+        // Atmosphere Glow
         ctx.save();
         ctx.globalCompositeOperation = 'destination-over';
         ctx.beginPath();
-        const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.06);
+        const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
         atmo.addColorStop(0, COLORS.ATMOSPHERE);
         atmo.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = atmo;
-        ctx.arc(cx, cy, radius * 1.06, 0, Math.PI * 2);
+        ctx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        // Land Detail
+        // Borders
         ctx.beginPath();
         path(geoDataRef.current);
         ctx.strokeStyle = COLORS.LAND_BORDER;
         ctx.lineWidth = 0.5;
         ctx.stroke();
 
-        // Flashes
+        // Country Flashes
         const timeNow = Date.now();
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
           if (feature) {
-            const t = Math.min((timeNow - flashTime) / 1200, 1);
+            const t = Math.min((timeNow - flashTime) / 1000, 1);
             if (t >= 1) {
               activeFlashes.current.delete(id);
             } else {
@@ -336,7 +344,11 @@ const GlobalApp: React.FC = () => {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black flex flex-col font-sans select-none">
-      <canvas ref={canvasRef} className="absolute inset-0 z-0" style={{ opacity: 0.98 }} />
+      <canvas 
+        ref={canvasRef} 
+        className="absolute inset-0 z-0 w-full h-full object-contain" 
+        style={{ opacity: 0.98, imageRendering: 'auto' }} 
+      />
 
       {/* Brand */}
       <div className="absolute top-10 left-10 md:top-14 md:left-20 z-40 pointer-events-none">
@@ -351,29 +363,30 @@ const GlobalApp: React.FC = () => {
       </div>
 
       {/* Primary Data HUD */}
-      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[900px]">
+      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[950px]">
         <div className="flex flex-col items-start w-full">
-          <div className="mb-4">
+          <div className="mb-2">
             <span className="font-bold uppercase tracking-[0.45em] text-[0.6rem] md:text-[0.8rem] opacity-70" style={{ color: COLORS.HEADER_BLUE }}>Global birth count today</span>
           </div>
           
-          <div className="mb-5 relative">
-            <span className="text-[7.2vw] md:text-[100px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
+          <div className="mb-2 relative">
+            <span className="text-[7.2vw] md:text-[110px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
               style={{ 
                 fontFamily: "'Bebas Neue', cursive",
-                filter: `drop-shadow(0 0 20px rgba(250, 204, 21, 0.1))`
+                filter: `drop-shadow(0 0 10px rgba(250, 204, 21, 0.1))`
               }}>
               {renderFormattedTotal(total)}
             </span>
           </div>
 
-          <div className="w-[45%] md:w-[42%] relative mt-12">
-            <div className="flex justify-between items-end mb-4 relative h-6">
+          {/* Progress Bar moved directly below numbers */}
+          <div className="w-[50%] md:w-[45%] relative mt-4">
+            <div className="flex justify-between items-end mb-2 relative h-5">
               <span className="text-yellow-400 font-bold uppercase tracking-[0.45em] text-[0.5rem] md:text-[0.7rem] opacity-60">Daily Progress</span>
               <span className="text-yellow-200/40 font-mono text-[10px] md:text-[14px] tabular-nums font-black tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
 
-            <div className="h-[8px] w-full bg-yellow-950/20 rounded-full overflow-hidden ring-1 ring-yellow-500/10 relative backdrop-blur-sm">
+            <div className="h-[6px] w-full bg-yellow-950/20 rounded-full overflow-hidden ring-1 ring-yellow-500/10 relative backdrop-blur-sm">
               <div 
                 className="h-full rounded-full transition-all duration-1000 ease-linear relative overflow-hidden"
                 style={{ 
@@ -381,7 +394,7 @@ const GlobalApp: React.FC = () => {
                     background: `linear-gradient(90deg, #ca8a04 0%, #facc15 50%, #fef9c3 100%)`
                 }} 
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent w-[30%] skew-x-[-35deg]" style={{ animation: 'shimmer 4.5s infinite ease-in-out' }} />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent w-[30%] skew-x-[-35deg]" style={{ animation: 'shimmer 4s infinite linear' }} />
               </div>
             </div>
 
@@ -390,8 +403,8 @@ const GlobalApp: React.FC = () => {
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
-                <div className="w-[1.5px] h-8 bg-gradient-to-b from-yellow-400 to-transparent mb-1.5 opacity-30"></div>
-                <div className="px-3 py-1 bg-black/90 backdrop-blur-xl border border-yellow-500/20 rounded shadow-2xl">
+                <div className="w-[1.5px] h-6 bg-gradient-to-b from-yellow-400 to-transparent mb-1.5 opacity-30"></div>
+                <div className="px-3 py-1 bg-black/90 backdrop-blur-xl border border-yellow-500/10 rounded shadow-xl">
                     <span className="font-mono text-[0.7rem] md:text-[0.9rem] font-bold tracking-[0.2em] text-yellow-50 tabular-nums">
                     {timeState.label}
                     </span>
@@ -402,9 +415,10 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/80 via-black/10 to-transparent" />
-      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-black/70 to-transparent z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-60 bg-gradient-to-t from-black/70 to-transparent z-10 pointer-events-none" />
+      {/* Soft Overlays - Lightened to improve globe visibility */}
+      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/60 via-black/5 to-transparent" />
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/50 to-transparent z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/50 to-transparent z-10 pointer-events-none" />
 
       <style>{`
         @keyframes shimmer {
