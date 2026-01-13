@@ -5,12 +5,12 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 30.0; // Fixed at 80% of original baseline for TV stability
+const AUTO_ROTATION_SPEED = 30.0; 
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1080;
-const GLOBE_RENDER_SCALE = 0.5; // 50% Res: The perfect balance of crispness and TV performance
+const GLOBE_RENDER_SCALE = 1.0; // Enhanced to Full Native Resolution
 
 const COLORS = {
   LAND: '#94a3b8', 
@@ -18,8 +18,8 @@ const COLORS = {
   OCEAN_DEEP: '#010409',
   OCEAN_BRIGHT: '#0f172a', 
   YELLOW_SOLID: '#facc15',
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.2)',
-  SPECULAR: 'rgba(255, 255, 255, 0.08)',
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.25)',
+  SPECULAR: 'rgba(255, 255, 255, 0.12)',
   HEADER_BLUE: '#93c5fd',
 };
 
@@ -113,10 +113,12 @@ const GlobalApp: React.FC = () => {
         }
       }
 
-      // Radius: 10% bigger than previous small size (~0.11 total viewport height)
+      // Radius: 3x Bigger than previous (approx 0.33 of min dimension)
       const minDim = Math.min(w, h);
-      const radius = minDim * 0.11; 
-      const cx = w > 768 ? w * 0.78 : w / 2;
+      const radius = minDim * 0.33; 
+      
+      // Position: Centered-Right to sit next to the HUD
+      const cx = w > 768 ? w * 0.65 : w / 2;
       const cy = h / 2;
 
       projectionRef.current.scale(radius * GLOBE_RENDER_SCALE).translate([(cx * GLOBE_RENDER_SCALE), (cy * GLOBE_RENDER_SCALE)]);
@@ -127,7 +129,7 @@ const GlobalApp: React.FC = () => {
       if (sCtx) {
         sCtx.fillStyle = '#000105';
         sCtx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 120; i++) {
+        for (let i = 0; i < 150; i++) {
           sCtx.fillStyle = `rgba(255, 255, 255, ${0.05 + Math.random() * 0.1})`;
           sCtx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
         }
@@ -190,26 +192,25 @@ const GlobalApp: React.FC = () => {
     const render = (time: number) => {
       const { w, h } = dimensionsRef.current;
       const minDim = Math.min(w, h);
-      const r = (minDim * 0.11) * GLOBE_RENDER_SCALE;
-      const cx = (w > 768 ? w * 0.78 : w / 2) * GLOBE_RENDER_SCALE;
+      const r = (minDim * 0.33) * GLOBE_RENDER_SCALE;
+      const cx = (w > 768 ? w * 0.65 : w / 2) * GLOBE_RENDER_SCALE;
       const cy = (h / 2) * GLOBE_RENDER_SCALE;
 
-      // 1. Effects layer
       fCtx.clearRect(0, 0, w, h);
       if (starsCanvasRef.current) fCtx.drawImage(starsCanvasRef.current, 0, 0);
 
       if (cometSpriteRef.current) {
-        if (comets.current.length < 4) {
+        if (comets.current.length < 6) {
           comets.current.push({
             x: Math.random() * w, y: Math.random() * h,
-            vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 60,
-            rot: Math.random() * Math.PI * 2, rv: (Math.random() - 0.5) * 0.02,
-            size: 6 + Math.random() * 6, alpha: 0
+            vx: (Math.random() - 0.5) * 80, vy: (Math.random() - 0.5) * 80,
+            rot: Math.random() * Math.PI * 2, rv: (Math.random() - 0.5) * 0.03,
+            size: 8 + Math.random() * 8, alpha: 0
           });
         }
         comets.current.forEach((c, idx) => {
           c.x += c.vx * 0.016; c.y += c.vy * 0.016; c.rot += c.rv;
-          c.alpha = Math.min(c.alpha + 0.01, 0.2);
+          c.alpha = Math.min(c.alpha + 0.01, 0.25);
           if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
             comets.current.splice(idx, 1); return;
           }
@@ -221,7 +222,6 @@ const GlobalApp: React.FC = () => {
         });
       }
 
-      // 2. Globe rendering (Optimized 50% Res)
       if (geoDataRef.current) {
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
@@ -229,7 +229,6 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = '#000105';
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
 
-        // Water Gradient with depth
         if (!gradients.current.ocean) {
           gradients.current.ocean = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx, cy, r);
           gradients.current.ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -238,16 +237,14 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.ocean!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // Land
         gCtx.beginPath(); path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND; gCtx.fill();
 
-        // Country Birth Flashes
         const timeNow = Date.now();
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
           if (feature) {
-            const t = Math.min((timeNow - flashTime) / 800, 1);
+            const t = Math.min((timeNow - flashTime) / 1000, 1);
             if (t >= 1) { activeFlashes.current.delete(id); }
             else {
               const distance = d3.geoDistance(feature.centroid, [-rotation, -INITIAL_PHI]);
@@ -260,23 +257,21 @@ const GlobalApp: React.FC = () => {
           }
         });
 
-        // Gloss / Specular Lighting (Visual Depth)
         if (!gradients.current.spec) {
-          gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx - r * 0.4, cy - r * 0.4, r * 1.5);
+          gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.5, cy - r * 0.5, 0, cx - r * 0.5, cy - r * 0.5, r * 1.6);
           gradients.current.spec.addColorStop(0, COLORS.SPECULAR);
           gradients.current.spec.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.spec!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // Atmosphere Halo
         if (!gradients.current.atmo) {
-          gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.12);
+          gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.15);
           gradients.current.atmo.addColorStop(0, COLORS.ATMOSPHERE);
           gradients.current.atmo.addColorStop(1, 'rgba(0,0,0,0)');
         }
         gCtx.fillStyle = gradients.current.atmo!;
-        gCtx.beginPath(); gCtx.arc(cx, cy, r * 1.12, 0, Math.PI * 2); gCtx.fill();
+        gCtx.beginPath(); gCtx.arc(cx, cy, r * 1.15, 0, Math.PI * 2); gCtx.fill();
       }
       animId = requestAnimationFrame(render);
     };
@@ -293,6 +288,7 @@ const GlobalApp: React.FC = () => {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black flex flex-col font-sans select-none">
+      {/* Enhanced Globe Layer */}
       <canvas 
         ref={globeCanvasRef} 
         className="absolute inset-0 z-0" 
@@ -304,6 +300,8 @@ const GlobalApp: React.FC = () => {
           height: `${GLOBE_RENDER_SCALE * 100}%`,
         }} 
       />
+      
+      {/* Overlay Effects Layer */}
       <canvas ref={fxCanvasRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none mix-blend-screen" />
 
       {/* Brand */}
@@ -316,40 +314,42 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Minimized HUD (Reduced size by 60% and tightened) */}
-      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[800px]">
+      {/* Layout Re-engineered: Globe is now next to the Data stack */}
+      <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[900px]">
         <div className="flex flex-col items-start w-full translate-y-[-5%]">
           <div className="mb-0.5">
-            <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.55rem] opacity-50" style={{ color: COLORS.HEADER_BLUE }}>Global birth count today</span>
+            <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.6rem] opacity-50" style={{ color: COLORS.HEADER_BLUE }}>Global birth count today</span>
           </div>
           
-          <div className="mb-0 relative">
-            <span className="text-[5.5vw] md:text-[76px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-white via-yellow-200 to-yellow-500 tracking-[0.02em]" 
-              style={{ fontFamily: "'Bebas Neue', cursive", filter: `drop-shadow(0 0 15px rgba(250, 204, 21, 0.15))` }}>
+          <div className="mb-2 relative">
+            <span className="text-[6vw] md:text-[88px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-white via-yellow-100 to-yellow-500 tracking-[0.02em]" 
+              style={{ fontFamily: "'Bebas Neue', cursive", filter: `drop-shadow(0 0 15px rgba(250, 204, 21, 0.2))` }}>
               {renderFormattedTotal(total)}
             </span>
           </div>
 
-          <div className="w-[30%] md:w-[25%] relative mt-2">
-            <div className="flex justify-between items-end mb-1 relative h-3">
-              <span className="text-white/30 font-bold uppercase tracking-[0.4em] text-[0.35rem] md:text-[0.45rem]">Daily Progress</span>
-              <span className="text-white/20 font-mono text-[8px] md:text-[10px] tabular-nums font-bold tracking-widest">{Math.floor(timeState.pct)}%</span>
+          <div className="w-[35%] md:w-[32%] relative mt-4">
+            <div className="flex justify-between items-end mb-2 relative h-4">
+              <span className="text-white/40 font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.5rem]">Daily Progress</span>
+              <span className="text-white/30 font-mono text-[9px] md:text-[12px] tabular-nums font-bold tracking-widest">{Math.floor(timeState.pct)}%</span>
             </div>
 
-            <div className="h-[2px] w-full bg-white/5 rounded-full overflow-hidden relative">
+            <div className="h-[3px] w-full bg-white/10 rounded-full overflow-hidden relative backdrop-blur-md">
               <div 
-                className="h-full rounded-full transition-all duration-1000 ease-linear"
-                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #1e293b 0%, #facc15 100%)` }} 
+                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(250,204,21,0.5)]"
+                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #334155 0%, #fbbf24 100%)` }} 
               />
             </div>
 
+            {/* Time label moved BELOW the progress bar track */}
             <div 
-              className="absolute top-3 transition-all duration-1000 ease-linear z-50"
+              className="absolute top-6 transition-all duration-1000 ease-linear"
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
-                <div className="px-1.5 py-0.5 bg-black/80 border border-white/5 rounded shadow-lg">
-                    <span className="font-mono text-[0.5rem] md:text-[0.65rem] font-bold tracking-[0.1em] text-white/60 tabular-nums">
+                <div className="w-[1px] h-3 bg-white/20 mb-1"></div>
+                <div className="px-2.5 py-1 bg-black/60 backdrop-blur-xl border border-white/10 rounded shadow-2xl">
+                    <span className="font-mono text-[0.7rem] md:text-[1rem] font-black tracking-[0.1em] text-white/90 tabular-nums">
                       {timeState.label}
                     </span>
                 </div>
@@ -359,9 +359,10 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/70 via-black/10 to-transparent" />
-      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/50 to-transparent z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/50 to-transparent z-10 pointer-events-none" />
+      {/* Cinematic Vignettes */}
+      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/80 via-black/10 to-transparent" />
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/60 to-transparent z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/60 to-transparent z-10 pointer-events-none" />
     </div>
   );
 };
