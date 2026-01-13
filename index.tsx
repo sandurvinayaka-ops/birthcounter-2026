@@ -21,7 +21,7 @@ const COLORS = {
   YELLOW_PEAK: '#fff700', 
   ATMOSPHERE: 'rgba(56, 189, 248, 0.35)', 
   SPECULAR: 'rgba(255, 255, 255, 0.12)', 
-  HEADER_PURPLE: '#a855f7', // Changed from blue to purple
+  HEADER_PURPLE: '#a855f7', 
   PACIFIER_GLOW: '#60a5fa',
   PACIFIER_CORE: '#ffffff',
   COMET_GLOW: '#93c5fd',
@@ -240,7 +240,8 @@ const GlobalApp: React.FC = () => {
       // Update & Draw Comets
       if (comets.current.length < 5 && Math.random() < 0.02) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 2 + Math.random() * 5;
+        // Increased comet speed by 30% from (2+5) to (2.6+6.5)
+        const speed = (2 + Math.random() * 5) * 1.3; 
         comets.current.push({
           x: Math.random() * w,
           y: Math.random() * h,
@@ -258,7 +259,6 @@ const GlobalApp: React.FC = () => {
         c.y += c.vy;
         c.alpha += (c.alpha < 1 ? 0.02 : 0);
         
-        // Custom life cycle for comet
         if (c.x < -300 || c.x > w + 300 || c.y < -300 || c.y > h + 300) {
            comets.current.splice(idx, 1);
            return;
@@ -282,7 +282,6 @@ const GlobalApp: React.FC = () => {
         fCtx.lineCap = 'round';
         fCtx.stroke();
 
-        // Glowing head
         fCtx.beginPath();
         fCtx.arc(c.x, c.y, c.thickness * 1.5, 0, Math.PI * 2);
         fCtx.fillStyle = '#fff';
@@ -298,10 +297,12 @@ const GlobalApp: React.FC = () => {
           pacifiers.current.push({
             x: Math.random() * w, 
             y: Math.random() * h,
-            vx: (Math.random() - 0.5) * 60, 
-            vy: (Math.random() - 0.5) * 60,
+            // Doubled pacifier movement speed (from 60 to 120)
+            vx: (Math.random() - 0.5) * 120, 
+            vy: (Math.random() - 0.5) * 120,
             rot: Math.random() * Math.PI * 2, 
-            rv: (Math.random() - 0.5) * 0.03,
+            // Doubled rotation speed too for consistent energy (from 0.03 to 0.06)
+            rv: (Math.random() - 0.5) * 0.06,
             size: 30 + Math.random() * 25,
             alpha: 0
           });
