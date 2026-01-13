@@ -10,7 +10,7 @@ const INITIAL_PHI = -15;
 
 /** 
  * TV PERFORMANCE CALIBRATION:
- * Capping internal resolution at 1080p is mandatory for smooth TV playback.
+ * Capping internal resolution at 1080p is mandatory.
  */
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1080;
@@ -20,18 +20,9 @@ const COLORS = {
   OCEAN_DEEP: '#020617',
   OCEAN_BRIGHT: '#111e36', 
   YELLOW_SOLID: '#facc15',
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.12)',
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.15)',
   HEADER_BLUE: '#60a5fa',
-  GRATICULE: 'rgba(148, 163, 184, 0.05)', 
-};
-
-const getGlobeConfig = (w: number, h: number) => {
-  const minDim = Math.min(w, h);
-  // Radius reduced to ~60% of previous size (0.35 * 0.6)
-  const radius = minDim * 0.21; 
-  const cx = w > 768 ? w * 0.70 : w / 2;
-  const cy = w > 768 ? h * 0.50 : h / 2;
-  return { cx, cy, radius };
+  GRATICULE: 'rgba(148, 163, 184, 0.08)', 
 };
 
 interface Comet {
@@ -49,7 +40,7 @@ const GlobalApp: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const [timeState, setTimeState] = useState({ label: "00:00", pct: 0 });
   
-  // Dual-Canvas System: Separating Globe from UI/Effects
+  // Dual-Canvas System
   const globeCanvasRef = useRef<HTMLCanvasElement>(null);
   const fxCanvasRef = useRef<HTMLCanvasElement>(null);
   const starsCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -61,6 +52,9 @@ const GlobalApp: React.FC = () => {
   const comets = useRef<Comet[]>([]);
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
+  
+  // Cache for Gradients to prevent memory thrashing
+  const gradients = useRef<{ [key: string]: CanvasGradient | null }>({});
   
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
 
@@ -126,16 +120,29 @@ const GlobalApp: React.FC = () => {
       const gCanvas = globeCanvasRef.current;
       const fCanvas = fxCanvasRef.current;
       if (gCanvas && fCanvas) {
-        gCanvas.width = w; gCanvas.height = h;
-        fCanvas.width = w; fCanvas.height = h;
-        const gCtx = gCanvas.getContext('2d');
-        const fCtx = fCanvas.getContext('2d');
-        if (gCtx) gCtx.imageSmoothingEnabled = true;
-        if (fCtx) fCtx.imageSmoothingEnabled = true;
+        // PERFORMANCE TRICK: Render globe at 0.5x resolution to maintain 60FPS on TV
+        gCanvas.width = w / 2; 
+        gCanvas.height = h / 2;
+        
+        fCanvas.width = w; 
+        fCanvas.height = h;
+        
+        const gCtx = gCanvas.getContext('2d', { alpha: false });
+        if (gCtx) {
+           gCtx.imageSmoothingEnabled = true;
+           // Reset Gradient Cache on resize
+           gradients.current = {};
+        }
       }
 
-      const { cx, cy, radius } = getGlobeConfig(w, h);
-      projectionRef.current.scale(radius).translate([cx, cy]);
+      // 60% of original size configuration
+      const minDim = Math.min(w, h);
+      const radius = minDim * 0.21; 
+      const cx = w > 768 ? w * 0.70 : w / 2;
+      const cy = w > 768 ? h * 0.50 : h / 2;
+
+      // Note: Projection uses half-coordinates because the canvas is half-size
+      projectionRef.current.scale(radius / 2).translate([cx / 2, cy / 2]);
 
       const sCanvas = document.createElement('canvas');
       sCanvas.width = w;
@@ -144,7 +151,7 @@ const GlobalApp: React.FC = () => {
       if (sCtx) {
         sCtx.fillStyle = '#010208';
         sCtx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 200; i++) {
+        for (let i = 0; i < 150; i++) {
           sCtx.fillStyle = `rgba(255, 255, 255, ${0.1 + Math.random() * 0.2})`;
           sCtx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
         }
@@ -214,27 +221,32 @@ const GlobalApp: React.FC = () => {
       vy: (Math.random() - 0.5) * 110,
       rot: Math.random() * Math.PI * 2,
       rv: (Math.random() - 0.5) * 0.04,
-      size: 12 + Math.random() * 12,
+      size: 10 + Math.random() * 10,
       alpha: 0
     });
 
     const render = (time: number) => {
       const { w, h } = dimensionsRef.current;
-      const { cx, cy, radius } = getGlobeConfig(w, h);
+      
+      // Calculate scaled coords for the half-res canvas
+      const minDim = Math.min(w, h);
+      const r = (minDim * 0.21) / 2;
+      const cx = (w > 768 ? w * 0.70 : w / 2) / 2;
+      const cy = (h > 768 ? h * 0.50 : h / 2) / 2;
 
-      // 1. Render FX Layer (Stars + Comets)
+      // 1. Render FX Layer (Full Res)
       fCtx.clearRect(0, 0, w, h);
       if (starsCanvasRef.current) {
         fCtx.drawImage(starsCanvasRef.current, 0, 0);
       }
 
       if (cometSpriteRef.current) {
-        if (comets.current.length < 8) comets.current.push(createComet(w, h));
+        if (comets.current.length < 6) comets.current.push(createComet(w, h));
         comets.current.forEach((c, idx) => {
           c.x += c.vx * 0.016;
           c.y += c.vy * 0.016;
           c.rot += c.rv;
-          c.alpha = Math.min(c.alpha + 0.02, 0.5);
+          c.alpha = Math.min(c.alpha + 0.02, 0.4);
           if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
             comets.current[idx] = createComet(w, h);
             return;
@@ -249,47 +261,46 @@ const GlobalApp: React.FC = () => {
         });
       }
 
-      // 2. Render Globe Layer
+      // 2. Render Globe Layer (Half Res for smoothness)
       if (geoDataRef.current) {
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
 
-        // Clear Globe Canvas
         gCtx.fillStyle = '#010208';
-        gCtx.fillRect(0, 0, w, h);
+        gCtx.fillRect(0, 0, w / 2, h / 2);
 
-        // Background Glow (Simplified for TV)
-        gCtx.beginPath();
-        const backGlow = gCtx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, radius * 1.3);
-        backGlow.addColorStop(0, 'rgba(56, 189, 248, 0.08)');
-        backGlow.addColorStop(1, 'rgba(0,0,0,0)');
-        gCtx.fillStyle = backGlow;
-        gCtx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
-        gCtx.fill();
+        // Cached Back Glow
+        if (!gradients.current.back) {
+          gradients.current.back = gCtx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.3);
+          gradients.current.back.addColorStop(0, 'rgba(56, 189, 248, 0.08)');
+          gradients.current.back.addColorStop(1, 'rgba(0,0,0,0)');
+        }
+        gCtx.fillStyle = gradients.current.back!;
+        gCtx.beginPath(); gCtx.arc(cx, cy, r * 1.3, 0, Math.PI * 2); gCtx.fill();
 
-        // Ocean
-        const og = gCtx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
-        og.addColorStop(0, COLORS.OCEAN_BRIGHT);
-        og.addColorStop(1, COLORS.OCEAN_DEEP);
-        gCtx.fillStyle = og;
-        gCtx.beginPath(); 
-        gCtx.arc(cx, cy, radius, 0, Math.PI * 2); 
-        gCtx.fill();
+        // Cached Ocean
+        if (!gradients.current.ocean) {
+          gradients.current.ocean = gCtx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 0, cx, cy, r);
+          gradients.current.ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
+          gradients.current.ocean.addColorStop(1, COLORS.OCEAN_DEEP);
+        }
+        gCtx.fillStyle = gradients.current.ocean!;
+        gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // Optimized Graticule (Low complexity)
+        // Optimized Graticule
         gCtx.beginPath();
         path(graticule);
         gCtx.strokeStyle = COLORS.GRATICULE;
         gCtx.lineWidth = 1;
         gCtx.stroke();
 
-        // Land (Solid fill, no borders to save CPU)
+        // Land (One single path call is much faster)
         gCtx.beginPath();
         path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND;
         gCtx.fill();
 
-        // Country Flashes
+        // Active Country Flashes
         const timeNow = Date.now();
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
@@ -299,7 +310,7 @@ const GlobalApp: React.FC = () => {
               activeFlashes.current.delete(id);
             } else {
               const distance = d3.geoDistance(feature.centroid, [-rotation, -INITIAL_PHI]);
-              if (distance < 1.57) { // Only draw if visible
+              if (distance < 1.57) { 
                 gCtx.beginPath();
                 path(feature);
                 gCtx.fillStyle = d3.interpolateRgb(COLORS.YELLOW_SOLID, COLORS.LAND)(t);
@@ -309,16 +320,14 @@ const GlobalApp: React.FC = () => {
           }
         });
 
-        // Atmosphere Glow Overlay
-        gCtx.save();
-        gCtx.beginPath();
-        const atmo = gCtx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
-        atmo.addColorStop(0, COLORS.ATMOSPHERE);
-        atmo.addColorStop(1, 'rgba(0,0,0,0)');
-        gCtx.fillStyle = atmo;
-        gCtx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
-        gCtx.fill();
-        gCtx.restore();
+        // Atmosphere Glow
+        if (!gradients.current.atmo) {
+          gradients.current.atmo = gCtx.createRadialGradient(cx, cy, r, cx, cy, r * 1.05);
+          gradients.current.atmo.addColorStop(0, COLORS.ATMOSPHERE);
+          gradients.current.atmo.addColorStop(1, 'rgba(0,0,0,0)');
+        }
+        gCtx.fillStyle = gradients.current.atmo!;
+        gCtx.beginPath(); gCtx.arc(cx, cy, r * 1.05, 0, Math.PI * 2); gCtx.fill();
       }
 
       animId = requestAnimationFrame(render);
@@ -339,14 +348,24 @@ const GlobalApp: React.FC = () => {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black flex flex-col font-sans select-none">
-      {/* Globe Layer (Bottom) */}
+      {/* 
+        Globe Layer: Scaled up 2x via CSS for hardware acceleration.
+        The browser treats this like an image, which is buttery smooth.
+      */}
       <canvas 
         ref={globeCanvasRef} 
-        className="absolute inset-0 z-0 w-full h-full object-contain" 
-        style={{ pointerEvents: 'none' }} 
+        className="absolute inset-0 z-0 w-full h-full" 
+        style={{ 
+          pointerEvents: 'none', 
+          transform: 'scale(2)', 
+          transformOrigin: '0 0',
+          width: '50%',
+          height: '50%',
+          imageRendering: 'auto' 
+        }} 
       />
 
-      {/* Effects Layer (Middle) */}
+      {/* Effects Layer (Full Res) */}
       <canvas 
         ref={fxCanvasRef} 
         className="absolute inset-0 z-10 w-full h-full object-contain" 
@@ -367,13 +386,13 @@ const GlobalApp: React.FC = () => {
 
       {/* Primary Data HUD */}
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[950px]">
-        <div className="flex flex-col items-start w-full">
+        <div className="flex flex-col items-start w-full translate-y-[-5%]">
           <div className="mb-2">
             <span className="font-bold uppercase tracking-[0.45em] text-[0.6rem] md:text-[0.8rem] opacity-70" style={{ color: COLORS.HEADER_BLUE }}>Global birth count today</span>
           </div>
           
-          <div className="mb-2 relative">
-            <span className="text-[7.2vw] md:text-[110px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
+          <div className="mb-0 relative">
+            <span className="text-[8vw] md:text-[115px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-[#fef9c3] via-[#facc15] to-[#854d0e] tracking-[0.05em]" 
               style={{ 
                 fontFamily: "'Bebas Neue', cursive",
                 filter: `drop-shadow(0 0 10px rgba(250, 204, 21, 0.1))`
@@ -382,7 +401,8 @@ const GlobalApp: React.FC = () => {
             </span>
           </div>
 
-          <div className="w-[50%] md:w-[45%] relative mt-4">
+          {/* Progress Bar: Moved directly below the numbers with tighter vertical spacing */}
+          <div className="w-[50%] md:w-[45%] relative mt-3">
             <div className="flex justify-between items-end mb-2 relative h-5">
               <span className="text-yellow-400 font-bold uppercase tracking-[0.45em] text-[0.5rem] md:text-[0.7rem] opacity-60">Daily Progress</span>
               <span className="text-yellow-200/40 font-mono text-[10px] md:text-[14px] tabular-nums font-black tracking-widest">{Math.floor(timeState.pct)}%</span>
@@ -417,9 +437,10 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/60 via-black/5 to-transparent" />
-      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/50 to-transparent z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/50 to-transparent z-10 pointer-events-none" />
+      {/* Cinematic Overlays */}
+      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/70 via-black/5 to-transparent" />
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/60 to-transparent z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/60 to-transparent z-10 pointer-events-none" />
 
       <style>{`
         @keyframes shimmer {
