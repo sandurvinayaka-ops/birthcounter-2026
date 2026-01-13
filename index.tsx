@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 10.0; // Slower, smoother rotation (one step down from 14.0)
+const AUTO_ROTATION_SPEED = 10.0; // Slower, smoother rotation
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
@@ -24,6 +24,7 @@ const COLORS = {
   HEADER_BLUE: '#3b82f6', 
   PACIFIER_GLOW: '#60a5fa',
   PACIFIER_CORE: '#ffffff',
+  COMET_GLOW: '#93c5fd',
 };
 
 interface Star {
@@ -45,6 +46,17 @@ interface Pacifier {
   alpha: number;
 }
 
+interface Comet {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  length: number;
+  alpha: number;
+  thickness: number;
+  decay: number;
+}
+
 const GlobalApp: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const [timeState, setTimeState] = useState({ label: "00:00", pct: 0 });
@@ -58,6 +70,7 @@ const GlobalApp: React.FC = () => {
   const activeFlashes = useRef<Map<string, number>>(new Map());
   const starsRef = useRef<Star[]>([]);
   const pacifiers = useRef<Pacifier[]>([]);
+  const comets = useRef<Comet[]>([]);
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
   
@@ -96,33 +109,25 @@ const GlobalApp: React.FC = () => {
 
   useEffect(() => {
     const pSprite = document.createElement('canvas');
-    const size = 128; // Larger sprite for better glow fidelity
+    const size = 128; 
     pSprite.width = size * 2; 
     pSprite.height = size * 2;
     const sCtx = pSprite.getContext('2d');
     if (sCtx) {
       sCtx.translate(size, size);
-      
-      // Far field soft glow
       sCtx.shadowBlur = 80;
       sCtx.shadowColor = 'rgba(96, 165, 250, 0.4)';
       sCtx.beginPath();
       sCtx.arc(0, 0, 30, 0, Math.PI * 2);
       sCtx.fillStyle = 'rgba(96, 165, 250, 0.1)';
       sCtx.fill();
-
-      // Core bloom
       sCtx.shadowBlur = 30;
       sCtx.shadowColor = COLORS.PACIFIER_GLOW;
-
-      // Ring
       sCtx.beginPath();
       sCtx.arc(0, 20, 14, 0, Math.PI * 2);
       sCtx.strokeStyle = COLORS.PACIFIER_CORE;
       sCtx.lineWidth = 6;
       sCtx.stroke();
-
-      // Shield
       sCtx.beginPath();
       sCtx.ellipse(0, 0, 26, 12, 0, 0, Math.PI * 2);
       sCtx.fillStyle = COLORS.PACIFIER_GLOW;
@@ -130,8 +135,6 @@ const GlobalApp: React.FC = () => {
       sCtx.strokeStyle = COLORS.PACIFIER_CORE;
       sCtx.lineWidth = 2;
       sCtx.stroke();
-
-      // Bulb
       sCtx.beginPath();
       sCtx.arc(0, -14, 12, 0, Math.PI * 2);
       sCtx.fillStyle = COLORS.PACIFIER_CORE;
@@ -232,7 +235,64 @@ const GlobalApp: React.FC = () => {
       const timeNow = Date.now();
 
       fCtx.clearRect(0, 0, w, h);
+      fCtx.globalCompositeOperation = 'screen';
       
+      // Update & Draw Comets
+      if (comets.current.length < 5 && Math.random() < 0.02) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 5;
+        comets.current.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          length: 50 + Math.random() * 150,
+          alpha: 0,
+          thickness: 1 + Math.random() * 2,
+          decay: 0.002 + Math.random() * 0.005
+        });
+      }
+
+      comets.current.forEach((c, idx) => {
+        c.x += c.vx;
+        c.y += c.vy;
+        c.alpha += (c.alpha < 1 ? 0.02 : 0);
+        
+        // Custom life cycle for comet
+        if (c.x < -300 || c.x > w + 300 || c.y < -300 || c.y > h + 300) {
+           comets.current.splice(idx, 1);
+           return;
+        }
+
+        const angle = Math.atan2(c.vy, c.vx);
+        const trailX = c.x - Math.cos(angle) * c.length;
+        const trailY = c.y - Math.sin(angle) * c.length;
+
+        const cometGrad = fCtx.createLinearGradient(c.x, c.y, trailX, trailY);
+        cometGrad.addColorStop(0, `rgba(255, 255, 255, ${c.alpha})`);
+        cometGrad.addColorStop(0.2, `rgba(147, 197, 253, ${c.alpha * 0.8})`);
+        cometGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        fCtx.save();
+        fCtx.beginPath();
+        fCtx.moveTo(c.x, c.y);
+        fCtx.lineTo(trailX, trailY);
+        fCtx.strokeStyle = cometGrad;
+        fCtx.lineWidth = c.thickness;
+        fCtx.lineCap = 'round';
+        fCtx.stroke();
+
+        // Glowing head
+        fCtx.beginPath();
+        fCtx.arc(c.x, c.y, c.thickness * 1.5, 0, Math.PI * 2);
+        fCtx.fillStyle = '#fff';
+        fCtx.shadowBlur = 10;
+        fCtx.shadowColor = COLORS.COMET_GLOW;
+        fCtx.fill();
+        fCtx.restore();
+      });
+
+      // Update & Draw Pacifiers
       if (pacifierSpriteRef.current) {
         if (pacifiers.current.length < 8) {
           pacifiers.current.push({
@@ -256,8 +316,6 @@ const GlobalApp: React.FC = () => {
           fCtx.globalAlpha = p.alpha;
           fCtx.translate(p.x, p.y); 
           fCtx.rotate(p.rot);
-          // Stronger glow blend mode
-          fCtx.globalCompositeOperation = 'screen';
           fCtx.drawImage(pacifierSpriteRef.current!, -p.size, -p.size, p.size * 2, p.size * 2);
           fCtx.restore();
         });
@@ -267,11 +325,9 @@ const GlobalApp: React.FC = () => {
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
 
-        // Background
         gCtx.fillStyle = '#000000';
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
 
-        // Stars
         starsRef.current.forEach(s => {
           s.opacity += (Math.random() - 0.5) * s.twinkle;
           s.opacity = Math.max(0.05, Math.min(0.7, s.opacity));
@@ -281,7 +337,6 @@ const GlobalApp: React.FC = () => {
           gCtx.fill();
         });
 
-        // 1. Ocean
         if (!gradients.current.ocean) {
           gradients.current.ocean = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx, cy, r);
           gradients.current.ocean.addColorStop(0, COLORS.OCEAN_BRIGHT);
@@ -290,16 +345,13 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.ocean!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 2. Landmass
         gCtx.beginPath(); path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND_BASE; 
         gCtx.fill();
-        
         gCtx.strokeStyle = COLORS.LAND_BORDER;
         gCtx.lineWidth = 1.0;
         gCtx.stroke();
 
-        // 3. Rim Shadow
         if (!gradients.current.rimShadow) {
           gradients.current.rimShadow = gCtx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r);
           gradients.current.rimShadow.addColorStop(0, 'rgba(0,0,0,0)');
@@ -308,7 +360,6 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.rimShadow!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // 4. INTENSE Yellow Country Flash
         activeFlashes.current.forEach((flashTime, id) => {
           const feature = featuresMapRef.current.get(id);
           if (feature) {
@@ -321,27 +372,21 @@ const GlobalApp: React.FC = () => {
               if (distance < 1.57) { 
                 gCtx.save();
                 gCtx.beginPath(); path(feature);
-                
                 const intensity = Math.pow(1 - t, 0.4); 
-                // Color ramp: Bright Yellow -> Deep Yellow -> Slate
                 const flashColor = d3.interpolateRgb(
                     d3.interpolateRgb(COLORS.YELLOW_PEAK, COLORS.YELLOW_VIBRANT)(t * 1.5),
                     COLORS.LAND_BASE
                 )(t);
-
-                // Full country bloom
                 gCtx.shadowBlur = 60 * intensity;
                 gCtx.shadowColor = COLORS.YELLOW_VIBRANT;
                 gCtx.fillStyle = flashColor;
                 gCtx.fill();
-                
                 gCtx.restore();
               }
             }
           }
         });
 
-        // 5. Specular & Atmosphere
         if (!gradients.current.spec) {
           gradients.current.spec = gCtx.createRadialGradient(cx - r * 0.4, cy - r * 0.4, 0, cx - r * 0.4, cy - r * 0.4, r * 1.4);
           gradients.current.spec.addColorStop(0, COLORS.SPECULAR);
