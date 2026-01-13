@@ -13,14 +13,14 @@ const MAX_HEIGHT = 1080;
 const GLOBE_RENDER_SCALE = 1.0; 
 
 const COLORS = {
-  LAND: '#cbd5e1', // Lightened from #94a3b8 for much higher visibility
-  LAND_BRIGHT: '#f8fafc',
+  LAND: '#e2e8f0', // Increased brightness for visibility
+  LAND_BRIGHT: '#ffffff',
   OCEAN_DEEP: '#010409',
   OCEAN_BRIGHT: '#0f172a', 
   YELLOW_SOLID: '#facc15',
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.3)', // Increased opacity
-  SPECULAR: 'rgba(255, 255, 255, 0.15)',
-  HEADER_BLUE: '#93c5fd',
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.2)',
+  SPECULAR: 'rgba(255, 255, 255, 0.1)',
+  HEADER_BLUE: '#3b82f6', // Richer blue for branding
   PACIFIER_GLOW: '#60a5fa',
 };
 
@@ -41,7 +41,6 @@ const GlobalApp: React.FC = () => {
   
   const globeCanvasRef = useRef<HTMLCanvasElement>(null);
   const fxCanvasRef = useRef<HTMLCanvasElement>(null);
-  const starsCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const pacifierSpriteRef = useRef<HTMLCanvasElement | null>(null);
   
   const geoDataRef = useRef<any>(null);
@@ -75,13 +74,11 @@ const GlobalApp: React.FC = () => {
   // Generate ultra-glowing Pacifier Sprite
   useEffect(() => {
     const pSprite = document.createElement('canvas');
-    const size = 64; // Increased canvas for larger pacifier
+    const size = 64;
     pSprite.width = size * 2; pSprite.height = size * 2;
     const sCtx = pSprite.getContext('2d');
     if (sCtx) {
       sCtx.translate(size, size);
-      
-      // Much more intense glow
       sCtx.shadowBlur = 25;
       sCtx.shadowColor = COLORS.PACIFIER_GLOW;
 
@@ -137,24 +134,6 @@ const GlobalApp: React.FC = () => {
       const cy = h / 2;
 
       projectionRef.current.scale(radius * GLOBE_RENDER_SCALE).translate([(cx * GLOBE_RENDER_SCALE), (cy * GLOBE_RENDER_SCALE)]);
-
-      // Create Max-Brightness Starfield
-      const sCanvas = document.createElement('canvas');
-      sCanvas.width = w; sCanvas.height = h;
-      const sCtx = sCanvas.getContext('2d');
-      if (sCtx) {
-        sCtx.fillStyle = '#000105';
-        sCtx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 220; i++) {
-          const alpha = 0.4 + Math.random() * 0.5; // Significant brightness boost
-          const size = Math.random() > 0.85 ? 2.5 : 1.2;
-          sCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-          sCtx.beginPath();
-          sCtx.arc(Math.random() * w, Math.random() * h, size/2, 0, Math.PI * 2);
-          sCtx.fill();
-        }
-      }
-      starsCanvasRef.current = sCanvas;
     };
 
     window.addEventListener('resize', handleResize);
@@ -217,16 +196,16 @@ const GlobalApp: React.FC = () => {
       const cy = (h / 2) * GLOBE_RENDER_SCALE;
 
       fCtx.clearRect(0, 0, w, h);
-      if (starsCanvasRef.current) fCtx.drawImage(starsCanvasRef.current, 0, 0);
+      // No stars drawn on overlay
 
-      // Rendering glowing pacifiers (Double Size)
+      // Rendering glowing pacifiers
       if (pacifierSpriteRef.current) {
         if (pacifiers.current.length < 5) {
           pacifiers.current.push({
             x: Math.random() * w, y: Math.random() * h,
             vx: (Math.random() - 0.5) * 104, vy: (Math.random() - 0.5) * 104,
             rot: Math.random() * Math.PI * 2, rv: (Math.random() - 0.5) * 0.05,
-            size: 20 + Math.random() * 16, // Doubled from 10+8
+            size: 20 + Math.random() * 16,
             alpha: 0
           });
         }
@@ -248,7 +227,8 @@ const GlobalApp: React.FC = () => {
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
 
-        gCtx.fillStyle = '#000105';
+        // Clean black background for the globe area
+        gCtx.fillStyle = '#000000';
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
 
         if (!gradients.current.ocean) {
@@ -259,12 +239,12 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = gradients.current.ocean!;
         gCtx.beginPath(); gCtx.arc(cx, cy, r, 0, Math.PI * 2); gCtx.fill();
 
-        // Enhanced Country Visibility
+        // Visible Countries
         gCtx.beginPath(); path(geoDataRef.current);
         gCtx.fillStyle = COLORS.LAND; 
         gCtx.fill();
-        gCtx.strokeStyle = "rgba(255,255,255,0.12)"; // Subtle outline to make countries pop
-        gCtx.lineWidth = 0.5;
+        gCtx.strokeStyle = "rgba(255,255,255,0.3)"; // Clearer stroke for borders
+        gCtx.lineWidth = 0.8;
         gCtx.stroke();
 
         const timeNow = Date.now();
@@ -279,6 +259,9 @@ const GlobalApp: React.FC = () => {
                 gCtx.beginPath(); path(feature);
                 gCtx.fillStyle = d3.interpolateRgb(COLORS.YELLOW_SOLID, COLORS.LAND)(t);
                 gCtx.fill();
+                gCtx.strokeStyle = "rgba(255,255,255,0.8)";
+                gCtx.lineWidth = 1;
+                gCtx.stroke();
               }
             }
           }
@@ -329,40 +312,40 @@ const GlobalApp: React.FC = () => {
       
       <canvas ref={fxCanvasRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none mix-blend-screen" />
 
-      {/* Brand */}
-      <div className="absolute top-8 left-8 md:top-12 md:left-16 z-40 pointer-events-none opacity-40">
+      {/* Brand Logo: Blue text with Yellow underline */}
+      <div className="absolute top-8 left-8 md:top-12 md:left-16 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
-          <div className="flex items-baseline font-black tracking-tighter text-[0.7rem] md:text-[1.4rem] leading-none text-white">
+          <div className="flex items-baseline font-black tracking-tighter text-[1rem] md:text-[2rem] leading-none" style={{ color: COLORS.HEADER_BLUE }}>
             M&CC
           </div>
-          <div className="w-full h-[1px] bg-white mt-1"></div>
+          <div className="w-full h-[2px] md:h-[4px] mt-1" style={{ backgroundColor: COLORS.YELLOW_SOLID }}></div>
         </div>
       </div>
 
-      {/* Data HUD */}
+      {/* Data HUD: Updated text colors to Yellow */}
       <div className="absolute inset-y-0 left-0 z-40 flex flex-col justify-center pl-10 md:pl-20 pointer-events-none w-full max-w-[900px]">
         <div className="flex flex-col items-start w-full translate-y-[-5%]">
           <div className="mb-0.5">
-            <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.6rem] opacity-60" style={{ color: COLORS.HEADER_BLUE }}>Global birth count today</span>
+            <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.6rem] opacity-90" style={{ color: COLORS.YELLOW_SOLID }}>Global birth count today</span>
           </div>
           
           <div className="mb-2 relative">
-            <span className="text-[6vw] md:text-[88px] font-normal leading-none tabular-nums bg-clip-text text-transparent bg-gradient-to-b from-white via-yellow-100 to-yellow-500 tracking-[0.02em]" 
-              style={{ fontFamily: "'Bebas Neue', cursive", filter: `drop-shadow(0 0 15px rgba(250, 204, 21, 0.2))` }}>
+            <span className="text-[6vw] md:text-[88px] font-normal leading-none tabular-nums tracking-[0.02em]" 
+              style={{ fontFamily: "'Bebas Neue', cursive", color: COLORS.YELLOW_SOLID, filter: `drop-shadow(0 0 15px rgba(250, 204, 21, 0.4))` }}>
               {renderFormattedTotal(total)}
             </span>
           </div>
 
           <div className="w-[35%] md:w-[32%] relative mt-4">
             <div className="flex justify-between items-end mb-2 relative h-4">
-              <span className="text-white/40 font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.5rem]">Daily Progress</span>
-              <span className="text-white/30 font-mono text-[9px] md:text-[12px] tabular-nums font-bold tracking-widest">{Math.floor(timeState.pct)}%</span>
+              <span className="font-bold uppercase tracking-[0.4em] text-[0.4rem] md:text-[0.5rem]" style={{ color: COLORS.YELLOW_SOLID }}>Daily Progress</span>
+              <span className="font-mono text-[9px] md:text-[12px] tabular-nums font-bold tracking-widest" style={{ color: COLORS.YELLOW_SOLID }}>{Math.floor(timeState.pct)}%</span>
             </div>
 
             <div className="h-[3px] w-full bg-white/10 rounded-full overflow-hidden relative backdrop-blur-md">
               <div 
                 className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(250,204,21,0.5)]"
-                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #334155 0%, #fbbf24 100%)` }} 
+                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #334155 0%, ${COLORS.YELLOW_SOLID} 100%)` }} 
               />
             </div>
 
@@ -371,9 +354,9 @@ const GlobalApp: React.FC = () => {
               style={{ left: `${timeState.pct}%`, transform: 'translateX(-50%)' }}
             >
               <div className="flex flex-col items-center">
-                <div className="w-[1px] h-3 bg-white/20 mb-1"></div>
+                <div className="w-[1px] h-3 mb-1" style={{ backgroundColor: COLORS.YELLOW_SOLID }}></div>
                 <div className="px-2.5 py-1 bg-black/60 backdrop-blur-xl border border-white/10 rounded shadow-2xl">
-                    <span className="font-mono text-[0.7rem] md:text-[1rem] font-black tracking-[0.1em] text-white/90 tabular-nums">
+                    <span className="font-mono text-[0.7rem] md:text-[1rem] font-black tracking-[0.1em] tabular-nums" style={{ color: COLORS.YELLOW_SOLID }}>
                       {timeState.label}
                     </span>
                 </div>
