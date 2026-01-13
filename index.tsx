@@ -5,33 +5,32 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 50.0; 
+const AUTO_ROTATION_SPEED = 45.0; 
 const INITIAL_PHI = -15;
 
 /** 
  * TV PERFORMANCE CALIBRATION:
- * We force a max internal resolution of 1080p.
+ * Capping internal resolution at 1080p is mandatory for smooth TV playback.
  */
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1080;
 
 const COLORS = {
-  LAND: '#718eb5', // Brightened land for better visibility
-  LAND_BORDER: 'rgba(255, 255, 255, 0.18)',
+  LAND: '#7ca2d4', 
   OCEAN_DEEP: '#020617',
-  OCEAN_BRIGHT: '#111e36', // Slightly brighter ocean
+  OCEAN_BRIGHT: '#111e36', 
   YELLOW_SOLID: '#facc15',
-  ATMOSPHERE: 'rgba(56, 189, 248, 0.15)',
+  ATMOSPHERE: 'rgba(56, 189, 248, 0.12)',
   HEADER_BLUE: '#60a5fa',
-  PACIFIER_GLOW: 'rgba(165, 243, 252, 0.4)',
-  GRATICULE: 'rgba(148, 163, 184, 0.08)', 
+  GRATICULE: 'rgba(148, 163, 184, 0.05)', 
 };
 
-const getGlobePosition = (w: number, h: number) => {
+const getGlobeConfig = (w: number, h: number) => {
   const minDim = Math.min(w, h);
-  const radius = minDim * 0.35; // Increased radius for better visibility
-  const cx = w > 768 ? w * 0.65 : w / 2; // Shifted slightly right to avoid text overlap
-  const cy = w > 768 ? h * 0.50 : h / 2; // Centered vertically more
+  // Radius reduced to ~60% of previous size (0.35 * 0.6)
+  const radius = minDim * 0.21; 
+  const cx = w > 768 ? w * 0.70 : w / 2;
+  const cy = w > 768 ? h * 0.50 : h / 2;
   return { cx, cy, radius };
 };
 
@@ -50,9 +49,12 @@ const GlobalApp: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const [timeState, setTimeState] = useState({ label: "00:00", pct: 0 });
   
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Dual-Canvas System: Separating Globe from UI/Effects
+  const globeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fxCanvasRef = useRef<HTMLCanvasElement>(null);
   const starsCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cometSpriteRef = useRef<HTMLCanvasElement | null>(null);
+  
   const geoDataRef = useRef<any>(null);
   const featuresMapRef = useRef<Map<string, any>>(new Map());
   const activeFlashes = useRef<Map<string, number>>(new Map());
@@ -62,7 +64,6 @@ const GlobalApp: React.FC = () => {
   
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
 
-  // Initialize GeoData
   useEffect(() => {
     fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
       .then(res => res.json())
@@ -81,7 +82,6 @@ const GlobalApp: React.FC = () => {
       .catch(err => console.error("GeoJSON load failed", err));
   }, []);
 
-  // Pre-render Sprites for Performance
   useEffect(() => {
     const cSprite = document.createElement('canvas');
     const size = 32;
@@ -107,7 +107,6 @@ const GlobalApp: React.FC = () => {
     cometSpriteRef.current = cSprite;
   }, []);
 
-  // Handle Resize and Resolution Capping
   useEffect(() => {
     const handleResize = () => {
       let w = window.innerWidth;
@@ -123,15 +122,19 @@ const GlobalApp: React.FC = () => {
       }
 
       dimensionsRef.current = { w, h };
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (ctx) ctx.imageSmoothingEnabled = true;
+      
+      const gCanvas = globeCanvasRef.current;
+      const fCanvas = fxCanvasRef.current;
+      if (gCanvas && fCanvas) {
+        gCanvas.width = w; gCanvas.height = h;
+        fCanvas.width = w; fCanvas.height = h;
+        const gCtx = gCanvas.getContext('2d');
+        const fCtx = fCanvas.getContext('2d');
+        if (gCtx) gCtx.imageSmoothingEnabled = true;
+        if (fCtx) fCtx.imageSmoothingEnabled = true;
       }
 
-      const { cx, cy, radius } = getGlobePosition(w, h);
+      const { cx, cy, radius } = getGlobeConfig(w, h);
       projectionRef.current.scale(radius).translate([cx, cy]);
 
       const sCanvas = document.createElement('canvas');
@@ -141,8 +144,8 @@ const GlobalApp: React.FC = () => {
       if (sCtx) {
         sCtx.fillStyle = '#010208';
         sCtx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 300; i++) {
-          sCtx.fillStyle = `rgba(255, 255, 255, ${0.1 + Math.random() * 0.3})`;
+        for (let i = 0; i < 200; i++) {
+          sCtx.fillStyle = `rgba(255, 255, 255, ${0.1 + Math.random() * 0.2})`;
           sCtx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
         }
       }
@@ -154,7 +157,6 @@ const GlobalApp: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Time & Counter Logic
   useEffect(() => {
     const updateProgress = () => {
       const d = new Date();
@@ -193,117 +195,99 @@ const GlobalApp: React.FC = () => {
 
   // Main Render Loop
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) return;
+    const gCanvas = globeCanvasRef.current;
+    const fCanvas = fxCanvasRef.current;
+    if (!gCanvas || !fCanvas) return;
+    const gCtx = gCanvas.getContext('2d', { alpha: false });
+    const fCtx = fCanvas.getContext('2d');
+    if (!gCtx || !fCtx) return;
 
     let animId: number;
     const graticule = d3.geoGraticule10();
     const projection = projectionRef.current;
-    const path = d3.geoPath(projection, ctx);
+    const path = d3.geoPath(projection, gCtx);
 
     const createComet = (w: number, h: number): Comet => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 120, 
-      vy: (Math.random() - 0.5) * 120,
+      vx: (Math.random() - 0.5) * 110, 
+      vy: (Math.random() - 0.5) * 110,
       rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 0.05,
-      size: 15 + Math.random() * 15,
+      rv: (Math.random() - 0.5) * 0.04,
+      size: 12 + Math.random() * 12,
       alpha: 0
     });
 
     const render = (time: number) => {
       const { w, h } = dimensionsRef.current;
-      const { cx, cy, radius } = getGlobePosition(w, h);
+      const { cx, cy, radius } = getGlobeConfig(w, h);
 
-      // Background
+      // 1. Render FX Layer (Stars + Comets)
+      fCtx.clearRect(0, 0, w, h);
       if (starsCanvasRef.current) {
-        ctx.drawImage(starsCanvasRef.current, 0, 0);
-      } else {
-        ctx.fillStyle = '#010208';
-        ctx.fillRect(0, 0, w, h);
+        fCtx.drawImage(starsCanvasRef.current, 0, 0);
       }
 
-      const delta = 0.016; 
-      if (comets.current.length < 10) comets.current.push(createComet(w, h));
-      
       if (cometSpriteRef.current) {
+        if (comets.current.length < 8) comets.current.push(createComet(w, h));
         comets.current.forEach((c, idx) => {
-          c.x += c.vx * delta;
-          c.y += c.vy * delta;
+          c.x += c.vx * 0.016;
+          c.y += c.vy * 0.016;
           c.rot += c.rv;
-          c.alpha = Math.min(c.alpha + 0.02, 0.6);
+          c.alpha = Math.min(c.alpha + 0.02, 0.5);
           if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
             comets.current[idx] = createComet(w, h);
             return;
           }
-          ctx.save();
-          ctx.globalAlpha = c.alpha;
-          ctx.translate(c.x, c.y);
-          ctx.rotate(c.rot);
+          fCtx.save();
+          fCtx.globalAlpha = c.alpha;
+          fCtx.translate(c.x, c.y);
+          fCtx.rotate(c.rot);
           const drawSize = c.size;
-          ctx.drawImage(cometSpriteRef.current, -drawSize, -drawSize, drawSize * 2, drawSize * 2);
-          ctx.restore();
+          fCtx.drawImage(cometSpriteRef.current, -drawSize, -drawSize, drawSize * 2, drawSize * 2);
+          fCtx.restore();
         });
       }
 
+      // 2. Render Globe Layer
       if (geoDataRef.current) {
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
 
-        // Subtle Back Glow
-        ctx.save();
-        const backGlow = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius * 1.3);
-        backGlow.addColorStop(0, 'rgba(56, 189, 248, 0.1)');
+        // Clear Globe Canvas
+        gCtx.fillStyle = '#010208';
+        gCtx.fillRect(0, 0, w, h);
+
+        // Background Glow (Simplified for TV)
+        gCtx.beginPath();
+        const backGlow = gCtx.createRadialGradient(cx, cy, radius * 0.9, cx, cy, radius * 1.3);
+        backGlow.addColorStop(0, 'rgba(56, 189, 248, 0.08)');
         backGlow.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = backGlow;
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        gCtx.fillStyle = backGlow;
+        gCtx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
+        gCtx.fill();
 
         // Ocean
-        const og = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
+        const og = gCtx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius);
         og.addColorStop(0, COLORS.OCEAN_BRIGHT);
         og.addColorStop(1, COLORS.OCEAN_DEEP);
-        ctx.fillStyle = og;
-        ctx.beginPath(); 
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2); 
-        ctx.fill();
+        gCtx.fillStyle = og;
+        gCtx.beginPath(); 
+        gCtx.arc(cx, cy, radius, 0, Math.PI * 2); 
+        gCtx.fill();
 
-        // Graticule
-        ctx.beginPath();
+        // Optimized Graticule (Low complexity)
+        gCtx.beginPath();
         path(graticule);
-        ctx.strokeStyle = COLORS.GRATICULE;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        gCtx.strokeStyle = COLORS.GRATICULE;
+        gCtx.lineWidth = 1;
+        gCtx.stroke();
 
-        // Land
-        ctx.beginPath();
+        // Land (Solid fill, no borders to save CPU)
+        gCtx.beginPath();
         path(geoDataRef.current);
-        ctx.fillStyle = COLORS.LAND;
-        ctx.fill();
-
-        // Atmosphere Glow
-        ctx.save();
-        ctx.globalCompositeOperation = 'destination-over';
-        ctx.beginPath();
-        const atmo = ctx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
-        atmo.addColorStop(0, COLORS.ATMOSPHERE);
-        atmo.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = atmo;
-        ctx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        // Borders
-        ctx.beginPath();
-        path(geoDataRef.current);
-        ctx.strokeStyle = COLORS.LAND_BORDER;
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
+        gCtx.fillStyle = COLORS.LAND;
+        gCtx.fill();
 
         // Country Flashes
         const timeNow = Date.now();
@@ -315,15 +299,26 @@ const GlobalApp: React.FC = () => {
               activeFlashes.current.delete(id);
             } else {
               const distance = d3.geoDistance(feature.centroid, [-rotation, -INITIAL_PHI]);
-              if (distance < 1.57) {
-                ctx.beginPath();
+              if (distance < 1.57) { // Only draw if visible
+                gCtx.beginPath();
                 path(feature);
-                ctx.fillStyle = d3.interpolateRgb(COLORS.YELLOW_SOLID, COLORS.LAND)(t);
-                ctx.fill();
+                gCtx.fillStyle = d3.interpolateRgb(COLORS.YELLOW_SOLID, COLORS.LAND)(t);
+                gCtx.fill();
               }
             }
           }
         });
+
+        // Atmosphere Glow Overlay
+        gCtx.save();
+        gCtx.beginPath();
+        const atmo = gCtx.createRadialGradient(cx, cy, radius, cx, cy, radius * 1.05);
+        atmo.addColorStop(0, COLORS.ATMOSPHERE);
+        atmo.addColorStop(1, 'rgba(0,0,0,0)');
+        gCtx.fillStyle = atmo;
+        gCtx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
+        gCtx.fill();
+        gCtx.restore();
       }
 
       animId = requestAnimationFrame(render);
@@ -344,10 +339,18 @@ const GlobalApp: React.FC = () => {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black flex flex-col font-sans select-none">
+      {/* Globe Layer (Bottom) */}
       <canvas 
-        ref={canvasRef} 
+        ref={globeCanvasRef} 
         className="absolute inset-0 z-0 w-full h-full object-contain" 
-        style={{ opacity: 0.98, imageRendering: 'auto' }} 
+        style={{ pointerEvents: 'none' }} 
+      />
+
+      {/* Effects Layer (Middle) */}
+      <canvas 
+        ref={fxCanvasRef} 
+        className="absolute inset-0 z-10 w-full h-full object-contain" 
+        style={{ pointerEvents: 'none', mixBlendMode: 'screen' }} 
       />
 
       {/* Brand */}
@@ -379,7 +382,6 @@ const GlobalApp: React.FC = () => {
             </span>
           </div>
 
-          {/* Progress Bar moved directly below numbers */}
           <div className="w-[50%] md:w-[45%] relative mt-4">
             <div className="flex justify-between items-end mb-2 relative h-5">
               <span className="text-yellow-400 font-bold uppercase tracking-[0.45em] text-[0.5rem] md:text-[0.7rem] opacity-60">Daily Progress</span>
@@ -415,7 +417,6 @@ const GlobalApp: React.FC = () => {
         </div>
       </div>
 
-      {/* Soft Overlays - Lightened to improve globe visibility */}
       <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-r from-black/60 via-black/5 to-transparent" />
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/50 to-transparent z-10 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black/50 to-transparent z-10 pointer-events-none" />
