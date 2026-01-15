@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 10.0; // Slower, smoother rotation
+const AUTO_ROTATION_SPEED = 10.0; // Degrees per second
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
@@ -13,19 +13,19 @@ const MAX_HEIGHT = 1080;
 const GLOBE_RENDER_SCALE = 1.2; 
 
 const COLORS = {
-  LAND_BASE: '#c084fc', // Changed to light purple (Tailwind purple-400)
-  LAND_BORDER: 'rgba(255, 255, 255, 0.5)', // Increased opacity for clearly visible country borders
+  LAND_BASE: '#c084fc', 
+  LAND_BORDER: 'rgba(255, 255, 255, 0.5)', 
   OCEAN_DEEP: '#020617',
   OCEAN_BRIGHT: '#111827', 
   YELLOW_VIBRANT: '#fbbf24', 
   YELLOW_PEAK: '#fff700', 
-  ATMOSPHERE: 'rgba(168, 85, 247, 0.25)', // Adjusted to a purple-ish tint to match theme
+  ATMOSPHERE: 'rgba(168, 85, 247, 0.25)', 
   SPECULAR: 'rgba(255, 255, 255, 0.12)', 
   HEADER_PURPLE: '#a855f7', 
   PACIFIER_GLOW: '#60a5fa',
   PACIFIER_CORE: '#ffffff',
   COMET_GLOW: '#93c5fd',
-  PROGRESS_GREEN: '#22c55e', // New color for progress bar
+  PROGRESS_GREEN: '#22c55e',
 };
 
 interface Star {
@@ -74,6 +74,7 @@ const GlobalApp: React.FC = () => {
   const comets = useRef<Comet[]>([]);
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
+  const lastTimeRef = useRef<number>(0);
   
   const gradients = useRef<{ [key: string]: CanvasGradient | null }>({});
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
@@ -228,6 +229,13 @@ const GlobalApp: React.FC = () => {
     const path = d3.geoPath(projection, gCtx);
 
     const render = (time: number) => {
+      if (!lastTimeRef.current) lastTimeRef.current = time;
+      const deltaTime = (time - lastTimeRef.current) / 1000; // time in seconds since last frame
+      lastTimeRef.current = time;
+
+      // Normalize factor to keep existing speed feel (adjusting for old 60fps logic)
+      const dtFactor = Math.min(deltaTime * 60, 2.0); // Cap it to avoid massive jumps on tab reactivation
+
       const { w, h } = dimensionsRef.current;
       const minDim = Math.min(w, h);
       const r = (minDim * 0.36) * GLOBE_RENDER_SCALE;
@@ -241,6 +249,7 @@ const GlobalApp: React.FC = () => {
       // Update & Draw Comets
       if (comets.current.length < 5 && Math.random() < 0.02) {
         const angle = Math.random() * Math.PI * 2;
+        // speed increased by 30% from original logic
         const speed = (2 + Math.random() * 5) * 1.3; 
         comets.current.push({
           x: Math.random() * w,
@@ -254,14 +263,15 @@ const GlobalApp: React.FC = () => {
         });
       }
 
-      comets.current.forEach((c, idx) => {
-        c.x += c.vx;
-        c.y += c.vy;
-        c.alpha += (c.alpha < 1 ? 0.02 : 0);
+      for (let i = comets.current.length - 1; i >= 0; i--) {
+        const c = comets.current[i];
+        c.x += c.vx * dtFactor;
+        c.y += c.vy * dtFactor;
+        c.alpha += 0.02 * dtFactor;
         
         if (c.x < -300 || c.x > w + 300 || c.y < -300 || c.y > h + 300) {
-           comets.current.splice(idx, 1);
-           return;
+           comets.current.splice(i, 1);
+           continue;
         }
 
         const angle = Math.atan2(c.vy, c.vx);
@@ -269,8 +279,9 @@ const GlobalApp: React.FC = () => {
         const trailY = c.y - Math.sin(angle) * c.length;
 
         const cometGrad = fCtx.createLinearGradient(c.x, c.y, trailX, trailY);
-        cometGrad.addColorStop(0, `rgba(255, 255, 255, ${c.alpha})`);
-        cometGrad.addColorStop(0.2, `rgba(147, 197, 253, ${c.alpha * 0.8})`);
+        const a = Math.min(c.alpha, 1);
+        cometGrad.addColorStop(0, `rgba(255, 255, 255, ${a})`);
+        cometGrad.addColorStop(0.2, `rgba(147, 197, 253, ${a * 0.8})`);
         cometGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         fCtx.save();
@@ -289,7 +300,7 @@ const GlobalApp: React.FC = () => {
         fCtx.shadowColor = COLORS.COMET_GLOW;
         fCtx.fill();
         fCtx.restore();
-      });
+      }
 
       // Update & Draw Pacifiers
       if (pacifierSpriteRef.current) {
@@ -297,7 +308,7 @@ const GlobalApp: React.FC = () => {
           pacifiers.current.push({
             x: Math.random() * w, 
             y: Math.random() * h,
-            vx: (Math.random() - 0.5) * 120, 
+            vx: (Math.random() - 0.5) * 120, // requested double speed logic
             vy: (Math.random() - 0.5) * 120,
             rot: Math.random() * Math.PI * 2, 
             rv: (Math.random() - 0.5) * 0.06,
@@ -305,11 +316,16 @@ const GlobalApp: React.FC = () => {
             alpha: 0
           });
         }
-        pacifiers.current.forEach((p, idx) => {
-          p.x += p.vx * 0.016; p.y += p.vy * 0.016; p.rot += p.rv;
-          p.alpha = Math.min(p.alpha + 0.005, 0.8);
+        for (let i = pacifiers.current.length - 1; i >= 0; i--) {
+          const p = pacifiers.current[i];
+          p.x += p.vx * deltaTime; 
+          p.y += p.vy * deltaTime; 
+          p.rot += p.rv * dtFactor;
+          p.alpha = Math.min(p.alpha + 0.005 * dtFactor, 0.8);
+          
           if (p.x < -300 || p.x > w + 300 || p.y < -300 || p.y > h + 300) {
-            pacifiers.current.splice(idx, 1); return;
+            pacifiers.current.splice(i, 1);
+            continue;
           }
           fCtx.save();
           fCtx.globalAlpha = p.alpha;
@@ -317,10 +333,11 @@ const GlobalApp: React.FC = () => {
           fCtx.rotate(p.rot);
           fCtx.drawImage(pacifierSpriteRef.current!, -p.size, -p.size, p.size * 2, p.size * 2);
           fCtx.restore();
-        });
+        }
       }
 
       if (geoDataRef.current) {
+        // Globe rotation now linked to clock time for perfect smoothness
         const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
         projection.rotate([rotation, INITIAL_PHI, 0]);
 
@@ -328,7 +345,7 @@ const GlobalApp: React.FC = () => {
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
 
         starsRef.current.forEach(s => {
-          s.opacity += (Math.random() - 0.5) * s.twinkle;
+          s.opacity += (Math.random() - 0.5) * s.twinkle * dtFactor;
           s.opacity = Math.max(0.05, Math.min(0.7, s.opacity));
           gCtx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
           gCtx.beginPath();
@@ -349,7 +366,7 @@ const GlobalApp: React.FC = () => {
         gCtx.fillStyle = COLORS.LAND_BASE; 
         gCtx.fill();
         gCtx.strokeStyle = COLORS.LAND_BORDER;
-        gCtx.lineWidth = 1.2; // Slightly thicker for better visibility
+        gCtx.lineWidth = 1.2; 
         gCtx.stroke();
 
         if (!gradients.current.rimShadow) {
