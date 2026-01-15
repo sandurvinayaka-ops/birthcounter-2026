@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 10.0; // Degrees per second
+const AUTO_ROTATION_SPEED = 4.0; // Majestic speed for better TV stability
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
@@ -25,7 +25,6 @@ const COLORS = {
   PACIFIER_GLOW: '#60a5fa',
   PACIFIER_CORE: '#ffffff',
   COMET_GLOW: '#93c5fd',
-  PROGRESS_GREEN: '#22c55e',
 };
 
 interface Star {
@@ -75,6 +74,7 @@ const GlobalApp: React.FC = () => {
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
   const lastTimeRef = useRef<number>(0);
+  const globeRotationRef = useRef<number>(0); // Persistent rotation accumulator
   
   const gradients = useRef<{ [key: string]: CanvasGradient | null }>({});
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
@@ -230,11 +230,10 @@ const GlobalApp: React.FC = () => {
 
     const render = (time: number) => {
       if (!lastTimeRef.current) lastTimeRef.current = time;
-      const deltaTime = (time - lastTimeRef.current) / 1000; // time in seconds since last frame
+      const deltaTime = (time - lastTimeRef.current) / 1000; 
       lastTimeRef.current = time;
 
-      // Normalize factor to keep existing speed feel (adjusting for old 60fps logic)
-      const dtFactor = Math.min(deltaTime * 60, 2.0); // Cap it to avoid massive jumps on tab reactivation
+      const dtFactor = Math.min(deltaTime * 60, 2.0); 
 
       const { w, h } = dimensionsRef.current;
       const minDim = Math.min(w, h);
@@ -249,7 +248,6 @@ const GlobalApp: React.FC = () => {
       // Update & Draw Comets
       if (comets.current.length < 5 && Math.random() < 0.02) {
         const angle = Math.random() * Math.PI * 2;
-        // speed increased by 30% from original logic
         const speed = (2 + Math.random() * 5) * 1.3; 
         comets.current.push({
           x: Math.random() * w,
@@ -308,7 +306,7 @@ const GlobalApp: React.FC = () => {
           pacifiers.current.push({
             x: Math.random() * w, 
             y: Math.random() * h,
-            vx: (Math.random() - 0.5) * 120, // requested double speed logic
+            vx: (Math.random() - 0.5) * 120, 
             vy: (Math.random() - 0.5) * 120,
             rot: Math.random() * Math.PI * 2, 
             rv: (Math.random() - 0.5) * 0.06,
@@ -337,9 +335,9 @@ const GlobalApp: React.FC = () => {
       }
 
       if (geoDataRef.current) {
-        // Globe rotation now linked to clock time for perfect smoothness
-        const rotation = (time * 0.001 * AUTO_ROTATION_SPEED) % 360;
-        projection.rotate([rotation, INITIAL_PHI, 0]);
+        // ULTR-SMOOTH ROTATION: Use accumulated rotation ref for sub-pixel precision
+        globeRotationRef.current = (globeRotationRef.current + (AUTO_ROTATION_SPEED * deltaTime)) % 360;
+        projection.rotate([globeRotationRef.current, INITIAL_PHI, 0]);
 
         gCtx.fillStyle = '#000000';
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
@@ -385,7 +383,7 @@ const GlobalApp: React.FC = () => {
             if (t >= 1) { 
               activeFlashes.current.delete(id); 
             } else {
-              const distance = d3.geoDistance(feature.centroid, [-rotation, -INITIAL_PHI]);
+              const distance = d3.geoDistance(feature.centroid, [-globeRotationRef.current, -INITIAL_PHI]);
               if (distance < 1.57) { 
                 gCtx.save();
                 gCtx.beginPath(); path(feature);
@@ -482,8 +480,8 @@ const GlobalApp: React.FC = () => {
 
             <div className="h-[4px] w-full bg-white/10 rounded-full overflow-hidden relative backdrop-blur-md">
               <div 
-                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.6)]"
-                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #064e3b 0%, ${COLORS.PROGRESS_GREEN} 100%)` }} 
+                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(251,191,36,0.6)]"
+                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #1e293b 0%, ${COLORS.YELLOW_VIBRANT} 100%)` }} 
               />
             </div>
 
