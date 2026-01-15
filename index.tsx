@@ -25,6 +25,7 @@ const COLORS = {
   PACIFIER_GLOW: '#60a5fa',
   PACIFIER_CORE: '#ffffff',
   COMET_GLOW: '#93c5fd',
+  PROGRESS_GREEN: '#22c55e', // New color for progress bar
 };
 
 interface Star {
@@ -435,7 +436,7 @@ const GlobalApp: React.FC = () => {
       {/* Brand Logo */}
       <div className="absolute top-8 left-8 md:top-12 md:left-16 z-40 pointer-events-none">
         <div className="flex flex-col items-start w-fit">
-          <div className="font-bold tracking-tight text-[0.6rem] md:text-[1.2rem] leading-[1.1] uppercase" style={{ color: COLORS.HEADER_PURPLE, fontFamily: "'Inter', sans-serif" }}>
+          <div className="font-bold tracking-tight text-[0.6rem] md:text-[1.2rem] leading-[1.1] uppercase" style={{ color: COLORS.HEADER_PURPLE, fontFamily: "'Montserrat', sans-serif" }}>
             Mother & Child Care — Women's Health
           </div>
           <div className="w-full h-[2px] md:h-[4px] mt-1" style={{ backgroundColor: COLORS.YELLOW_VIBRANT }}></div>
@@ -464,8 +465,8 @@ const GlobalApp: React.FC = () => {
 
             <div className="h-[4px] w-full bg-white/10 rounded-full overflow-hidden relative backdrop-blur-md">
               <div 
-                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(251,191,36,0.6)]"
-                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #1e293b 0%, ${COLORS.YELLOW_VIBRANT} 100%)` }} 
+                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(34,197,94,0.6)]"
+                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #064e3b 0%, ${COLORS.PROGRESS_GREEN} 100%)` }} 
               />
             </div>
 
