@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 5.0; // Increased by one step for a more dynamic look
+const AUTO_ROTATION_SPEED = 5.0; // Dynamic cinematic speed
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
@@ -19,6 +19,7 @@ const COLORS = {
   OCEAN_BRIGHT: '#111827', 
   YELLOW_VIBRANT: '#fbbf24', 
   YELLOW_PEAK: '#fff700', 
+  GOLD: '#FFD700', // Solid Gold Color
   ATMOSPHERE: 'rgba(168, 85, 247, 0.25)', 
   SPECULAR: 'rgba(255, 255, 255, 0.12)', 
   HEADER_PURPLE: '#a855f7', 
@@ -74,7 +75,7 @@ const GlobalApp: React.FC = () => {
   const countRef = useRef(0);
   const dimensionsRef = useRef({ w: 0, h: 0 });
   const lastTimeRef = useRef<number>(0);
-  const globeRotationRef = useRef<number>(0); // Persistent rotation accumulator
+  const globeRotationRef = useRef<number>(0); 
   
   const gradients = useRef<{ [key: string]: CanvasGradient | null }>({});
   const projectionRef = useRef<d3.GeoProjection>(d3.geoOrthographic().clipAngle(90));
@@ -335,7 +336,7 @@ const GlobalApp: React.FC = () => {
       }
 
       if (geoDataRef.current) {
-        // ULTR-SMOOTH ROTATION: Use accumulated rotation ref for sub-pixel precision
+        // High-precision rotation accumulator
         globeRotationRef.current = (globeRotationRef.current + (AUTO_ROTATION_SPEED * deltaTime)) % 360;
         projection.rotate([globeRotationRef.current, INITIAL_PHI, 0]);
 
@@ -343,14 +344,12 @@ const GlobalApp: React.FC = () => {
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
 
         starsRef.current.forEach(s => {
-          // Normal twinkle logic
           s.opacity += (Math.random() - 0.5) * s.twinkle * dtFactor;
           
-          // Occasional sharp "blink" or spark
           if (Math.random() < 0.0004) {
-             s.opacity = 0.8 + Math.random() * 0.2; // Flash bright
+             s.opacity = 0.8 + Math.random() * 0.2; 
           } else if (Math.random() < 0.0002) {
-             s.opacity = 0.02; // Momentary fade out
+             s.opacity = 0.02; 
           }
 
           s.opacity = Math.max(0.05, Math.min(0.9, s.opacity));
@@ -489,8 +488,8 @@ const GlobalApp: React.FC = () => {
 
             <div className="h-[4px] w-full bg-white/10 rounded-full overflow-hidden relative backdrop-blur-md">
               <div 
-                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(251,191,36,0.6)]"
-                style={{ width: `${timeState.pct}%`, background: `linear-gradient(90deg, #1e293b 0%, ${COLORS.YELLOW_VIBRANT} 100%)` }} 
+                className="h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(255,215,0,0.6)]"
+                style={{ width: `${timeState.pct}%`, backgroundColor: COLORS.GOLD }} 
               />
             </div>
 
