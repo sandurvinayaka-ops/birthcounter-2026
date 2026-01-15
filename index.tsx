@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 
 // --- Configuration ---
 const BIRTHS_PER_SECOND = 4.352;
-const AUTO_ROTATION_SPEED = 4.0; // Majestic speed for better TV stability
+const AUTO_ROTATION_SPEED = 5.0; // Increased by one step for a more dynamic look
 const INITIAL_PHI = -15;
 
 const MAX_WIDTH = 1920;
@@ -343,8 +343,17 @@ const GlobalApp: React.FC = () => {
         gCtx.fillRect(0, 0, w * GLOBE_RENDER_SCALE, h * GLOBE_RENDER_SCALE);
 
         starsRef.current.forEach(s => {
+          // Normal twinkle logic
           s.opacity += (Math.random() - 0.5) * s.twinkle * dtFactor;
-          s.opacity = Math.max(0.05, Math.min(0.7, s.opacity));
+          
+          // Occasional sharp "blink" or spark
+          if (Math.random() < 0.0004) {
+             s.opacity = 0.8 + Math.random() * 0.2; // Flash bright
+          } else if (Math.random() < 0.0002) {
+             s.opacity = 0.02; // Momentary fade out
+          }
+
+          s.opacity = Math.max(0.05, Math.min(0.9, s.opacity));
           gCtx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
           gCtx.beginPath();
           gCtx.arc(s.x * w * GLOBE_RENDER_SCALE, s.y * h * GLOBE_RENDER_SCALE, s.size, 0, Math.PI * 2);
